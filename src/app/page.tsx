@@ -80,6 +80,8 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [hasSpeechSample, setHasSpeechSample] = useState(false);
+  const [isNoSpeechDetected, setIsNoSpeechDetected] = useState(false);
   const [speakingEvaluation, setSpeakingEvaluation] = useState<{
     pronunciationScore: number;
     fluencyScore: number;
@@ -87,6 +89,12 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
     feedback: string;
     adviceList: string[];
   } | null>(null);
+
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const hasSpeechSampleRef = useRef(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -98,16 +106,142 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  const handleStartRecording = () => {
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  const updateAudioLevel = () => {
+    if (!analyserRef.current || !isRecording) return;
+
+    const dataArray = new Uint8Array(analyserRef.current.fftSize);
+    analyserRef.current.getByteTimeDomainData(dataArray);
+
+    let peak = 0;
+    for (let i = 0; i < dataArray.length; i++) {
+      const value = dataArray[i];
+      const normalized = (value - 128) / 128;
+      const magnitude = Math.abs(normalized);
+      if (magnitude > peak) peak = magnitude;
+    }
+
+    if (peak > 0.08) {
+      hasSpeechSampleRef.current = true;
+      setHasSpeechSample(true);
+    }
+
+    animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
+  };
+
+  const handleStartRecording = async () => {
     setSpeakingEvaluation(null);
     setRecordingSeconds(0);
-    setIsRecording(true);
+    setHasSpeechSample(false);
+    setIsNoSpeechDetected(false);
+    hasSpeechSampleRef.current = false;
+
+    try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+        setIsNoSpeechDetected(true);
+        setIsRecording(true);
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const audioContext = new AudioContextClass();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+
+      setIsRecording(true);
+      updateAudioLevel();
+    } catch (error) {
+      console.error('Microphone access error:', error);
+      setIsNoSpeechDetected(true);
+      setIsRecording(true);
+    }
   };
 
   const handleStopRecording = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    analyserRef.current = null;
+
+    const audioWasDetected = hasSpeechSampleRef.current;
+    const didSpeakEnough = audioWasDetected || recordingSeconds >= 2;
     setIsRecording(false);
     setIsAnalyzing(true);
     setTimeout(() => {
+      if (!audioWasDetected && !didSpeakEnough) {
+        setSpeakingEvaluation({
+          pronunciationScore: 0,
+          fluencyScore: 0,
+          grammarScore: 0,
+          feedback: "No spoken response was captured. Please record your answer and speak clearly to receive a proper assessment.",
+          adviceList: [
+            "Press Start Recording and speak for at least 2 seconds before stopping.",
+            "Keep a steady pace and avoid silent pauses.",
+            "Answer the prompt naturally and clearly so the AI can evaluate your speaking performance."
+          ]
+        });
+        setHasSpeechSample(false);
+        hasSpeechSampleRef.current = false;
+        setIsNoSpeechDetected(true);
+        setIsAnalyzing(false);
+        return;
+      }
+
+      if (!audioWasDetected && didSpeakEnough && recordingSeconds >= 2) {
+        setSpeakingEvaluation({
+          pronunciationScore: 0,
+          fluencyScore: 0,
+          grammarScore: 0,
+          feedback: "No speaking was detected in the recording, so this attempt is automatically scored as 0.",
+          adviceList: [
+            "Speak clearly into the microphone before stopping the recording.",
+            "Avoid long periods of silence while the timer is running.",
+            "Try again and answer the prompt out loud to receive a valid score."
+          ]
+        });
+        setHasSpeechSample(false);
+        hasSpeechSampleRef.current = false;
+        setIsNoSpeechDetected(true);
+        setIsAnalyzing(false);
+        return;
+      }
+
+      setHasSpeechSample(true);
+      hasSpeechSampleRef.current = true;
+      setIsNoSpeechDetected(false);
       setSpeakingEvaluation({
         pronunciationScore: 84,
         fluencyScore: 82,
@@ -129,6 +263,8 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
     setCurrentPrompt(promptList[0]);
     setSpeakingEvaluation(null);
     setRecordingSeconds(0);
+    setHasSpeechSample(false);
+    setIsNoSpeechDetected(false);
   }, [promptList]);
 
   const handleNextPrompt = () => {
@@ -137,6 +273,8 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
     setCurrentPrompt(promptList[nextIdx]);
     setSpeakingEvaluation(null);
     setRecordingSeconds(0);
+    setHasSpeechSample(false);
+    setIsNoSpeechDetected(false);
   };
 
   return (
@@ -158,6 +296,12 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
         <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">Speaking Prompt / Task:</span>
         <p className="text-slate-800 text-sm sm:text-base leading-relaxed font-medium">{currentPrompt}</p>
       </div>
+
+      {isNoSpeechDetected && !isRecording && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-800 font-medium">
+          No speaking detected. This attempt is scored as 0 until a real spoken response is recorded.
+        </div>
+      )}
 
       {/* Recording Control Center */}
       <div className="p-6 bg-slate-900 text-white rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-inner">
