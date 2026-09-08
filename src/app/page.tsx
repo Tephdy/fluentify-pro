@@ -67,15 +67,16 @@ function AudioPlayer({ script, onPlay, onEnded }: AudioPlayerProps) {
 }
 
 // --- SPEAKING RECORDER & AI EVALUATOR COMPONENT ---
-const SPEAKING_PROMPTS = [
+const FALLBACK_SPEAKING_PROMPTS = [
   "Please repeat or retell the following idea: 'Effective customer support requires a balance of empathy, active listening, and swift technical verification to ensure client satisfaction.'",
   "Describe a challenging technical problem you solved recently, explaining your troubleshooting steps and the final resolution.",
   "State your views on how remote work environments impact team productivity, collaboration, and work-life balance."
 ];
 
-function SpeakingRecorder() {
+function SpeakingRecorder({ prompts }: { prompts: string[] }) {
+  const promptList = prompts.length > 0 ? prompts : FALLBACK_SPEAKING_PROMPTS;
   const [promptIndex, setPromptIndex] = useState(0);
-  const [currentPrompt, setCurrentPrompt] = useState(SPEAKING_PROMPTS[0]);
+  const [currentPrompt, setCurrentPrompt] = useState(promptList[0]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -122,10 +123,18 @@ function SpeakingRecorder() {
     }, 1000);
   };
 
+  useEffect(() => {
+    if (!promptList.length) return;
+    setPromptIndex(0);
+    setCurrentPrompt(promptList[0]);
+    setSpeakingEvaluation(null);
+    setRecordingSeconds(0);
+  }, [promptList]);
+
   const handleNextPrompt = () => {
-    const nextIdx = (promptIndex + 1) % SPEAKING_PROMPTS.length;
+    const nextIdx = (promptIndex + 1) % promptList.length;
     setPromptIndex(nextIdx);
-    setCurrentPrompt(SPEAKING_PROMPTS[nextIdx]);
+    setCurrentPrompt(promptList[nextIdx]);
     setSpeakingEvaluation(null);
     setRecordingSeconds(0);
   };
@@ -265,33 +274,6 @@ const DEFAULT_TYPING_PASSAGES = [
   "Effective communication is essential in remote work environments. Clear updates and structured documentation prevent misunderstandings and keep project deliverables on track."
 ];
 
-const READING_TOPIC_POOLS = [
-  {
-    title: "Corporate Remote Work & Hybrid Policy Guidelines",
-    passage: "Modern organizations are shifting towards hybrid operating models to balance employee autonomy with collaborative synergy. Effective communication channels, regular asynchronous updates, and secure cloud infrastructure are paramount to maintaining team productivity across distributed time zones.\n\nFurthermore, transitioning to these flexible frameworks requires deliberate cultural alignment. Management must trust output over physical presence while providing staff with the digital tools necessary to streamline project workflows and mitigate burnout.",
-    questions: [
-      { id: 'q1', type: 'sentence_completion' as const, question: "Organizations are shifting towards _____ models to balance autonomy.", options: ["hybrid", "isolated", "rigid", "manual"], correctAnswer: "hybrid" },
-      { id: 'q2', type: 'sentence_completion' as const, question: "Regular asynchronous updates help maintain productivity across distributed _____ zones.", options: ["time", "climate", "comfort", "silent"], correctAnswer: "time" },
-      { id: 'q3', type: 'sentence_completion' as const, question: "Management must prioritize staff output over physical _____.", options: ["presence", "absence", "silence", "distance"], correctAnswer: "presence" }
-    ]
-  },
-  {
-    title: "Customer Service Escalation & Conflict Resolution",
-    passage: "When managing distressed clients, the primary objective is active empathy combined with rapid technical verification. Representatives must isolate root-cause discrepancies in system logs before communicating resolution timelines to prevent further friction.\n\nDe-escalation also relies heavily on maintaining a calm, reassuring tone and setting realistic expectations. By validating the customer's frustration early in the interaction, agents can transform a negative experience into long-term brand loyalty.",
-    questions: [
-      { id: 'q1', type: 'sentence_completion' as const, question: "The primary objective when handling distressed clients is active _____.", options: ["empathy", "indifference", "hostility", "silence"], correctAnswer: "empathy" },
-      { id: 'q2', type: 'sentence_completion' as const, question: "Representatives must isolate root-cause discrepancies in system _____.", options: ["logs", "menus", "speakers", "cabinets"], correctAnswer: "logs" },
-      { id: 'q3', type: 'sentence_completion' as const, question: "By validating customer frustration, agents can build long-term brand _____.", options: ["loyalty", "fatigue", "distance", "confusion"], correctAnswer: "loyalty" }
-    ]
-  }
-];
-
-const WRITING_PROMPTS = [
-  "A customer is complaining that their monthly subscription was billed twice due to a system glitch. Write a professional email response addressing their concern, apologizing for the error, and detailing how the refund will be processed.",
-  "Write an email to your team manager requesting approval to work remotely for the next three days due to personal commitments, ensuring them that all current project deliverables will be completed on schedule.",
-  "A client is inquiring about the delayed delivery of their enterprise software license keys. Write a reassuring customer service response explaining the technical verification delay and providing an updated delivery timeframe."
-];
-
 export default function Home() {
   const [selectedModule, setSelectedModule] = useState<ModuleType | null>(null);
 
@@ -319,7 +301,8 @@ export default function Home() {
   const typingInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Writing Test States
-  const [writingPrompt, setWritingPrompt] = useState<string>(WRITING_PROMPTS[0]);
+  const [writingPrompt, setWritingPrompt] = useState<string>('');
+  const [speakingPrompts, setSpeakingPrompts] = useState<string[]>(FALLBACK_SPEAKING_PROMPTS);
   const [writingText, setWritingText] = useState<string>('');
   const [isEvaluatingWriting, setIsEvaluatingWriting] = useState<boolean>(false);
   const [writingEvaluation, setWritingEvaluation] = useState<{
@@ -385,10 +368,7 @@ export default function Home() {
   };
 
   const resetWritingState = () => {
-    const randomPrompt = WRITING_PROMPTS[Math.floor(Math.random() * WRITING_PROMPTS.length)];
-    setWritingPrompt(randomPrompt);
-    setWritingText('');
-    setWritingEvaluation(null);
+    generateTest('writing');
   };
 
   const handleSelectModule = (tab: ModuleType) => {
@@ -424,25 +404,6 @@ export default function Home() {
     setSelectedAnswers({});
     resetListeningState();
 
-    if (moduleType === 'reading') {
-      const randomTopic = READING_TOPIC_POOLS[Math.floor(Math.random() * READING_TOPIC_POOLS.length)];
-      setTimeout(() => {
-        setTestData({
-          id: `read-${Math.random().toString(36).substring(2, 7)}`,
-          title: randomTopic.title,
-          passage: randomTopic.passage,
-          questions: randomTopic.questions
-        });
-        setLoading(false);
-      }, 300);
-      return;
-    }
-
-    if (moduleType === 'writing' || moduleType === 'speaking') {
-      setLoading(false);
-      return;
-    }
-
     if (moduleType === 'typing') {
       try {
         const res = await fetch('/api/generate', {
@@ -473,10 +434,25 @@ export default function Home() {
       });
 
       const data = await res.json();
-      if (res.ok) {
-        setTestData(data);
-      } else {
+      if (!res.ok) {
         alert(data.error || 'Generation failed');
+        return;
+      }
+
+      if (moduleType === 'writing') {
+        const nextPrompt = data.title || data.questions?.[0]?.question || 'Write a professional response to the scenario provided.';
+        setWritingPrompt(nextPrompt);
+        setWritingText('');
+        setWritingEvaluation(null);
+      }
+
+      if (moduleType === 'speaking') {
+        const prompts = (data.questions ?? []).map((q: { question?: string }) => q.question).filter(Boolean) as string[];
+        setSpeakingPrompts(prompts.length > 0 ? prompts : FALLBACK_SPEAKING_PROMPTS);
+      }
+
+      if (moduleType === 'reading' || moduleType === 'listening') {
+        setTestData(data);
       }
     } catch (err) {
       console.error(err);
@@ -837,7 +813,7 @@ export default function Home() {
             {/* SPEAKING MODULE VIEW */}
             {selectedModule === 'speaking' && (
               <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
-                <SpeakingRecorder />
+                <SpeakingRecorder prompts={speakingPrompts} />
               </div>
             )}
 
