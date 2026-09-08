@@ -1,34 +1,36 @@
 import { NextResponse } from 'next/server';
 
 const LISTENING_TOPICS = [
-  'booking a guided city tour and museum tickets',
-  'inquiring about student accommodation and rent terms',
-  'registering for a community sports center membership',
-  'a discussion between a student and a professor about a project deadline',
-  'booking a holiday cottage and checking facility amenities',
-  'calling a local library to ask about opening hours and membership fees',
-  'interviewing for a part-time job at a bookstore',
+  'an angry customer disputing a duplicate charge on their credit card',
+  'a BPO agent handling a cancellation request during a service outage',
+  'a sales call for upselling an internet plan while managing objections',
+  'a customer asking for a refund after a delayed delivery and poor service',
+  'a support call about account verification and password reset security checks',
+  'a technical support escalation with a frustrated client and a supervisor handoff',
+  'a quality assurance review of an agent handling an empathy-driven complaint',
 ];
 
 const READING_TOPICS = [
-  'the history and evolution of urban architectural techniques',
-  'advancements in renewable energy and solar storage',
-  'marine conservation and coral reef restoration projects',
-  'the psychological impact of remote work on productivity',
-  'the discovery and archaeological significance of ancient trade routes',
-  'agricultural innovations in vertical farming',
+  'BPO customer service quality metrics and call resolution standards',
+  'best practices in handling escalations and complaint de-escalation in support centers',
+  'how account security procedures protect remote customer service teams',
+  'performance coaching strategies for call center agents in high-volume environments',
+  'the role of empathy, active listening, and SLA compliance in BPO operations',
+  'customer retention tactics in outsourced sales and support teams',
 ];
 
 const WRITING_TOPICS = [
-  'Task 1: Summarizing a chart on global energy consumption patterns.',
-  'Task 2: Essay on whether university education should be free for everyone.',
-  'Task 2: Essay on the impact of artificial intelligence on future employment.',
+  'Write a customer service email apologizing for a billing error and explaining refund steps.',
+  'Write a professional response to an upset client who wants a supervisor after a failed technical fix.',
+  'Write a follow-up email confirming a service recovery plan after a delayed shipment.',
+  'Write a coaching note to a new BPO agent explaining how to handle a dissatisfied customer calmly.',
 ];
 
 const SPEAKING_TOPICS = [
-  'Part 1: Questions about your hometown, daily routine, and hobbies.',
-  'Part 2: Cue card describing a memorable journey or trip you took.',
-  'Part 3: Discussion on the cultural importance of tourism.',
+  'Describe how you would calm an angry customer who is demanding a refund immediately.',
+  'Explain how you would handle a sales objection when a customer says the price is too high.',
+  'Tell us how you would manage a service outage while maintaining trust and clear communication.',
+  'Discuss how you would respond when a caller is frustrated because their issue has already been escalated twice.',
 ];
 
 export async function POST(request: Request) {
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
     const randomTopic = topics[Math.floor(Math.random() * topics.length)];
     const randomIdSeed = Math.floor(Math.random() * 10000);
 
-    const prompt = `You are an IELTS exam author. Generate a brand new, unique practice test set for the ${moduleType.toUpperCase()} module in valid JSON format.
+    const prompt = `You are an IELTS-style exam author focused on BPO / customer support / call center evaluation. Generate a brand new, unique behavioral assessment for the ${moduleType.toUpperCase()} module in valid JSON format.
 
 TOPIC FOR THIS TEST: ${randomTopic} (Unique ID: ${randomIdSeed})
 
@@ -60,17 +62,21 @@ CRITICAL INSTRUCTIONS:
 1. "id" for each question MUST be a unique string (e.g. "q1", "q2", "q3", "q4").
 2. EVERY question MUST have "type" set to "radio" and include EXACTLY 4 distinct string options in "options". Do NOT leave options empty.
 3. Every question MUST have non-empty text in "question" and a valid matching string in "correctAnswer".
-4. ${
+4. Make all questions closely related to BPO industry situations, customer service, call center behavior, escalation handling, sales objections, empathy, compliance, QA, retention, or account support.
+5. Focus on behavioral decision-making: what the agent should say or do in a customer care situation.
+6. ${
       moduleType === 'listening'
-        ? 'Provide a clear, detailed dialogue or monologue script (150-200 words) about the topic in "audioScript". Avoid special quotes.'
+        ? 'Provide a realistic BPO customer support call script (150-200 words) in "audioScript" about the scenario. The conversation should contain a complaint, problem, or objection. Keep it natural and workplace-appropriate. Avoid special quotes.'
         : 'Set "audioScript" to an empty string.'
     }
-5. ${
+7. ${
       moduleType === 'reading'
-        ? 'Provide an original academic reading passage (250-300 words) about the topic in "passage".'
+        ? 'Provide an original professional reading passage (250-300 words) about BPO operations, customer handling standards, service recovery, SLA expectations, or call center quality management in "passage".'
         : 'Set "passage" to an empty string.'
     }
-6. Generate exactly 4 creative comprehension questions tailored to the prompt.`;
+8. For writing and speaking modules, the title should clearly describe a BPO situation or customer scenario.
+9. Generate exactly 4 behavioral multiple-choice questions tailored to the BPO scenario. Each question should test how an agent should respond professionally in a realistic customer support or sales situation.
+10. Use realistic answer choices that include proper empathy, ownership, escalation, compliance, clarity, and customer-first behavior.`;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
