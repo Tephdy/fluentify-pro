@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Fluentify Pro",
-  description: "On-the-go IELTS Practice Web Application",
+  title: "Cally",
+  description: "Your friendly companion for smart typing and speaking practice. Let's grow together!",
 };
 
 export default function RootLayout({
