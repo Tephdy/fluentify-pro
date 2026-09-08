@@ -1212,7 +1212,7 @@ export default function Home() {
       <footer className="w-full border-t border-slate-200/80 bg-white py-6 px-4 sm:px-8 mt-auto shadow-xs">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-700">Assessment & Practice Portal</span>
+            <span className="font-bold text-slate-700">Developed By TephdyTech</span>
             <span>&bull;</span>
             <span>&copy; {new Date().getFullYear()} All rights reserved.</span>
           </div>
