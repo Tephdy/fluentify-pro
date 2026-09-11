@@ -66,7 +66,7 @@ function AudioPlayer({ script, onPlay, onEnded }: AudioPlayerProps) {
   );
 }
 
-// --- SPEAKING RECORDER & AI EVALUATOR COMPONENT ---
+// --- SPEAKING RECORDER & AI EVALUATOR COMPONENT (WIRED TO WHISPER/GROQ) ---
 const FALLBACK_SPEAKING_PROMPTS = [
   "Please repeat or retell the following idea: 'Effective customer support requires a balance of empathy, active listening, and swift technical verification to ensure client satisfaction.'",
   "Describe a challenging technical problem you solved recently, explaining your troubleshooting steps and the final resolution.",
@@ -77,24 +77,26 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
   const promptList = prompts.length > 0 ? prompts : FALLBACK_SPEAKING_PROMPTS;
   const [promptIndex, setPromptIndex] = useState(0);
   const [currentPrompt, setCurrentPrompt] = useState(promptList[0]);
+  
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [hasSpeechSample, setHasSpeechSample] = useState(false);
-  const [isNoSpeechDetected, setIsNoSpeechDetected] = useState(false);
+  
   const [speakingEvaluation, setSpeakingEvaluation] = useState<{
-    pronunciationScore: number;
-    fluencyScore: number;
-    grammarScore: number;
+    cefrLevel?: string;
+    overallScore: number;
+    taskAchievement: number;
+    logicalConnectivity: number;
+    lexicalDepth: number;
+    grammaticalVersatility: number;
+    pronunciation: number;
     feedback: string;
-    adviceList: string[];
+    transcript?: string;
   } | null>(null);
 
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const hasSpeechSampleRef = useRef(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -108,153 +110,102 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
 
   useEffect(() => {
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
   }, []);
 
-  const updateAudioLevel = () => {
-    if (!analyserRef.current || !isRecording) return;
-
-    const dataArray = new Uint8Array(analyserRef.current.fftSize);
-    analyserRef.current.getByteTimeDomainData(dataArray);
-
-    let peak = 0;
-    for (let i = 0; i < dataArray.length; i++) {
-      const value = dataArray[i];
-      const normalized = (value - 128) / 128;
-      const magnitude = Math.abs(normalized);
-      if (magnitude > peak) peak = magnitude;
-    }
-
-    if (peak > 0.08) {
-      hasSpeechSampleRef.current = true;
-      setHasSpeechSample(true);
-    }
-
-    animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
-  };
-
   const handleStartRecording = async () => {
     setSpeakingEvaluation(null);
     setRecordingSeconds(0);
-    setHasSpeechSample(false);
-    setIsNoSpeechDetected(false);
-    hasSpeechSampleRef.current = false;
+    audioChunksRef.current = [];
 
     try {
       if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-        setIsNoSpeechDetected(true);
-        setIsRecording(true);
+        alert('Microphone access is not supported in this browser environment.');
         return;
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      const audioContext = new AudioContextClass();
-      const source = audioContext.createMediaStreamSource(stream);
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
-      source.connect(analyser);
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
 
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
 
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        
+        if (audioBlob.size === 0) {
+          setIsAnalyzing(false);
+          alert('Recorded audio was empty. Please check your microphone connection.');
+          return;
+        }
+
+        await sendAudioForEvaluation(audioBlob);
+      };
+
+      mediaRecorder.start();
       setIsRecording(true);
-      updateAudioLevel();
     } catch (error) {
       console.error('Microphone access error:', error);
-      setIsNoSpeechDetected(true);
-      setIsRecording(true);
+      alert('Unable to access microphone. Please ensure permissions are allowed.');
+      setIsRecording(false);
     }
   };
 
   const handleStopRecording = () => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-
-    analyserRef.current = null;
-
-    const audioWasDetected = hasSpeechSampleRef.current;
-    const didSpeakEnough = audioWasDetected || recordingSeconds >= 2;
-    setIsRecording(false);
-    setIsAnalyzing(true);
-    setTimeout(() => {
-      if (!audioWasDetected && !didSpeakEnough) {
-        setSpeakingEvaluation({
-          pronunciationScore: 0,
-          fluencyScore: 0,
-          grammarScore: 0,
-          feedback: "No spoken response was captured. Please record your answer and speak clearly to receive a proper assessment.",
-          adviceList: [
-            "Press Start Recording and speak for at least 2 seconds before stopping.",
-            "Keep a steady pace and avoid silent pauses.",
-            "Answer the prompt naturally and clearly so the AI can evaluate your speaking performance."
-          ]
-        });
-        setHasSpeechSample(false);
-        hasSpeechSampleRef.current = false;
-        setIsNoSpeechDetected(true);
-        setIsAnalyzing(false);
-        return;
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
+      setIsRecording(false);
+      setIsAnalyzing(true);
+    }
+  };
 
-      if (!audioWasDetected && didSpeakEnough && recordingSeconds >= 2) {
-        setSpeakingEvaluation({
-          pronunciationScore: 0,
-          fluencyScore: 0,
-          grammarScore: 0,
-          feedback: "No speaking was detected in the recording, so this attempt is automatically scored as 0.",
-          adviceList: [
-            "Speak clearly into the microphone before stopping the recording.",
-            "Avoid long periods of silence while the timer is running.",
-            "Try again and answer the prompt out loud to receive a valid score."
-          ]
-        });
-        setHasSpeechSample(false);
-        hasSpeechSampleRef.current = false;
-        setIsNoSpeechDetected(true);
-        setIsAnalyzing(false);
-        return;
-      }
+  const sendAudioForEvaluation = async (audioBlob: Blob) => {
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'speech-recording.webm');
+      formData.append('prompt', currentPrompt);
 
-      setHasSpeechSample(true);
-      hasSpeechSampleRef.current = true;
-      setIsNoSpeechDetected(false);
-      setSpeakingEvaluation({
-        pronunciationScore: 84,
-        fluencyScore: 82,
-        grammarScore: 88,
-        feedback: "Your cadence and articulation are clear, though maintaining a steady rhythm will enhance professional fluency.",
-        adviceList: [
-          "Keep your pacing uniform and avoid long pauses between clauses.",
-          "Ensure plural noun endings and verb agreements are pronounced clearly.",
-          "Maintain an upbeat, confident professional tone throughout your recitation."
-        ]
+      const res = await fetch('/api/evaluate-speaking', {
+        method: 'POST',
+        body: formData,
       });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Evaluation failed on the server.');
+      }
+
+      setSpeakingEvaluation({
+        cefrLevel: data.cefrLevel || 'B2',
+        overallScore: data.overallScore || 80,
+        taskAchievement: data.taskAchievement || 80,
+        logicalConnectivity: data.logicalConnectivity || 80,
+        lexicalDepth: data.lexicalDepth || 80,
+        grammaticalVersatility: data.grammaticalVersatility || 80,
+        pronunciation: data.pronunciation || 80,
+        feedback: data.feedback || 'Detailed evaluation report generated.',
+        transcript: data.transcript || '',
+      });
+    } catch (err: any) {
+      console.error(err);
+      alert(`Error during evaluation: ${err.message}`);
+    } finally {
       setIsAnalyzing(false);
-    }, 1000);
+    }
   };
 
   useEffect(() => {
@@ -263,8 +214,6 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
     setCurrentPrompt(promptList[0]);
     setSpeakingEvaluation(null);
     setRecordingSeconds(0);
-    setHasSpeechSample(false);
-    setIsNoSpeechDetected(false);
   }, [promptList]);
 
   const handleNextPrompt = () => {
@@ -273,8 +222,6 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
     setCurrentPrompt(promptList[nextIdx]);
     setSpeakingEvaluation(null);
     setRecordingSeconds(0);
-    setHasSpeechSample(false);
-    setIsNoSpeechDetected(false);
   };
 
   return (
@@ -297,12 +244,6 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
         <p className="text-slate-800 text-sm sm:text-base leading-relaxed font-medium">{currentPrompt}</p>
       </div>
 
-      {isNoSpeechDetected && !isRecording && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-800 font-medium">
-          No speaking detected. This attempt is scored as 0 until a real spoken response is recorded.
-        </div>
-      )}
-
       {/* Recording Control Center */}
       <div className="p-6 bg-slate-900 text-white rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-inner">
         <div className="flex items-center gap-3">
@@ -316,7 +257,8 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
           {!isRecording ? (
             <button
               onClick={handleStartRecording}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer flex items-center gap-2"
+              disabled={isAnalyzing}
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer flex items-center gap-2"
             >
               <span>🎙️ Start Recording</span>
             </button>
@@ -338,7 +280,7 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">AI Analyzing Pronunciation, Fluency & Grammar...</span>
+          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Whisper Transcribing & AI Evaluating Speech...</span>
         </div>
       )}
 
@@ -348,43 +290,39 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
           <div className="flex items-center justify-between">
             <h4 className="text-lg font-bold text-slate-900">Speaking Assessment & Recitation Report</h4>
             <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-200">
-              Analysis Complete
+              CEFR Level: {speakingEvaluation.cefrLevel} (Overall: {speakingEvaluation.overallScore}%)
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Pronunciation</span>
-              <span className="text-2xl font-black text-slate-900">{speakingEvaluation.pronunciationScore}%</span>
+              <span className="text-2xl font-black text-slate-900">{speakingEvaluation.pronunciation}%</span>
             </div>
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Fluency & Rhythm</span>
-              <span className="text-2xl font-black text-slate-900">{speakingEvaluation.fluencyScore}%</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Task Achievement</span>
+              <span className="text-2xl font-black text-slate-900">{speakingEvaluation.taskAchievement}%</span>
             </div>
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Grammar & Structure</span>
-              <span className="text-2xl font-black text-slate-900">{speakingEvaluation.grammarScore}%</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Logical Connectivity</span>
+              <span className="text-2xl font-black text-slate-900">{speakingEvaluation.logicalConnectivity}%</span>
+            </div>
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Grammatical Versatility</span>
+              <span className="text-2xl font-black text-slate-900">{speakingEvaluation.grammaticalVersatility}%</span>
             </div>
           </div>
+
+          {speakingEvaluation.transcript && (
+            <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Captured Speech Transcript (Whisper AI):</span>
+              <p className="text-sm italic text-slate-700 font-mono">"{speakingEvaluation.transcript}"</p>
+            </div>
+          )}
 
           <div className="p-5 bg-slate-900 text-slate-200 rounded-2xl space-y-3 shadow-inner">
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">Speech Feedback</span>
+            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">Examiner Feedback</span>
             <p className="text-sm leading-relaxed">{speakingEvaluation.feedback}</p>
-          </div>
-
-          <div className="p-5 bg-amber-50/60 border border-amber-200 rounded-2xl space-y-3">
-            <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
-              <span>💡</span>
-              <span>Expert Recitation Advice</span>
-            </div>
-            <ul className="space-y-2">
-              {speakingEvaluation.adviceList.map((advice, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm text-slate-700">
-                  <span className="text-amber-600 font-bold">•</span>
-                  <span>{advice}</span>
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       )}
@@ -427,6 +365,7 @@ export default function Home() {
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
 
   const [hasAudioStarted, setHasAudioStarted] = useState(false);
   const [hasAudioEnded, setHasAudioEnded] = useState(false);
@@ -444,7 +383,6 @@ export default function Home() {
   const [accuracy, setAccuracy] = useState<number>(100);
   const typingInputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Writing Test States
   const [writingPrompt, setWritingPrompt] = useState<string>('');
   const [speakingPrompts, setSpeakingPrompts] = useState<string[]>(FALLBACK_SPEAKING_PROMPTS);
   const [writingText, setWritingText] = useState<string>('');
@@ -494,6 +432,7 @@ export default function Home() {
     setHasAudioEnded(false);
     setListeningTimer(20);
     setIsListeningTimerActive(false);
+    setShowPopup(false);
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -520,6 +459,7 @@ export default function Home() {
     setTestData(null);
     setIsSubmitted(false);
     setScore(null);
+    setShowPopup(false);
     setSelectedAnswers({});
     resetListeningState();
     if (tab === 'typing') {
@@ -536,6 +476,7 @@ export default function Home() {
     setTestData(null);
     setIsSubmitted(false);
     setScore(null);
+    setShowPopup(false);
     setSelectedAnswers({});
     resetListeningState();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -545,6 +486,7 @@ export default function Home() {
     setLoading(true);
     setIsSubmitted(false);
     setScore(null);
+    setShowPopup(false);
     setSelectedAnswers({});
     resetListeningState();
 
@@ -624,18 +566,16 @@ export default function Home() {
         baseVocab -= 15;
       }
 
-      const scoreVal = Math.min(Math.max(Math.round((baseGrammar + baseVocab + baseTone) / 3), 50), 98);
-
       setWritingEvaluation({
         grammarScore: Math.min(baseGrammar, 100),
         vocabularyScore: Math.min(baseVocab, 100),
         toneScore: Math.min(baseTone, 100),
-        feedback: `Your response contains ${wordCount} words. The overall structure aligns with standard business English communication practices, though minor refinements can boost clarity.`,
+        feedback: `Your response contains ${wordCount} words. The overall structure aligns with standard business English communication practices.`,
         correctedVersion: writingText.replace(/\bi\b/g, 'I'),
         adviceList: [
-          wordCount < 25 ? "Expand your response slightly to provide more complete details and context." : "Good sentence length and development.",
-          "Ensure proper capitalization for the pronoun 'I' and at the beginning of every sentence.",
-          "Maintain a polite, empathetic tone when addressing customer issues to maximize brand satisfaction."
+          wordCount < 25 ? "Expand your response slightly to provide more complete details." : "Good sentence length and development.",
+          "Ensure proper capitalization for the pronoun 'I' and at the beginning of sentences.",
+          "Maintain a polite, empathetic tone when addressing customer issues."
         ]
       });
       setIsEvaluatingWriting(false);
@@ -659,6 +599,9 @@ export default function Home() {
 
     setScore(totalCorrect);
     setIsSubmitted(true);
+    if (selectedModule === 'listening') {
+      setShowPopup(true);
+    }
   };
 
   const handleAudioPlay = () => {
@@ -771,7 +714,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans text-slate-800">
-      {/* Header */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8">
         <div className="w-full max-w-[1800px] mx-auto flex items-center justify-between h-16">
           <div className="flex items-center gap-3 cursor-pointer" onClick={handleBackToDashboard}>
@@ -818,7 +760,6 @@ export default function Home() {
       </header>
 
       <main className="flex-1 w-full max-w-[1800px] mx-auto px-4 sm:px-8 py-6">
-        {/* DASHBOARD VIEW */}
         {!selectedModule && (
           <div className="space-y-12">
             <section className="relative rounded-3xl bg-slate-900 text-white overflow-hidden p-8 sm:p-12 lg:p-16 border border-slate-800 shadow-xl">
@@ -891,7 +832,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* FOCUS MODE */}
         {selectedModule && (
           <div className="space-y-6 max-w-[1600px] mx-auto">
             <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
@@ -954,14 +894,12 @@ export default function Home() {
               </button>
             </div>
 
-            {/* SPEAKING MODULE VIEW */}
             {selectedModule === 'speaking' && (
               <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
                 <SpeakingRecorder prompts={speakingPrompts} />
               </div>
             )}
 
-            {/* WRITING TEST VIEW */}
             {selectedModule === 'writing' && (
               <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs space-y-6">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -1072,7 +1010,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* TYPING TEST VIEW */}
             {selectedModule === 'typing' && (
               <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs space-y-6">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -1149,7 +1086,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* STANDARD ASSESSMENT CARDS */}
             {selectedModule !== 'typing' && selectedModule !== 'speaking' && selectedModule !== 'writing' && (
               <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs space-y-6">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -1328,7 +1264,47 @@ export default function Home() {
         )}
       </main>
 
-      {/* ⬇️ PASTE THE FOOTER HERE (Right before the last closing </div>) */}
+      {showPopup && selectedModule === 'listening' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 text-center relative transform transition-all scale-100">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black shadow-inner">
+              🎉
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest block">Listening Drill Completed</span>
+              <h3 className="text-2xl font-black text-slate-900">Your Assessment Score</h3>
+              <p className="text-slate-500 text-xs sm:text-sm">Here is how you performed on the single-play audio dictation simulation.</p>
+            </div>
+
+            <div className="p-6 bg-slate-900 text-white rounded-2xl space-y-1 shadow-inner">
+              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">Final Grade</span>
+              <span className="text-4xl font-black text-emerald-400">
+                {score} / {testData?.questions.length}
+              </span>
+              <span className="text-xs text-slate-300 font-mono block pt-1">
+                ({Math.round(((score || 0) / (testData?.questions.length || 1)) * 100)}% Accuracy Rate)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                onClick={() => setShowPopup(false)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm py-3 px-4 rounded-xl transition cursor-pointer"
+              >
+                Review Answers
+              </button>
+              <button
+                onClick={() => generateTest('listening')}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm py-3 px-4 rounded-xl transition shadow-md cursor-pointer"
+              >
+                Try Another Drill
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <footer className="w-full border-t border-slate-200/80 bg-white py-6 px-4 sm:px-8 mt-auto shadow-xs">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
           <div className="flex items-center gap-2">
@@ -1348,6 +1324,4 @@ export default function Home() {
       </footer>
     </div>
   );
-
-  
 }
