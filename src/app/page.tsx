@@ -48,7 +48,7 @@ function AudioPlayer({ script, onPlay, onEnded }: AudioPlayerProps) {
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 py-2">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
       <div className="flex items-center gap-2">
         <span className={`w-2.5 h-2.5 rounded-full ${isPlaying ? 'bg-emerald-400 animate-ping' : 'bg-indigo-400'}`} />
         <span className="text-xs font-mono text-slate-300">
@@ -58,7 +58,7 @@ function AudioPlayer({ script, onPlay, onEnded }: AudioPlayerProps) {
       <button
         onClick={handlePlayAudio}
         disabled={isPlaying}
-        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition shadow-xs cursor-pointer flex items-center gap-1.5"
+        className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
       >
         <span>{isPlaying ? '🔊 Speaking...' : '▶ Play Audio'}</span>
       </button>
@@ -74,7 +74,6 @@ const FALLBACK_SPEAKING_PROMPTS = [
 
 function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComplete?: (score: number) => void }) {
   const promptList = prompts.length > 0 ? prompts : FALLBACK_SPEAKING_PROMPTS;
-  const [promptIndex, setPromptIndex] = useState(0);
   const [currentPrompt, setCurrentPrompt] = useState(promptList[0]);
   
   const [isRecording, setIsRecording] = useState(false);
@@ -212,32 +211,32 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
 
   return (
     <div className="space-y-6">
-      <div className="p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-2">
+      <div className="p-4 sm:p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-2">
         <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">Speaking Prompt / Task:</span>
         <p className="text-slate-800 text-sm sm:text-base leading-relaxed font-medium">{currentPrompt}</p>
       </div>
 
-      <div className="p-6 bg-slate-900 text-white rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-inner">
+      <div className="p-5 sm:p-6 bg-slate-900 text-white rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-inner">
         <div className="flex items-center gap-3">
           <span className={`w-3.5 h-3.5 rounded-full ${isRecording ? 'bg-rose-500 animate-ping' : 'bg-slate-500'}`} />
-          <span className="font-mono text-sm tracking-wide">
+          <span className="font-mono text-sm tracking-wide text-center">
             {isRecording ? `Recording Audio... (${recordingSeconds}s)` : 'Microphone Standby'}
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
           {!isRecording ? (
             <button
               onClick={handleStartRecording}
               disabled={isAnalyzing}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer flex items-center gap-2"
+              className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
               <span>🎙️ Start Recording</span>
             </button>
           ) : (
             <button
               onClick={handleStopRecording}
-              className="px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer flex items-center gap-2 animate-pulse"
+              className="w-full sm:w-auto px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2 animate-pulse"
             >
               <span>⏹️ Stop Recording & Analyze</span>
             </button>
@@ -246,7 +245,7 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
       </div>
 
       {isAnalyzing && (
-        <div className="p-6 text-center space-y-3 bg-slate-50 rounded-2xl border border-slate-200">
+        <div className="p-5 text-center space-y-3 bg-slate-50 rounded-2xl border border-slate-200">
           <svg className="animate-spin h-6 w-6 text-emerald-600 mx-auto" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -257,9 +256,9 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
 
       {speakingEvaluation && !isAnalyzing && (
         <div className="mt-8 pt-6 border-t border-slate-200 space-y-6 animate-fadeIn">
-          <div className="flex items-center justify-between">
-            <h4 className="text-lg font-bold text-slate-900">Speaking Assessment Report</h4>
-            <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h4 className="text-base sm:text-lg font-bold text-slate-900">Speaking Assessment Report</h4>
+            <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-200 self-start sm:self-auto">
               Score: {speakingEvaluation.overallScore}%
             </span>
           </div>
@@ -711,12 +710,12 @@ export default function Home() {
   if (!isNameSubmitted) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl space-y-6 text-center animate-fadeIn">
+        <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-6 text-center animate-fadeIn">
           <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-2xl font-black shadow-inner">
             ✨
           </div>
           <div className="space-y-1">
-            <h1 className="text-2xl font-black text-slate-900">Welcome to Cally</h1>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900">Welcome to Cally</h1>
             <p className="text-slate-500 text-xs">Please enter your full name to begin your assessment journey.</p>
           </div>
           <input
@@ -743,34 +742,34 @@ export default function Home() {
       <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-8">
         <div className="w-full max-w-[1800px] mx-auto flex items-center justify-between h-16">
           <div className="flex items-center gap-3 cursor-pointer" onClick={handleBackToDashboard}>
-            <div className="relative w-9 h-9 shrink-0">
+            <div className="relative w-8 h-8 sm:w-9 sm:h-9 shrink-0">
               <Image src="/logo.png" alt="Cally Logo" fill priority className="object-contain" />
             </div>
-            <span className="font-bold text-slate-900 tracking-tight text-lg">Cally Assessment Hub</span>
+            <span className="font-bold text-slate-900 tracking-tight text-sm sm:text-lg">Cally Assessment Hub</span>
           </div>
           <div className="flex items-center gap-4 text-xs font-semibold text-slate-700">
-            <span>Candidate: <strong className="text-indigo-600">{userName}</strong></span>
+            <span className="truncate max-w-[120px] sm:max-w-none">Candidate: <strong className="text-indigo-600">{userName}</strong></span>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-8 py-6">
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-3 sm:px-8 py-4 sm:py-6">
         {appMode === 'dashboard' && !selectedModule && (
-          <div className="space-y-10">
-            <div className="p-8 sm:p-12 bg-slate-900 text-white rounded-3xl space-y-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="space-y-3 max-w-2xl relative z-10">
-                <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
+          <div className="space-y-8 sm:space-y-10">
+            <div className="p-6 sm:p-12 bg-slate-900 text-white rounded-3xl space-y-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl relative z-10 text-center md:text-left">
+                <span className="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
                   Flexible Assessment & Certification Portal
                 </span>
-                <h1 className="text-3xl sm:text-4xl font-black">Choose Your Mode</h1>
-                <p className="text-slate-300 text-sm leading-relaxed">
+                <h1 className="text-2xl sm:text-4xl font-black">Choose Your Mode</h1>
+                <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
                   Practice any module individually on the dashboard without a certificate, or take the official <strong>Full Exam</strong> pathway to download your verified certificate!
                 </p>
               </div>
-              <div className="shrink-0 relative z-10">
+              <div className="shrink-0 relative z-10 w-full md:w-auto">
                 <button
                   onClick={handleStartFullExam}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base px-8 py-4 rounded-2xl shadow-lg transition cursor-pointer flex items-center gap-3"
+                  className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-base px-6 sm:px-8 py-4 rounded-2xl shadow-lg transition cursor-pointer flex items-center justify-center gap-3"
                 >
                   <span>🎓 Take Full Exam & Download Certificate</span>
                 </button>
@@ -778,18 +777,18 @@ export default function Home() {
             </div>
 
             <div className="space-y-6">
-              <div className="border-b border-slate-200 pb-3 flex items-center justify-between">
+              <div className="border-b border-slate-200 pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Individual Practice Modules</h2>
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900">Individual Practice Modules</h2>
                   <p className="text-xs text-slate-500">Practice freely module-by-module (No certificate generated)</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
                 {dashboardFeatures.map((feat) => (
                   <div
                     key={feat.id}
-                    className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between hover:border-indigo-300 hover:shadow-md transition"
+                    className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 flex flex-col justify-between hover:border-indigo-300 hover:shadow-md transition"
                   >
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -819,8 +818,8 @@ export default function Home() {
         )}
 
         {appMode === 'full_exam' && examStepIndex === 5 && (
-          <div className="space-y-8 max-w-[1300px] mx-auto text-center animate-fadeIn">
-            <div className="p-6 bg-slate-100 rounded-3xl border border-slate-200 shadow-xl flex justify-center items-center overflow-hidden">
+          <div className="space-y-6 sm:space-y-8 max-w-[1300px] mx-auto text-center animate-fadeIn">
+            <div className="p-3 sm:p-6 bg-slate-100 rounded-3xl border border-slate-200 shadow-xl overflow-x-auto w-full">
               <div
                 id="certificate-to-download"
                 style={{
@@ -892,10 +891,10 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="p-8 bg-white border border-slate-200 rounded-3xl space-y-6 shadow-xl">
+            <div className="p-6 sm:p-8 bg-white border border-slate-200 rounded-3xl space-y-6 shadow-xl">
               <div className="space-y-2">
-                <h2 className="text-2xl font-black text-slate-900">Exam Finished Successfully!</h2>
-                <p className="text-sm text-slate-600">Your verified certificate file (.pdf) is ready for download.</p>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900">Exam Finished Successfully!</h2>
+                <p className="text-xs sm:text-sm text-slate-600">Your verified certificate file (.pdf) is ready for download.</p>
               </div>
 
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -919,30 +918,30 @@ export default function Home() {
 
         {selectedModule && (appMode === 'dashboard' || (appMode === 'full_exam' && examStepIndex < 5)) && (
           <div className="space-y-6 max-w-[1400px] mx-auto">
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 flex items-center justify-between shadow-xs">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
               <button
                 onClick={handleBackToDashboard}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
               >
                 ← Back to Dashboard
               </button>
-              <div className="text-right">
+              <div className="text-left sm:text-right w-full sm:w-auto">
                 <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
                   {appMode === 'full_exam' ? `Full Exam Step ${examStepIndex + 1} of 5` : 'Individual Practice Mode'}
                 </span>
-                <h2 className="text-lg font-bold text-slate-900 capitalize">{selectedModule} Module</h2>
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 capitalize">{selectedModule} Module</h2>
               </div>
             </div>
 
             {selectedModule === 'speaking' && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs">
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-xs">
                 <SpeakingRecorder prompts={speakingPrompts} onComplete={handleSpeakingComplete} />
               </div>
             )}
 
             {selectedModule === 'writing' && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
-                <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-2">
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-xs space-y-6">
+                <div className="p-4 sm:p-5 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-2">
                   <span className="text-xs font-bold text-indigo-800 uppercase block">Writing Prompt:</span>
                   <p className="text-slate-800 text-sm sm:text-base font-medium">{writingPrompt}</p>
                 </div>
@@ -956,7 +955,7 @@ export default function Home() {
                 <button
                   onClick={handleSubmitWriting}
                   disabled={isEvaluatingWriting || !writingText.trim()}
-                  className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
+                  className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
                 >
                   {isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}
                 </button>
@@ -969,8 +968,8 @@ export default function Home() {
             )}
 
             {selectedModule === 'typing' && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-xs space-y-6">
+                <div className="grid grid-cols-2 gap-4 text-center">
                   <div className="p-4 bg-sky-50 rounded-xl border border-sky-100">
                     <span className="text-xs text-sky-600 block font-bold uppercase">WPM</span>
                     <span className="text-2xl font-black text-sky-950">{wpm}</span>
@@ -981,7 +980,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="p-6 bg-slate-900 text-slate-300 rounded-2xl font-mono text-base leading-relaxed">
+                <div className="p-4 sm:p-6 bg-slate-900 text-slate-300 rounded-2xl font-mono text-xs sm:text-base leading-relaxed overflow-x-auto">
                   {typingPassage.split('').map((char, index) => {
                     let color = 'text-slate-500';
                     if (index < userInput.length) {
@@ -1009,13 +1008,13 @@ export default function Home() {
             )}
 
             {(selectedModule === 'listening' || selectedModule === 'reading') && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-xs space-y-6">
                 {loading && <div className="text-center py-12 text-slate-500 font-bold">Generating test questions...</div>}
 
                 {!loading && !testData && (
                   <button
                     onClick={() => generateTest(selectedModule)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
+                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
                   >
                     Load {selectedModule.toUpperCase()} Test
                   </button>
@@ -1023,10 +1022,10 @@ export default function Home() {
 
                 {testData && (
                   <div className="space-y-6">
-                    <h3 className="text-xl font-bold text-slate-900">{testData.title}</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-slate-900">{testData.title}</h3>
 
                     {selectedModule === 'reading' && testData.passage && (
-                      <div className="p-5 bg-amber-50 border border-amber-200 rounded-xl font-serif text-slate-800 leading-relaxed shadow-xs">
+                      <div className="p-4 sm:p-5 bg-amber-50 border border-amber-200 rounded-xl font-serif text-slate-800 leading-relaxed shadow-xs text-xs sm:text-sm">
                         {testData.passage}
                       </div>
                     )}
@@ -1054,15 +1053,15 @@ export default function Home() {
                         )}
 
                         {testData.questions.map((q, idx) => (
-                          <div key={q.id || idx} className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                            <p className="font-semibold text-slate-900 text-sm">Question {idx + 1}: {q.question}</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div key={q.id || idx} className="p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                            <p className="font-semibold text-slate-900 text-xs sm:text-sm">Question {idx + 1}: {q.question}</p>
+                            <div className="grid grid-cols-1 gap-2">
                               {q.options?.map((opt, oIdx) => (
                                 <button
                                   key={oIdx}
                                   disabled={isSubmitted}
                                   onClick={() => setSelectedAnswers(prev => ({ ...prev, [q.id]: opt }))}
-                                  className={`p-3 text-left rounded-xl border text-xs font-medium transition cursor-pointer ${
+                                  className={`p-3 text-left rounded-xl border text-xs sm:text-sm font-medium transition cursor-pointer ${
                                     selectedAnswers[q.id] === opt ? 'bg-amber-100 border-amber-500 text-amber-900 font-bold' : 'bg-white border-slate-200 text-slate-700'
                                   }`}
                                 >
@@ -1076,7 +1075,7 @@ export default function Home() {
                         {!isSubmitted ? (
                           <button
                             onClick={selectedModule === 'listening' ? handleSubmitListening : handleSubmitReading}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
+                            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
                           >
                             Submit {selectedModule} Answers
                           </button>
@@ -1100,23 +1099,23 @@ export default function Home() {
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 relative">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-lg sm:text-xl shadow-inner shrink-0">
                   📌
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest block">Module Guide</span>
-                  <h3 className="text-lg font-black text-slate-900">{activeFeature.title}</h3>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-indigo-600 uppercase tracking-widest block">Module Guide</span>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900">{activeFeature.title}</h3>
                 </div>
               </div>
               <button
                 onClick={() => setShowInstructionsModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer text-sm font-bold"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer text-sm font-bold shrink-0"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-200/60 text-slate-700 text-sm leading-relaxed whitespace-pre-line font-medium">
+            <div className="space-y-3 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/60 text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-medium">
               {activeFeature.instructions}
             </div>
 
