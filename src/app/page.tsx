@@ -3,19 +3,19 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 
-// --- COMPONENT PROPS FIXES FOR TYPESCRIPT ---
 interface AudioPlayerProps {
   script: string;
   onPlay?: () => void;
   onEnded?: () => void;
 }
 
-// Functional Text-to-Speech Audio Player
 function AudioPlayer({ script, onPlay, onEnded }: AudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handlePlayAudio = () => {
-    if (!script || typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    const sanitizedScript = script.replace(/Maya/g, 'Cally');
+
+    if (!sanitizedScript || typeof window === 'undefined' || !('speechSynthesis' in window)) {
       onPlay?.();
       setTimeout(() => {
         setIsPlaying(false);
@@ -26,7 +26,7 @@ function AudioPlayer({ script, onPlay, onEnded }: AudioPlayerProps) {
 
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(script);
+    const utterance = new SpeechSynthesisUtterance(sanitizedScript);
     utterance.rate = 0.95;
 
     utterance.onstart = () => {
@@ -66,14 +66,13 @@ function AudioPlayer({ script, onPlay, onEnded }: AudioPlayerProps) {
   );
 }
 
-// --- SPEAKING RECORDER & AI EVALUATOR COMPONENT (WIRED TO WHISPER/GROQ) ---
 const FALLBACK_SPEAKING_PROMPTS = [
   "Please repeat or retell the following idea: 'Effective customer support requires a balance of empathy, active listening, and swift technical verification to ensure client satisfaction.'",
   "Describe a challenging technical problem you solved recently, explaining your troubleshooting steps and the final resolution.",
   "State your views on how remote work environments impact team productivity, collaboration, and work-life balance."
 ];
 
-function SpeakingRecorder({ prompts }: { prompts: string[] }) {
+function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComplete?: (score: number) => void }) {
   const promptList = prompts.length > 0 ? prompts : FALLBACK_SPEAKING_PROMPTS;
   const [promptIndex, setPromptIndex] = useState(0);
   const [currentPrompt, setCurrentPrompt] = useState(promptList[0]);
@@ -189,7 +188,7 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
         throw new Error(data.error || 'Evaluation failed on the server.');
       }
 
-      setSpeakingEvaluation({
+      const evalResult = {
         cefrLevel: data.cefrLevel || 'B2',
         overallScore: data.overallScore || 80,
         taskAchievement: data.taskAchievement || 80,
@@ -199,7 +198,10 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
         pronunciation: data.pronunciation || 80,
         feedback: data.feedback || 'Detailed evaluation report generated.',
         transcript: data.transcript || '',
-      });
+      };
+
+      setSpeakingEvaluation(evalResult);
+      if (onComplete) onComplete(evalResult.overallScore);
     } catch (err: any) {
       console.error(err);
       alert(`Error during evaluation: ${err.message}`);
@@ -208,43 +210,13 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
     }
   };
 
-  useEffect(() => {
-    if (!promptList.length) return;
-    setPromptIndex(0);
-    setCurrentPrompt(promptList[0]);
-    setSpeakingEvaluation(null);
-    setRecordingSeconds(0);
-  }, [promptList]);
-
-  const handleNextPrompt = () => {
-    const nextIdx = (promptIndex + 1) % promptList.length;
-    setPromptIndex(nextIdx);
-    setCurrentPrompt(promptList[nextIdx]);
-    setSpeakingEvaluation(null);
-    setRecordingSeconds(0);
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-        <div>
-          <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Versant Speaking & Recitation AI</span>
-          <h3 className="text-lg font-bold text-slate-900 mt-1">Repeat, Retell & Impromptu Speaking Test</h3>
-        </div>
-        <button
-          onClick={handleNextPrompt}
-          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition border border-slate-200 cursor-pointer"
-        >
-          Next Prompt
-        </button>
-      </div>
-
       <div className="p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-2">
         <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">Speaking Prompt / Task:</span>
         <p className="text-slate-800 text-sm sm:text-base leading-relaxed font-medium">{currentPrompt}</p>
       </div>
 
-      {/* Recording Control Center */}
       <div className="p-6 bg-slate-900 text-white rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-inner">
         <div className="flex items-center gap-3">
           <span className={`w-3.5 h-3.5 rounded-full ${isRecording ? 'bg-rose-500 animate-ping' : 'bg-slate-500'}`} />
@@ -273,7 +245,6 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
         </div>
       </div>
 
-      {/* AI Analyzing Spinner */}
       {isAnalyzing && (
         <div className="p-6 text-center space-y-3 bg-slate-50 rounded-2xl border border-slate-200">
           <svg className="animate-spin h-6 w-6 text-emerald-600 mx-auto" fill="none" viewBox="0 0 24 24">
@@ -284,60 +255,27 @@ function SpeakingRecorder({ prompts }: { prompts: string[] }) {
         </div>
       )}
 
-      {/* Speaking Evaluation & Advice Report */}
       {speakingEvaluation && !isAnalyzing && (
         <div className="mt-8 pt-6 border-t border-slate-200 space-y-6 animate-fadeIn">
           <div className="flex items-center justify-between">
-            <h4 className="text-lg font-bold text-slate-900">Speaking Assessment & Recitation Report</h4>
+            <h4 className="text-lg font-bold text-slate-900">Speaking Assessment Report</h4>
             <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-200">
-              CEFR Level: {speakingEvaluation.cefrLevel} (Overall: {speakingEvaluation.overallScore}%)
+              Score: {speakingEvaluation.overallScore}%
             </span>
           </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Pronunciation</span>
-              <span className="text-2xl font-black text-slate-900">{speakingEvaluation.pronunciation}%</span>
-            </div>
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Task Achievement</span>
-              <span className="text-2xl font-black text-slate-900">{speakingEvaluation.taskAchievement}%</span>
-            </div>
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Logical Connectivity</span>
-              <span className="text-2xl font-black text-slate-900">{speakingEvaluation.logicalConnectivity}%</span>
-            </div>
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Grammatical Versatility</span>
-              <span className="text-2xl font-black text-slate-900">{speakingEvaluation.grammaticalVersatility}%</span>
-            </div>
-          </div>
-
-          {speakingEvaluation.transcript && (
-            <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Captured Speech Transcript (Whisper AI):</span>
-              <p className="text-sm italic text-slate-700 font-mono">"{speakingEvaluation.transcript}"</p>
-            </div>
-          )}
-
-          <div className="p-5 bg-slate-900 text-slate-200 rounded-2xl space-y-3 shadow-inner">
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">Examiner Feedback</span>
-            <p className="text-sm leading-relaxed">{speakingEvaluation.feedback}</p>
-          </div>
+          <p className="text-sm text-slate-600">{speakingEvaluation.feedback}</p>
         </div>
       )}
     </div>
   );
 }
-// ---------------------------------------------
 
 interface Question {
   id: string;
-  type: 'sentence_repeat' | 'dictation' | 'sentence_build' | 'sentence_completion' | 'passage_retell';
+  type: string;
   question: string;
   options?: string[];
   correctAnswer?: string;
-  audioPromptText?: string;
 }
 
 interface TestData {
@@ -351,13 +289,28 @@ interface TestData {
 type ModuleType = 'listening' | 'reading' | 'writing' | 'speaking' | 'typing';
 
 const DEFAULT_TYPING_PASSAGES = [
-  "Thank you for contacting customer support. My name is Alex and I will be happy to assist you today. May I please have your account or ticket number to verify your details before we proceed?",
+  "Thank you for contacting customer support. My name is Cally and I will be happy to assist you today. May I please have your account or ticket number to verify your details before we proceed?",
   "The representative listened carefully to the caller's concern regarding the billing discrepancy. After checking the system log, she confirmed that the extra charge would be refunded within three business days.",
   "Effective communication is essential in remote work environments. Clear updates and structured documentation prevent misunderstandings and keep project deliverables on track."
 ];
 
 export default function Home() {
+  const [userName, setUserName] = useState('');
+  const [isNameSubmitted, setIsNameSubmitted] = useState(false);
+
+  const [appMode, setAppMode] = useState<'dashboard' | 'full_exam'>('dashboard');
   const [selectedModule, setSelectedModule] = useState<ModuleType | null>(null);
+
+  const [examStepIndex, setExamStepIndex] = useState(0); 
+  const examSequence: ModuleType[] = ['listening', 'reading', 'writing', 'speaking', 'typing'];
+
+  const [examScores, setExamScores] = useState<Record<ModuleType, number>>({
+    listening: 0,
+    reading: 0,
+    writing: 0,
+    speaking: 0,
+    typing: 0,
+  });
 
   const [testData, setTestData] = useState<TestData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -365,14 +318,12 @@ export default function Home() {
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState<number | null>(null);
-  const [showPopup, setShowPopup] = useState(false);
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false);
 
   const [hasAudioStarted, setHasAudioStarted] = useState(false);
   const [hasAudioEnded, setHasAudioEnded] = useState(false);
-  const [listeningTimer, setListeningTimer] = useState<number>(20);
+  const [listeningTimer, setListeningTimer] = useState<number>(60);
   const [isListeningTimerActive, setIsListeningTimerActive] = useState(false);
-
-  const answerInputRef = useRef<HTMLInputElement | null>(null);
 
   const [typingPassage, setTypingPassage] = useState<string>(DEFAULT_TYPING_PASSAGES[0]);
   const [userInput, setUserInput] = useState<string>('');
@@ -387,14 +338,7 @@ export default function Home() {
   const [speakingPrompts, setSpeakingPrompts] = useState<string[]>(FALLBACK_SPEAKING_PROMPTS);
   const [writingText, setWritingText] = useState<string>('');
   const [isEvaluatingWriting, setIsEvaluatingWriting] = useState<boolean>(false);
-  const [writingEvaluation, setWritingEvaluation] = useState<{
-    grammarScore: number;
-    vocabularyScore: number;
-    toneScore: number;
-    feedback: string;
-    correctedVersion: string;
-    adviceList: string[];
-  } | null>(null);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -417,11 +361,9 @@ export default function Home() {
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (selectedModule === 'listening' && isListeningTimerActive && listeningTimer > 0 && !isSubmitted) {
-      timer = setInterval(() => {
-        setListeningTimer((prev) => prev - 1);
-      }, 1000);
+      timer = setInterval(() => setListeningTimer((prev) => prev - 1), 1000);
     } else if (selectedModule === 'listening' && isListeningTimerActive && listeningTimer === 0 && !isSubmitted) {
-      handleSubmit(); 
+      handleSubmitListening();
       setIsListeningTimerActive(false);
     }
     return () => clearInterval(timer);
@@ -430,53 +372,60 @@ export default function Home() {
   const resetListeningState = () => {
     setHasAudioStarted(false);
     setHasAudioEnded(false);
-    setListeningTimer(20);
+    setListeningTimer(60);
     setIsListeningTimerActive(false);
-    setShowPopup(false);
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
   };
 
-  const resetTypingState = (newPassage?: string) => {
-    const targetPassage = newPassage || DEFAULT_TYPING_PASSAGES[Math.floor(Math.random() * DEFAULT_TYPING_PASSAGES.length)];
-    setTypingPassage(targetPassage);
-    setUserInput('');
-    setStartTime(null);
-    setElapsedSeconds(0);
-    setIsTypingCompleted(false);
-    setWpm(0);
-    setAccuracy(100);
-    setTimeout(() => typingInputRef.current?.focus(), 100);
-  };
-
-  const resetWritingState = () => {
-    generateTest('writing');
-  };
-
-  const handleSelectModule = (tab: ModuleType) => {
-    setSelectedModule(tab);
+  const handleStartDashboardModule = (mod: ModuleType) => {
+    setAppMode('dashboard');
+    setSelectedModule(mod);
     setTestData(null);
     setIsSubmitted(false);
     setScore(null);
-    setShowPopup(false);
     setSelectedAnswers({});
     resetListeningState();
-    if (tab === 'typing') {
-      resetTypingState();
-    }
-    if (tab === 'writing') {
-      resetWritingState();
+    setShowInstructionsModal(true);
+
+    if (mod === 'typing') {
+      const targetPassage = DEFAULT_TYPING_PASSAGES[Math.floor(Math.random() * DEFAULT_TYPING_PASSAGES.length)];
+      setTypingPassage(targetPassage);
+      setUserInput('');
+      setStartTime(null);
+      setElapsedSeconds(0);
+      setIsTypingCompleted(false);
+      setWpm(0);
+      setAccuracy(100);
+    } else if (mod === 'writing' || mod === 'speaking' || mod === 'reading' || mod === 'listening') {
+      generateTest(mod);
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleStartFullExam = () => {
+    setAppMode('full_exam');
+    setExamStepIndex(0);
+    const firstMod = examSequence[0];
+    setSelectedModule(firstMod);
+    setTestData(null);
+    setIsSubmitted(false);
+    setScore(null);
+    setSelectedAnswers({});
+    resetListeningState();
+    setShowInstructionsModal(true);
+    generateTest(firstMod);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleBackToDashboard = () => {
+    setAppMode('dashboard');
     setSelectedModule(null);
     setTestData(null);
     setIsSubmitted(false);
     setScore(null);
-    setShowPopup(false);
+    setShowInstructionsModal(false);
     setSelectedAnswers({});
     resetListeningState();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -486,29 +435,11 @@ export default function Home() {
     setLoading(true);
     setIsSubmitted(false);
     setScore(null);
-    setShowPopup(false);
     setSelectedAnswers({});
     resetListeningState();
 
     if (moduleType === 'typing') {
-      try {
-        const res = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ moduleType: 'reading', testFormat: 'versant' }),
-        });
-        const data = await res.json();
-        if (res.ok && data.passage) {
-          resetTypingState(data.passage);
-        } else {
-          resetTypingState();
-        }
-      } catch (err) {
-        console.error(err);
-        resetTypingState();
-      } finally {
-        setLoading(false);
-      }
+      setLoading(false);
       return;
     }
 
@@ -525,15 +456,18 @@ export default function Home() {
         return;
       }
 
+      if (data.audioScript) data.audioScript = data.audioScript.replace(/Maya/g, 'Cally');
+      if (data.title) data.title = data.title.replace(/Maya/g, 'Cally');
+
       if (moduleType === 'writing') {
-        const nextPrompt = data.title || data.questions?.[0]?.question || 'Write a professional response to the scenario provided.';
+        let nextPrompt = data.title || data.questions?.[0]?.question || 'Write a professional response.';
+        nextPrompt = nextPrompt.replace(/Maya/g, 'Cally');
         setWritingPrompt(nextPrompt);
         setWritingText('');
-        setWritingEvaluation(null);
       }
 
       if (moduleType === 'speaking') {
-        const prompts = (data.questions ?? []).map((q: { question?: string }) => q.question).filter(Boolean) as string[];
+        const prompts = (data.questions ?? []).map((q: any) => q.question?.replace(/Maya/g, 'Cally')).filter(Boolean);
         setSpeakingPrompts(prompts.length > 0 ? prompts : FALLBACK_SPEAKING_PROMPTS);
       }
 
@@ -548,97 +482,174 @@ export default function Home() {
     }
   };
 
+  const handleAdvanceExamStep = (moduleScore: number) => {
+    const currentMod = examSequence[examStepIndex];
+    const updatedScores = { ...examScores, [currentMod]: moduleScore };
+    setExamScores(updatedScores);
+
+    const nextIndex = examStepIndex + 1;
+    if (nextIndex < examSequence.length) {
+      setExamStepIndex(nextIndex);
+      const nextMod = examSequence[nextIndex];
+      setSelectedModule(nextMod);
+      setIsSubmitted(false);
+      setScore(null);
+      setSelectedAnswers({});
+      resetListeningState();
+
+      if (nextMod === 'typing') {
+        const targetPassage = DEFAULT_TYPING_PASSAGES[Math.floor(Math.random() * DEFAULT_TYPING_PASSAGES.length)];
+        setTypingPassage(targetPassage);
+        setUserInput('');
+        setStartTime(null);
+        setElapsedSeconds(0);
+        setIsTypingCompleted(false);
+        setWpm(0);
+        setAccuracy(100);
+      } else {
+        generateTest(nextMod);
+      }
+    } else {
+      setExamStepIndex(5);
+    }
+  };
+
+  const handleSubmitListening = () => {
+    if (isSubmitted) return;
+    setIsListeningTimerActive(false);
+    if (!testData?.questions) return;
+
+    let totalCorrect = 0;
+    testData.questions.forEach((q) => {
+      const userAnswer = selectedAnswers[q.id]?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
+      const correctAnswer = q.correctAnswer?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
+      if (userAnswer === correctAnswer) totalCorrect += 1;
+    });
+
+    const finalPct = Math.round((totalCorrect / testData.questions.length) * 100);
+    setScore(finalPct);
+    setIsSubmitted(true);
+
+    if (appMode === 'full_exam') {
+      setTimeout(() => handleAdvanceExamStep(finalPct), 1500);
+    }
+  };
+
+  const handleSubmitReading = () => {
+    if (isSubmitted) return;
+    if (!testData?.questions) return;
+
+    let totalCorrect = 0;
+    testData.questions.forEach((q) => {
+      const userAnswer = selectedAnswers[q.id]?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
+      const correctAnswer = q.correctAnswer?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
+      if (userAnswer === correctAnswer) totalCorrect += 1;
+    });
+
+    const finalPct = Math.round((totalCorrect / testData.questions.length) * 100);
+    setScore(finalPct);
+    setIsSubmitted(true);
+
+    if (appMode === 'full_exam') {
+      setTimeout(() => handleAdvanceExamStep(finalPct), 1500);
+    }
+  };
+
   const handleSubmitWriting = () => {
     if (!writingText.trim()) return;
     setIsEvaluatingWriting(true);
 
     setTimeout(() => {
       const wordCount = writingText.trim().split(/\s+/).length;
-      let baseGrammar = 80;
-      let baseVocab = 75;
-      let baseTone = 85;
+      let scoreVal = 85;
+      if (wordCount < 15) scoreVal = 60;
 
-      if (writingText.includes('please') || writingText.includes('Thank you')) {
-        baseTone += 10;
-      }
-      if (wordCount < 15) {
-        baseGrammar -= 20;
-        baseVocab -= 15;
-      }
-
-      setWritingEvaluation({
-        grammarScore: Math.min(baseGrammar, 100),
-        vocabularyScore: Math.min(baseVocab, 100),
-        toneScore: Math.min(baseTone, 100),
-        feedback: `Your response contains ${wordCount} words. The overall structure aligns with standard business English communication practices.`,
-        correctedVersion: writingText.replace(/\bi\b/g, 'I'),
-        adviceList: [
-          wordCount < 25 ? "Expand your response slightly to provide more complete details." : "Good sentence length and development.",
-          "Ensure proper capitalization for the pronoun 'I' and at the beginning of sentences.",
-          "Maintain a polite, empathetic tone when addressing customer issues."
-        ]
-      });
       setIsEvaluatingWriting(false);
+      setIsSubmitted(true);
+      setScore(scoreVal);
+
+      if (appMode === 'full_exam') {
+        setTimeout(() => handleAdvanceExamStep(scoreVal), 1500);
+      }
     }, 800);
   };
 
-  const handleSubmit = () => {
-    if (isSubmitted) return;
-    setIsListeningTimerActive(false);
-
-    if (!testData?.questions) return;
-
-    let totalCorrect = 0;
-    testData.questions.forEach((q) => {
-      const userAnswer = selectedAnswers[q.id]?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "");
-      const correctAnswer = q.correctAnswer?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "");
-      if (userAnswer && userAnswer === correctAnswer) {
-        totalCorrect += 1;
-      }
-    });
-
-    setScore(totalCorrect);
+  const handleSpeakingComplete = (scoreVal: number) => {
     setIsSubmitted(true);
-    if (selectedModule === 'listening') {
-      setShowPopup(true);
+    setScore(scoreVal);
+    if (appMode === 'full_exam') {
+      setTimeout(() => handleAdvanceExamStep(scoreVal), 1500);
     }
-  };
-
-  const handleAudioPlay = () => {
-    setHasAudioStarted(true);
-    setHasAudioEnded(false);
-  };
-
-  const handleAudioEnd = () => {
-    setHasAudioEnded(true);
-    setIsListeningTimerActive(true);
-    setListeningTimer(20);
   };
 
   const handleTypingChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     if (isTypingCompleted) return;
-
-    if (!startTime) {
-      setStartTime(Date.now());
-    }
-
+    if (!startTime) setStartTime(Date.now());
     setUserInput(val);
 
     let correctChars = 0;
     for (let i = 0; i < val.length; i++) {
-      if (val[i] === typingPassage[i]) {
-        correctChars++;
-      }
+      if (val[i] === typingPassage[i]) correctChars++;
     }
     const acc = val.length > 0 ? Math.round((correctChars / val.length) * 100) : 100;
     setAccuracy(acc);
 
     if (val.length >= typingPassage.length) {
       setIsTypingCompleted(true);
-      const totalTimeInMinutes = Math.max((Date.now() - (startTime || Date.now())) / 60000, 0.05);
-      const wordsTyped = val.trim().split(/\s+/).length;
-      setWpm(Math.round(wordsTyped / totalTimeInMinutes));
+      const duration = Math.max((Date.now() - (startTime || Date.now())) / 60000, 0.05);
+      const words = val.trim().split(/\s+/).length;
+      const finalWpm = Math.round(words / duration);
+      setWpm(finalWpm);
+
+      const typingScore = Math.min(Math.max(finalWpm * 1.2, 50), 100);
+      const finalRounded = Math.round(typingScore);
+      setIsSubmitted(true);
+      setScore(finalRounded);
+
+      if (appMode === 'full_exam') {
+        setTimeout(() => handleAdvanceExamStep(finalRounded), 1500);
+      }
+    }
+  };
+
+  const overallExamAverage = Math.round(
+    Object.values(examScores).reduce((a, b) => a + b, 0) / 5
+  );
+
+  const handleDownloadPDF = async () => {
+    setIsDownloadingPdf(true);
+    const element = document.getElementById('certificate-to-download');
+    if (!element) {
+      setIsDownloadingPdf(false);
+      return;
+    }
+
+    try {
+      if (!(window as any).html2pdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      const opt = {
+        margin: 0,
+        filename: `Cally_Certificate_${userName.replace(/\s+/g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+      };
+
+      await (window as any).html2pdf().from(element).set(opt).save();
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsDownloadingPdf(false);
     }
   };
 
@@ -647,615 +658,435 @@ export default function Home() {
       id: 'listening' as ModuleType,
       title: 'Versant Listening & Dictation',
       description: 'Single-play audio drills with dictation inputs and auto-evaluations.',
-      tag: 'Listening & Dictation',
+      tag: 'Listening',
       color: 'border-rose-200 bg-rose-50/40 text-rose-700',
       btnColor: 'bg-rose-600 hover:bg-rose-700',
-      icon: (
-        <svg className="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
+      instructions: "1. Click 'Play Audio' (plays ONCE).\n2. Answer the 10 questions before the 1-minute timer expires.",
+      icon: '🎧',
     },
     {
       id: 'reading' as ModuleType,
       title: 'Sentence Completion & Grammar',
-      description: 'Practice SVAR vocabulary fill-in-the-blanks, sentence builds, and business English grammar rules.',
-      tag: 'Grammar & Vocabulary',
+      description: 'Practice SVAR vocabulary fill-in-the-blanks and grammar rules.',
+      tag: 'Reading',
       color: 'border-amber-200 bg-amber-50/40 text-amber-700',
       btnColor: 'bg-amber-600 hover:bg-amber-700',
-      icon: (
-        <svg className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-      ),
+      instructions: "1. Review reading passage.\n2. Answer the multiple choice questions.",
+      icon: '📖',
     },
     {
       id: 'writing' as ModuleType,
       title: 'Customer Email & Chat Writing',
-      description: 'Type any response or email; AI checks grammar, tone, spelling, and provides expert advice.',
-      tag: 'BPO Email Test',
+      description: 'Draft professional customer responses and emails.',
+      tag: 'Writing',
       color: 'border-indigo-200 bg-indigo-50/40 text-indigo-700',
       btnColor: 'bg-indigo-600 hover:bg-indigo-700',
-      icon: (
-        <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-        </svg>
-      ),
+      instructions: "1. Read scenario prompt.\n2. Draft professional email response.",
+      icon: '✍️',
     },
     {
       id: 'speaking' as ModuleType,
       title: 'Versant Repeat & Retell AI',
-      description: 'Record verbatim sentence repetition, passage retellings, and impromptu responses.',
-      tag: 'Pronunciation & Fluency',
+      description: 'Record verbatim sentence repetition & prompt replies.',
+      tag: 'Speaking',
       color: 'border-emerald-200 bg-emerald-50/40 text-emerald-700',
       btnColor: 'bg-emerald-600 hover:bg-emerald-700',
-      icon: (
-        <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
-        </svg>
-      ),
+      instructions: "1. Read prompt.\n2. Record audio via microphone and analyze.",
+      icon: '🎙️',
     },
     {
       id: 'typing' as ModuleType,
       title: 'Chat & Typing Speed Test',
-      description: 'Train your net typing speed (WPM) and accuracy required for BPO candidate screening.',
-      tag: 'Net WPM & Accuracy',
+      description: 'Train net WPM and accuracy for BPO candidate screening.',
+      tag: 'Typing',
       color: 'border-sky-200 bg-sky-50/40 text-sky-700',
       btnColor: 'bg-sky-600 hover:bg-sky-700',
-      icon: (
-        <svg className="w-6 h-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
+      instructions: "1. Type the displayed passage accurately to complete the module.",
+      icon: '⌨️',
     },
   ];
 
   const activeFeature = dashboardFeatures.find((f) => f.id === selectedModule);
 
+  if (!isNameSubmitted) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans">
+        <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl space-y-6 text-center animate-fadeIn">
+          <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-2xl font-black shadow-inner">
+            ✨
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-black text-slate-900">Welcome to Cally</h1>
+            <p className="text-slate-500 text-xs">Please enter your full name to begin your assessment journey.</p>
+          </div>
+          <input
+            type="text"
+            placeholder="Enter your full name..."
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            className="w-full p-3.5 border border-slate-300 rounded-xl text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <button
+            disabled={!userName.trim()}
+            onClick={() => setIsNameSubmitted(true)}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm py-3 rounded-xl transition shadow-md cursor-pointer"
+          >
+            Enter Assessment Portal
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans text-slate-800">
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8">
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-8">
         <div className="w-full max-w-[1800px] mx-auto flex items-center justify-between h-16">
           <div className="flex items-center gap-3 cursor-pointer" onClick={handleBackToDashboard}>
-            <div className="relative w-10 h-10 shrink-0">
-              <Image
-                src="/logo.png"
-                alt="Cally Logo"
-                fill
-                priority
-                className="object-contain"
-              />
+            <div className="relative w-9 h-9 shrink-0">
+              <Image src="/logo.png" alt="Cally Logo" fill priority className="object-contain" />
             </div>
-            <div>
-              <span className="font-bold text-slate-900 tracking-tight text-lg block">
-                Cally
-              </span>
-              <span className="text-[10px] text-slate-500 font-medium hidden sm:block">
-                {selectedModule ? `SVARS / Versant Mode: ${activeFeature?.title}` : 'SVAR & Versant Assessment Simulator'}
-              </span>
-            </div>
+            <span className="font-bold text-slate-900 tracking-tight text-lg">Cally Assessment Hub</span>
           </div>
-
-          <div className="flex items-center gap-4">
-            {selectedModule ? (
-              <button
-                onClick={handleBackToDashboard}
-                className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 px-3.5 py-2 rounded-xl transition border border-slate-200/80 cursor-pointer"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                <span>Back to Dashboard</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => handleSelectModule('listening')}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl transition shadow-xs cursor-pointer"
-              >
-                Start Practice Drill
-              </button>
-            )}
+          <div className="flex items-center gap-4 text-xs font-semibold text-slate-700">
+            <span>Candidate: <strong className="text-indigo-600">{userName}</strong></span>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-[1800px] mx-auto px-4 sm:px-8 py-6">
-        {!selectedModule && (
-          <div className="space-y-12">
-            <section className="relative rounded-3xl bg-slate-900 text-white overflow-hidden p-8 sm:p-12 lg:p-16 border border-slate-800 shadow-xl">
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/80 via-slate-900 to-indigo-950/50 pointer-events-none" />
-              <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="relative z-10 max-w-4xl space-y-6">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-400/20 text-indigo-300 text-xs font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Real Versant Exam Rules Applied
-                </div>
-
-                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
-                  Ace Your <span className="text-indigo-400">Versant & SVAR</span> Communication Assessments
-                </h1>
-
-                <p className="text-slate-300 text-sm sm:text-base lg:text-lg max-w-2xl leading-relaxed">
-                  Practice with single-play audio prompts, flexible answering, optional countdown timers, and instant scoring.
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-8 py-6">
+        {appMode === 'dashboard' && !selectedModule && (
+          <div className="space-y-10">
+            <div className="p-8 sm:p-12 bg-slate-900 text-white rounded-3xl space-y-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="space-y-3 max-w-2xl relative z-10">
+                <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
+                  Flexible Assessment & Certification Portal
+                </span>
+                <h1 className="text-3xl sm:text-4xl font-black">Choose Your Mode</h1>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  Practice any module individually on the dashboard without a certificate, or take the official <strong>Full Exam</strong> pathway to download your verified certificate!
                 </p>
               </div>
-            </section>
+              <div className="shrink-0 relative z-10">
+                <button
+                  onClick={handleStartFullExam}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base px-8 py-4 rounded-2xl shadow-lg transition cursor-pointer flex items-center gap-3"
+                >
+                  <span>🎓 Take Full Exam & Download Certificate</span>
+                </button>
+              </div>
+            </div>
 
-            <section className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-slate-200/80 pb-4 gap-2">
+            <div className="space-y-6">
+              <div className="border-b border-slate-200 pb-3 flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900 tracking-tight">SVAR & Versant Test Modules</h2>
-                  <p className="text-xs sm:text-sm text-slate-500">Select a section to begin real exam simulation</p>
+                  <h2 className="text-xl font-bold text-slate-900">Individual Practice Modules</h2>
+                  <p className="text-xs text-slate-500">Practice freely module-by-module (No certificate generated)</p>
                 </div>
-                <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 self-start sm:self-auto">
-                  5 Assessment Sections
-                </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                 {dashboardFeatures.map((feat) => (
                   <div
                     key={feat.id}
-                    className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between hover:border-indigo-300 hover:shadow-md transition group"
+                    className="bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between hover:border-indigo-300 hover:shadow-md transition"
                   >
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                          {feat.icon}
-                        </div>
-                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${feat.color}`}>
+                        <span className="text-2xl">{feat.icon}</span>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${feat.color}`}>
                           {feat.tag}
                         </span>
                       </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition">{feat.title}</h3>
-                        <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">{feat.description}</p>
+                      <div className="space-y-1">
+                        <h3 className="text-base font-bold text-slate-900">{feat.title}</h3>
+                        <p className="text-xs text-slate-500 leading-relaxed">{feat.description}</p>
                       </div>
                     </div>
-
                     <div className="pt-6">
                       <button
-                        onClick={() => handleSelectModule(feat.id)}
-                        className={`w-full text-white font-medium text-xs py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-1.5 ${feat.btnColor} cursor-pointer`}
+                        onClick={() => handleStartDashboardModule(feat.id)}
+                        className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition cursor-pointer ${feat.btnColor}`}
                       >
-                        <span>Start Drill</span>
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
+                        Practice Module
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
-            </section>
+            </div>
           </div>
         )}
 
-        {selectedModule && (
-          <div className="space-y-6 max-w-[1600px] mx-auto">
-            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <button
-                  onClick={handleBackToDashboard}
-                  className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-slate-600 cursor-pointer"
-                  title="Return to Dashboard"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                </button>
+        {appMode === 'full_exam' && examStepIndex === 5 && (
+          <div className="space-y-8 max-w-[1300px] mx-auto text-center animate-fadeIn">
+            <div className="p-6 bg-slate-100 rounded-3xl border border-slate-200 shadow-xl flex justify-center items-center overflow-hidden">
+              <div
+                id="certificate-to-download"
+                style={{
+                  width: '1100px',
+                  backgroundColor: '#fbf9f4',
+                  border: '16px solid #1e293b',
+                  padding: '40px 60px',
+                  boxSizing: 'border-box',
+                  position: 'relative',
+                  margin: '0 auto',
+                  textAlign: 'left',
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{ border: '2px solid #b45309', padding: '30px 40px', position: 'relative' }}>
+                  
+                  <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                    <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '3px', color: '#1e293b', fontWeight: '700' }}>
+                      ✨ TephdyTech & Cally Assessment Systems ✨
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#78350f', marginTop: '3px', fontWeight: '600' }}>EST. 2024</div>
+                  </div>
 
-                <div>
-                  <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">
-                    Versant / SVAR Evaluation Engine
-                  </span>
-                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                    {activeFeature?.title}
-                  </h2>
+                  <h1 style={{ fontSize: '38px', fontWeight: '800', color: '#78350f', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '2px', margin: '10px 0 5px 0', fontFamily: 'serif' }}>
+                    Certificate of Achievement
+                  </h1>
+                  <div style={{ fontSize: '13px', color: '#1e293b', textAlign: 'center', marginBottom: '20px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px' }}>
+                    Official Verification of Professional BPO Competency
+                  </div>
+
+                  <div style={{ fontSize: '14px', color: '#475569', textAlign: 'center', fontStyle: 'italic', marginBottom: '5px' }}>This is to certify that</div>
+                  <div style={{ fontSize: '36px', fontWeight: '700', color: '#1e293b', textAlign: 'center', margin: '0 auto 15px auto', paddingBottom: '4px', borderBottom: '2px solid #cbd5e1', display: 'table', fontFamily: 'serif' }}>
+                    {userName}
+                  </div>
+
+                  <p style={{ fontSize: '13px', color: '#334155', textAlign: 'center', maxWidth: '800px', margin: '0 auto 20px auto', lineHeight: '1.5' }}>
+                    has successfully demonstrated exceptional proficiency across all official assessment modules, showcasing linguistic mastery, professional communication skills, and technical competency required for the Business Process Outsourcing (BPO) industry.
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 30px', maxWidth: '850px', margin: '0 auto 25px auto', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                    <div>🎧 Listening & Dictation ({examScores.listening}%)</div>
+                    <div>🎙️ Versant Speaking Simulation ({examScores.speaking}%)</div>
+                    <div>📖 Reading & Grammar ({examScores.reading}%)</div>
+                    <div>⌨️ Chat & Typing Accuracy ({examScores.typing}%)</div>
+                    <div>✍️ Business Writing Composition ({examScores.writing}%)</div>
+                    <div style={{ color: '#b45309', fontWeight: '700' }}>⭐ Final Cumulative Rating: ({overallExamAverage}%)</div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: '20px', marginTop: '10px' }}>
+                    <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
+                      Authorized Electronic Validation
+                    </div>
+
+                    <div style={{ width: '70px', height: '70px', background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)', color: '#ffffff', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '3px double #fef3c7', textAlign: 'center', fontSize: '8px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      <span>Official</span>
+                      <span>Verified</span>
+                    </div>
+
+                    <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
+                      Cally Evaluation Authority
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#64748b', fontWeight: '600', letterSpacing: '1px' }}>
+                    DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [TT-CALLY-BPO-2026-{Math.floor(1000 + Math.random() * 9000)}]
+                  </div>
+
                 </div>
               </div>
+            </div>
 
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60 w-full md:w-auto overflow-x-auto">
-                {dashboardFeatures.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => handleSelectModule(f.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition whitespace-nowrap cursor-pointer ${
-                      selectedModule === f.id
-                        ? 'bg-white text-indigo-600 shadow-xs border border-slate-200/80'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {f.id}
-                  </button>
-                ))}
+            <div className="p-8 bg-white border border-slate-200 rounded-3xl space-y-6 shadow-xl">
+              <div className="space-y-2">
+                <h2 className="text-2xl font-black text-slate-900">Exam Finished Successfully!</h2>
+                <p className="text-sm text-slate-600">Your verified certificate file (.pdf) is ready for download.</p>
               </div>
 
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button
+                  disabled={isDownloadingPdf}
+                  onClick={handleDownloadPDF}
+                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-8 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>{isDownloadingPdf ? '⏳ Generating .pdf file...' : '📥 Download Certificate (.pdf)'}</span>
+                </button>
+                <button
+                  onClick={handleBackToDashboard}
+                  className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-6 py-3.5 rounded-xl transition cursor-pointer"
+                >
+                  Return to Dashboard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedModule && (appMode === 'dashboard' || (appMode === 'full_exam' && examStepIndex < 5)) && (
+          <div className="space-y-6 max-w-[1400px] mx-auto">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 flex items-center justify-between shadow-xs">
               <button
-                onClick={() => generateTest(selectedModule)}
-                disabled={loading}
-                className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition shadow-sm disabled:opacity-50 shrink-0 cursor-pointer"
+                onClick={handleBackToDashboard}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
               >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-1 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Generating Drill...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>✨</span>
-                    <span>{selectedModule === 'typing' ? 'New Passage' : selectedModule === 'reading' ? 'Generate Random Passage' : selectedModule === 'writing' ? 'New Writing Prompt' : selectedModule === 'speaking' ? 'New Speaking Prompt' : 'Generate SVAR Audio'}</span>
-                  </>
-                )}
+                ← Back to Dashboard
               </button>
+              <div className="text-right">
+                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
+                  {appMode === 'full_exam' ? `Full Exam Step ${examStepIndex + 1} of 5` : 'Individual Practice Mode'}
+                </span>
+                <h2 className="text-lg font-bold text-slate-900 capitalize">{selectedModule} Module</h2>
+              </div>
             </div>
 
             {selectedModule === 'speaking' && (
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
-                <SpeakingRecorder prompts={speakingPrompts} />
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs">
+                <SpeakingRecorder prompts={speakingPrompts} onComplete={handleSpeakingComplete} />
               </div>
             )}
 
             {selectedModule === 'writing' && (
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                  <div>
-                    <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Versant Writing Assessment Prompt</span>
-                    <h3 className="text-lg font-bold text-slate-900 mt-1">Customer Service & Professional Email Reply</h3>
-                  </div>
-                  <button
-                    onClick={resetWritingState}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg transition border border-slate-200 cursor-pointer"
-                  >
-                    Change Prompt
-                  </button>
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-2">
+                  <span className="text-xs font-bold text-indigo-800 uppercase block">Writing Prompt:</span>
+                  <p className="text-slate-800 text-sm sm:text-base font-medium">{writingPrompt}</p>
                 </div>
-
-                <div className="p-5 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2">
-                  <span className="text-xs font-bold text-indigo-800 uppercase tracking-wider block">Scenario / Task:</span>
-                  <p className="text-slate-800 text-sm sm:text-base leading-relaxed font-medium">{writingPrompt}</p>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                    Type your response or email below (AI will check grammar, spelling, tone, and provide advice):
-                  </label>
-                  <textarea
-                    rows={6}
-                    value={writingText}
-                    onChange={(e) => setWritingText(e.target.value)}
-                    placeholder="Type your professional response here freely..."
-                    className="w-full p-4 border border-slate-300 rounded-xl text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-y shadow-xs"
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500 font-mono">
-                      Word Count: {writingText.trim() ? writingText.trim().split(/\s+/).length : 0} words
-                    </span>
-                    <button
-                      onClick={handleSubmitWriting}
-                      disabled={isEvaluatingWriting || !writingText.trim()}
-                      className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2"
-                    >
-                      {isEvaluatingWriting ? (
-                        <>
-                          <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          <span>AI Evaluating Writing...</span>
-                        </>
-                      ) : (
-                        <span>Evaluate Writing & Get Advice</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {writingEvaluation && (
-                  <div className="mt-8 pt-6 border-t border-slate-200 space-y-6 animate-fadeIn">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-bold text-slate-900">AI Evaluation & Performance Report</h4>
-                      <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-200">
-                        Evaluated Successfully
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Grammar & Mechanics</span>
-                        <span className="text-2xl font-black text-slate-900">{writingEvaluation.grammarScore}%</span>
-                      </div>
-                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Vocabulary Level</span>
-                        <span className="text-2xl font-black text-slate-900">{writingEvaluation.vocabularyScore}%</span>
-                      </div>
-                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Professional Tone</span>
-                        <span className="text-2xl font-black text-slate-900">{writingEvaluation.toneScore}%</span>
-                      </div>
-                    </div>
-
-                    <div className="p-5 bg-slate-900 text-slate-200 rounded-2xl space-y-3 shadow-inner">
-                      <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider block">Detailed Feedback</span>
-                      <p className="text-sm leading-relaxed">{writingEvaluation.feedback}</p>
-                    </div>
-
-                    <div className="p-5 bg-amber-50/60 border border-amber-200 rounded-2xl space-y-3">
-                      <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
-                        <span>💡</span>
-                        <span>Expert Advice & Recommendations</span>
-                      </div>
-                      <ul className="space-y-2">
-                        {writingEvaluation.adviceList.map((advice, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm text-slate-700">
-                            <span className="text-amber-600 font-bold">•</span>
-                            <span>{advice}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="p-5 bg-emerald-50/60 border border-emerald-200 rounded-2xl space-y-2">
-                      <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">Refined / Corrected Version</span>
-                      <p className="text-sm font-mono text-slate-800 bg-white p-3 rounded-lg border border-emerald-100">
-                        {writingEvaluation.correctedVersion}
-                      </p>
-                    </div>
+                <textarea
+                  rows={6}
+                  value={writingText}
+                  onChange={(e) => setWritingText(e.target.value)}
+                  placeholder="Type your professional response here..."
+                  className="w-full p-4 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={handleSubmitWriting}
+                  disabled={isEvaluatingWriting || !writingText.trim()}
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
+                >
+                  {isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}
+                </button>
+                {isSubmitted && (
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 font-bold text-sm">
+                    ✓ Writing Submitted! Score: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
                   </div>
                 )}
               </div>
             )}
 
             {selectedModule === 'typing' && (
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="p-4 bg-sky-50/50 border border-sky-100 rounded-xl text-center">
-                    <span className="text-xs font-semibold text-sky-600 uppercase tracking-wider block">WPM</span>
-                    <span className="text-2xl sm:text-3xl font-black text-sky-950">{wpm}</span>
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                  <div className="p-4 bg-sky-50 rounded-xl border border-sky-100">
+                    <span className="text-xs text-sky-600 block font-bold uppercase">WPM</span>
+                    <span className="text-2xl font-black text-sky-950">{wpm}</span>
                   </div>
-                  <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl text-center">
-                    <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider block">Accuracy</span>
-                    <span className="text-2xl sm:text-3xl font-black text-indigo-950">{accuracy}%</span>
-                  </div>
-                  <div className="p-4 bg-slate-50 border border-slate-200/60 rounded-xl text-center">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Time</span>
-                    <span className="text-2xl sm:text-3xl font-black text-slate-800">{elapsedSeconds}s</span>
-                  </div>
-                  <div className="p-4 bg-slate-50 border border-slate-200/60 rounded-xl text-center">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Progress</span>
-                    <span className="text-2xl sm:text-3xl font-black text-slate-800">
-                      {Math.min(Math.round((userInput.length / typingPassage.length) * 100), 100)}%
-                    </span>
+                  <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
+                    <span className="text-xs text-indigo-600 block font-bold uppercase">Accuracy</span>
+                    <span className="text-2xl font-black text-indigo-950">{accuracy}%</span>
                   </div>
                 </div>
 
-                <div className="p-6 bg-slate-900 text-slate-300 rounded-2xl font-mono text-base leading-relaxed tracking-wide select-none shadow-inner border border-slate-800">
+                <div className="p-6 bg-slate-900 text-slate-300 rounded-2xl font-mono text-base leading-relaxed">
                   {typingPassage.split('').map((char, index) => {
-                    let colorClass = 'text-slate-500';
-                    let bgClass = '';
-
+                    let color = 'text-slate-500';
                     if (index < userInput.length) {
-                      if (userInput[index] === char) {
-                        colorClass = 'text-emerald-400 font-bold';
-                      } else {
-                        colorClass = 'text-rose-400 font-bold underline decoration-rose-500 decoration-2';
-                      }
-                    } else if (index === userInput.length) {
-                      colorClass = 'text-white font-bold';
-                      bgClass = 'bg-sky-500/30 animate-pulse rounded-xs px-0.5';
+                      color = userInput[index] === char ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold underline';
                     }
-
-                    return (
-                      <span key={index} className={`${colorClass} ${bgClass}`}>
-                        {char}
-                      </span>
-                    );
+                    return <span key={index} className={color}>{char}</span>;
                   })}
                 </div>
 
-                <div className="space-y-3">
-                  <textarea
-                    ref={typingInputRef}
-                    rows={4}
-                    disabled={isTypingCompleted}
-                    value={userInput}
-                    onChange={handleTypingChange}
-                    placeholder="Type the passage exactly as shown above..."
-                    className="w-full p-4 border border-slate-300 rounded-xl font-mono text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 disabled:bg-slate-100 disabled:text-slate-500 transition resize-none shadow-xs"
-                  />
-
-                  <div className="flex items-center justify-between gap-4">
-                    <button
-                      onClick={() => resetTypingState()}
-                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl transition border border-slate-200 cursor-pointer"
-                    >
-                      Reset Test
-                    </button>
-
-                    {isTypingCompleted && (
-                      <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold">
-                        <span>✓ Test Completed! Final Speed: {wpm} WPM</span>
-                      </div>
-                    )}
+                <textarea
+                  ref={typingInputRef}
+                  rows={4}
+                  disabled={isTypingCompleted}
+                  value={userInput}
+                  onChange={handleTypingChange}
+                  placeholder="Type passage here..."
+                  className="w-full p-4 border border-slate-300 rounded-xl font-mono text-sm outline-none focus:ring-2 focus:ring-sky-500 shadow-xs"
+                />
+                {isTypingCompleted && (
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 font-bold text-sm">
+                    ✓ Typing Completed! Score Recorded: {score}% {appMode === 'full_exam' && '• Finalizing exam score...'}
                   </div>
-                </div>
+                )}
               </div>
             )}
 
-            {selectedModule !== 'typing' && selectedModule !== 'speaking' && selectedModule !== 'writing' && (
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                  <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                    {testData?.title || `Versant / SVAR ${selectedModule.toUpperCase()} Test`}
-                  </h3>
-                  <span className="text-xs font-semibold uppercase tracking-wider px-2.5 py-1 bg-amber-50 text-amber-700 rounded-md border border-amber-200">
-                    {selectedModule === 'reading' ? 'Randomized 2-Paragraph Passage' : 'Single-Play Audio Mode'}
-                  </span>
-                </div>
+            {(selectedModule === 'listening' || selectedModule === 'reading') && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
+                {loading && <div className="text-center py-12 text-slate-500 font-bold">Generating test questions...</div>}
 
-                {selectedModule === 'reading' && testData?.passage && (
-                  <div className="p-6 bg-amber-50/60 border border-amber-200/80 rounded-2xl space-y-4 shadow-xs">
-                    <div className="flex items-center gap-2 text-amber-800 text-xs font-bold uppercase tracking-wider">
-                      <span>📖</span>
-                      <span>Reading Reference Passage (Multi-Paragraph)</span>
-                    </div>
-                    <div className="space-y-3 text-slate-800 text-base sm:text-lg leading-relaxed font-serif">
-                      {testData.passage.split('\n\n').map((para, pIdx) => (
-                        <p key={pIdx}>{para}</p>
-                      ))}
-                    </div>
-                  </div>
+                {!loading && !testData && (
+                  <button
+                    onClick={() => generateTest(selectedModule)}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
+                  >
+                    Load {selectedModule.toUpperCase()} Test
+                  </button>
                 )}
 
-                {testData?.audioScript && selectedModule === 'listening' && !hasAudioEnded && (
-                  <div className="space-y-4">
-                    <div className={`p-4 rounded-xl border flex items-center justify-between gap-4 text-xs font-bold transition-all ${
-                      !hasAudioStarted
-                        ? 'bg-indigo-50 border-indigo-200 text-indigo-900'
-                        : 'bg-amber-50 border-amber-200 text-amber-900 animate-pulse'
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-base">
-                          {!hasAudioStarted ? '▶️' : '🔊'}
-                        </span>
-                        <span>
-                          {!hasAudioStarted
-                            ? 'Audio plays ONCE. Press Play below. Listen carefully.'
-                            : 'Audio is playing... The player will disappear once finished.'}
-                        </span>
-                      </div>
-                    </div>
+                {testData && (
+                  <div className="space-y-6">
+                    <h3 className="text-xl font-bold text-slate-900">{testData.title}</h3>
 
-                    <div className="relative p-4 bg-slate-900 text-white rounded-xl shadow-inner">
-                      <AudioPlayer
-                        script={testData.audioScript}
-                        onPlay={handleAudioPlay}
-                        onEnded={handleAudioEnd}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {hasAudioEnded && selectedModule === 'listening' && !isSubmitted && (
-                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-4 text-xs font-bold text-emerald-900">
-                    <span>✓ Audio player removed after playing. Answer the questions below.</span>
-                    {isListeningTimerActive && (
-                      <div className="flex items-center gap-1.5 bg-rose-600 text-white font-mono px-3 py-1 rounded-lg text-xs shadow-xs animate-bounce">
-                        <span>⏱️</span>
-                        <span>{listeningTimer}s remaining</span>
+                    {selectedModule === 'reading' && testData.passage && (
+                      <div className="p-5 bg-amber-50 border border-amber-200 rounded-xl font-serif text-slate-800 leading-relaxed shadow-xs">
+                        {testData.passage}
                       </div>
                     )}
-                  </div>
-                )}
 
-                {!testData && !loading && (
-                  <div className="text-center py-16 px-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 space-y-3">
-                    <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto text-xl font-bold">
-                      ✨
-                    </div>
-                    <h4 className="text-base font-semibold text-slate-800">No Passage Generated</h4>
-                    <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
-                      Click <strong className="text-slate-700">Generate Random Passage</strong> above to load a fresh reading test.
-                    </p>
-                  </div>
-                )}
+                    {selectedModule === 'listening' && testData.audioScript && !hasAudioEnded && (
+                      <div className="p-4 bg-slate-900 text-white rounded-xl space-y-3 shadow-inner">
+                        <AudioPlayer
+                          script={testData.audioScript}
+                          onPlay={() => setHasAudioStarted(true)}
+                          onEnded={() => {
+                            setHasAudioEnded(true);
+                            setIsListeningTimerActive(true);
+                          }}
+                        />
+                      </div>
+                    )}
 
-                {testData?.questions && testData.questions.length > 0 && (
-                  <div className="space-y-6 pt-2">
-                    {testData.questions.map((q, idx) => {
-                      const userAnswer = selectedAnswers[q.id] || '';
-                      const isCorrect =
-                        isSubmitted &&
-                        userAnswer.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") ===
-                          q.correctAnswer?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "");
-
-                      return (
-                        <div key={q.id || idx} className="p-5 border border-slate-200/80 rounded-xl bg-slate-50/30 space-y-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
-                              Question {idx + 1}
-                            </span>
-                            {isSubmitted && (
-                              <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${
-                                isCorrect ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
-                              }`}>
-                                {isCorrect ? '✓ Correct' : '✕ Incorrect'}
-                              </span>
-                            )}
+                    {(selectedModule === 'reading' || hasAudioEnded) && (
+                      <div className="space-y-6">
+                        {selectedModule === 'listening' && isListeningTimerActive && !isSubmitted && (
+                          <div className="p-3 bg-rose-600 text-white text-xs font-mono rounded-xl flex justify-between animate-bounce shadow-xs">
+                            <span>⏱️ Time Remaining:</span>
+                            <span>{listeningTimer}s</span>
                           </div>
+                        )}
 
-                          <p className="font-semibold text-slate-800 text-base">{q.question}</p>
-
-                          {q.options && q.options.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                              {q.options.map((opt, oIdx) => (
+                        {testData.questions.map((q, idx) => (
+                          <div key={q.id || idx} className="p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                            <p className="font-semibold text-slate-900 text-sm">Question {idx + 1}: {q.question}</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {q.options?.map((opt, oIdx) => (
                                 <button
                                   key={oIdx}
                                   disabled={isSubmitted}
-                                  onClick={() => setSelectedAnswers((prev) => ({ ...prev, [q.id]: opt }))}
-                                  className={`p-3 text-left rounded-xl border text-sm font-medium transition cursor-pointer ${
-                                    selectedAnswers[q.id] === opt
-                                      ? 'bg-amber-50 border-amber-500 text-amber-900 shadow-xs font-semibold'
-                                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
-                                  } ${isSubmitted ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                  onClick={() => setSelectedAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                                  className={`p-3 text-left rounded-xl border text-xs font-medium transition cursor-pointer ${
+                                    selectedAnswers[q.id] === opt ? 'bg-amber-100 border-amber-500 text-amber-900 font-bold' : 'bg-white border-slate-200 text-slate-700'
+                                  }`}
                                 >
                                   {opt}
                                 </button>
                               ))}
                             </div>
-                          ) : (
-                            <div className="space-y-2 pt-1">
-                              <input
-                                ref={idx === 0 ? answerInputRef : null}
-                                type="text"
-                                disabled={isSubmitted}
-                                value={userAnswer}
-                                onChange={(e) => setSelectedAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                                placeholder="Type your response here..."
-                                className="w-full p-3.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 disabled:bg-slate-100 disabled:text-slate-400 transition shadow-xs"
-                              />
-                            </div>
-                          )}
-
-                          {isSubmitted && q.correctAnswer && (
-                            <div className="mt-2 text-xs font-semibold text-slate-600 bg-slate-100 p-3 rounded-lg border border-slate-200">
-                              <span className="text-slate-500">Correct Answer: </span>
-                              <span className="text-slate-900 font-bold">{q.correctAnswer}</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    <div className="pt-4 flex items-center justify-between border-t border-slate-100">
-                      {!isSubmitted ? (
-                        <button
-                          onClick={handleSubmit}
-                          className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition shadow-xs cursor-pointer"
-                        >
-                          Submit Test Answers
-                        </button>
-                      ) : (
-                        <div className="flex items-center justify-between w-full bg-slate-900 text-white p-4 rounded-xl">
-                          <div>
-                            <span className="text-xs text-slate-400 block font-semibold uppercase tracking-wider">Final Result</span>
-                            <span className="text-lg font-bold text-emerald-400">
-                              Score: {score} / {testData.questions.length} ({Math.round(((score || 0) / testData.questions.length) * 100)}%)
-                            </span>
                           </div>
+                        ))}
+
+                        {!isSubmitted ? (
                           <button
-                            onClick={() => generateTest(selectedModule)}
-                            className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs sm:text-sm px-4 py-2 rounded-lg transition cursor-pointer"
+                            onClick={selectedModule === 'listening' ? handleSubmitListening : handleSubmitReading}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
                           >
-                            Try Another Practice Drill
+                            Submit {selectedModule} Answers
                           </button>
-                        </div>
-                      )}
-                    </div>
+                        ) : (
+                          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 font-bold text-sm">
+                            ✓ {selectedModule.toUpperCase()} Module Complete! Score Recorded: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1264,41 +1095,37 @@ export default function Home() {
         )}
       </main>
 
-      {showPopup && selectedModule === 'listening' && (
+      {showInstructionsModal && activeFeature && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 text-center relative transform transition-all scale-100">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-black shadow-inner">
-              🎉
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest block">Listening Drill Completed</span>
-              <h3 className="text-2xl font-black text-slate-900">Your Assessment Score</h3>
-              <p className="text-slate-500 text-xs sm:text-sm">Here is how you performed on the single-play audio dictation simulation.</p>
-            </div>
-
-            <div className="p-6 bg-slate-900 text-white rounded-2xl space-y-1 shadow-inner">
-              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">Final Grade</span>
-              <span className="text-4xl font-black text-emerald-400">
-                {score} / {testData?.questions.length}
-              </span>
-              <span className="text-xs text-slate-300 font-mono block pt-1">
-                ({Math.round(((score || 0) / (testData?.questions.length || 1)) * 100)}% Accuracy Rate)
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 relative">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                  📌
+                </div>
+                <div>
+                  <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest block">Module Guide</span>
+                  <h3 className="text-lg font-black text-slate-900">{activeFeature.title}</h3>
+                </div>
+              </div>
               <button
-                onClick={() => setShowPopup(false)}
-                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm py-3 px-4 rounded-xl transition cursor-pointer"
+                onClick={() => setShowInstructionsModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer text-sm font-bold"
               >
-                Review Answers
+                ✕
               </button>
+            </div>
+
+            <div className="space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-200/60 text-slate-700 text-sm leading-relaxed whitespace-pre-line font-medium">
+              {activeFeature.instructions}
+            </div>
+
+            <div className="pt-2">
               <button
-                onClick={() => generateTest('listening')}
-                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm py-3 px-4 rounded-xl transition shadow-md cursor-pointer"
+                onClick={() => setShowInstructionsModal(false)}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm py-3 px-4 rounded-xl transition shadow-md cursor-pointer"
               >
-                Try Another Drill
+                Got it, Let's Begin!
               </button>
             </div>
           </div>
@@ -1306,19 +1133,11 @@ export default function Home() {
       )}
 
       <footer className="w-full border-t border-slate-200/80 bg-white py-6 px-4 sm:px-8 mt-auto shadow-xs">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
+        <div className="max-w-6xl mx-auto flex items-center justify-center text-xs text-slate-500 text-center">
+          <div className="flex items-center gap-2 justify-center flex-wrap">
             <span className="font-bold text-slate-700">Developed By TephdyTech</span>
             <span>&bull;</span>
             <span>&copy; {new Date().getFullYear()} All rights reserved.</span>
-          </div>
-          
-          <div className="flex items-center gap-4 font-medium text-slate-600">
-            <span className="hover:text-sky-600 transition cursor-pointer">Privacy Policy</span>
-            <span>&bull;</span>
-            <span className="hover:text-sky-600 transition cursor-pointer">Terms of Service</span>
-            <span>&bull;</span>
-            <span className="hover:text-sky-600 transition cursor-pointer">Support</span>
           </div>
         </div>
       </footer>
