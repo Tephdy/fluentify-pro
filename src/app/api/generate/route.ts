@@ -85,7 +85,7 @@ CRITICAL INSTRUCTIONS:
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'openai/gpt-oss-20b',
+        model: 'openai/gpt-oss-120b', // Updated to active Groq production model
         messages: [{ role: 'user', content: prompt }],
         response_format: {
           type: 'json_schema',
@@ -123,9 +123,8 @@ CRITICAL INSTRUCTIONS:
             },
           },
         },
-        temperature: 0.8,
-        reasoning_effort: 'low',
-        max_completion_tokens: 4096,
+        temperature: 0.7,
+        max_tokens: 4096,
       }),
     });
 

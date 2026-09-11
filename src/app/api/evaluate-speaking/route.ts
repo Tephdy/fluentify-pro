@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Step 2: Evaluate the transcript using Llama models safely (removed strict json_object constraint to avoid failed_generation errors)
+    // Step 2: Evaluate the transcript using active Groq models safely
     const evaluationPrompt = `You are an expert IELTS Speaking examiner.
 Analyze the candidate's spoken transcript for the given prompt and score their proficiency across 5 key areas (0-100%):
 - Task achievement
@@ -85,7 +85,7 @@ Return ONLY a valid JSON object (no markdown formatting, no conversational text)
 }`;
 
     const modelsToTry = [
-      'llama-3.1-8b-instant',
+      'openai/gpt-oss-120b',
       'openai/gpt-oss-20b'
     ];
 
