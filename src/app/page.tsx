@@ -635,11 +635,13 @@ export default function Home() {
         });
       }
 
+      window.scrollTo(0, 0);
+
       const opt = {
         margin: 0,
         filename: `Cally_Certificate_${userName.replace(/\s+/g, '_')}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
       };
 
@@ -819,74 +821,78 @@ export default function Home() {
 
         {appMode === 'full_exam' && examStepIndex === 5 && (
           <div className="space-y-6 sm:space-y-8 max-w-[1300px] mx-auto text-center animate-fadeIn">
-            <div className="p-3 sm:p-6 bg-slate-100 rounded-3xl border border-slate-200 shadow-xl overflow-x-auto w-full">
-              <div
-                id="certificate-to-download"
-                style={{
-                  width: '1100px',
-                  backgroundColor: '#fbf9f4',
-                  border: '16px solid #1e293b',
-                  padding: '40px 60px',
-                  boxSizing: 'border-box',
-                  position: 'relative',
-                  margin: '0 auto',
-                  textAlign: 'left',
-                  flexShrink: 0,
-                }}
-              >
-                <div style={{ border: '2px solid #b45309', padding: '30px 40px', position: 'relative' }}>
-                  
-                  <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                    <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '3px', color: '#1e293b', fontWeight: '700' }}>
-                      ✨ TephdyTech & Cally Assessment Systems ✨
+            {/* FULL-VIEW RESPONSIVE CERTIFICATE CONTAINER (Scaled down on mobile so it fits entirely without scrolling) */}
+            <div className="p-3 sm:p-6 bg-slate-100 rounded-3xl border border-slate-200 shadow-xl flex justify-center items-center overflow-hidden w-full">
+              <div className="w-full overflow-hidden flex justify-center py-2 sm:py-0">
+                <div className="w-[1100px] h-[778px] sm:h-auto shrink-0 origin-top transform scale-[0.38] min-[360px]:scale-[0.42] min-[400px]:scale-[0.47] min-[500px]:scale-[0.58] min-[640px]:scale-[0.75] md:scale-[0.88] lg:scale-100 transition-transform">
+                  <div
+                    id="certificate-to-download"
+                    style={{
+                      width: '1100px',
+                      backgroundColor: '#fbf9f4',
+                      border: '16px solid #1e293b',
+                      padding: '40px 60px',
+                      boxSizing: 'border-box',
+                      position: 'relative',
+                      margin: '0 auto',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ border: '2px solid #b45309', padding: '30px 40px', position: 'relative' }}>
+                      
+                      <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                        <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '3px', color: '#1e293b', fontWeight: '700' }}>
+                          ✨ TephdyTech & Cally Assessment Systems ✨
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#78350f', marginTop: '3px', fontWeight: '600' }}>EST. 2026</div>
+                      </div>
+
+                      <h1 style={{ fontSize: '38px', fontWeight: '800', color: '#78350f', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '2px', margin: '10px 0 5px 0', fontFamily: 'serif' }}>
+                        Certificate of Achievement
+                      </h1>
+                      <div style={{ fontSize: '13px', color: '#1e293b', textAlign: 'center', marginBottom: '20px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px' }}>
+                        Official Verification of Professional BPO Competency
+                      </div>
+
+                      <div style={{ fontSize: '14px', color: '#475569', textAlign: 'center', fontStyle: 'italic', marginBottom: '5px' }}>This is to certify that</div>
+                      <div style={{ fontSize: '36px', fontWeight: '700', color: '#1e293b', textAlign: 'center', margin: '0 auto 15px auto', paddingBottom: '4px', borderBottom: '2px solid #cbd5e1', display: 'table', fontFamily: 'serif' }}>
+                        {userName}
+                      </div>
+
+                      <p style={{ fontSize: '13px', color: '#334155', textAlign: 'center', maxWidth: '800px', margin: '0 auto 20px auto', lineHeight: '1.5' }}>
+                        has successfully demonstrated exceptional proficiency across all official assessment modules, showcasing linguistic mastery, professional communication skills, and technical competency required for the Business Process Outsourcing (BPO) industry.
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 30px', maxWidth: '850px', margin: '0 auto 25px auto', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                        <div>🎧 Listening & Dictation ({examScores.listening}%)</div>
+                        <div>🎙️ Versant Speaking Simulation ({examScores.speaking}%)</div>
+                        <div>📖 Reading & Grammar ({examScores.reading}%)</div>
+                        <div>⌨️ Chat & Typing Accuracy ({examScores.typing}%)</div>
+                        <div>✍️ Business Writing Composition ({examScores.writing}%)</div>
+                        <div style={{ color: '#b45309', fontWeight: '700' }}>⭐ Final Cumulative Rating: ({overallExamAverage}%)</div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: '20px', marginTop: '10px' }}>
+                        <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
+                          Authorized Electronic Validation
+                        </div>
+
+                        <div style={{ width: '70px', height: '70px', background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)', color: '#ffffff', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '3px double #fef3c7', textAlign: 'center', fontSize: '8px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          <span>Official</span>
+                          <span>Verified</span>
+                        </div>
+
+                        <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
+                          Cally Evaluation Authority
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#64748b', fontWeight: '600', letterSpacing: '1px' }}>
+                        DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [TT-CALLY-BPO-2026-{Math.floor(1000 + Math.random() * 9000)}]
+                      </div>
+
                     </div>
-                    <div style={{ fontSize: '11px', color: '#78350f', marginTop: '3px', fontWeight: '600' }}>EST. 2026</div>
                   </div>
-
-                  <h1 style={{ fontSize: '38px', fontWeight: '800', color: '#78350f', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '2px', margin: '10px 0 5px 0', fontFamily: 'serif' }}>
-                    Certificate of Achievement
-                  </h1>
-                  <div style={{ fontSize: '13px', color: '#1e293b', textAlign: 'center', marginBottom: '20px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px' }}>
-                    Official Verification of Professional BPO Competency
-                  </div>
-
-                  <div style={{ fontSize: '14px', color: '#475569', textAlign: 'center', fontStyle: 'italic', marginBottom: '5px' }}>This is to certify that</div>
-                  <div style={{ fontSize: '36px', fontWeight: '700', color: '#1e293b', textAlign: 'center', margin: '0 auto 15px auto', paddingBottom: '4px', borderBottom: '2px solid #cbd5e1', display: 'table', fontFamily: 'serif' }}>
-                    {userName}
-                  </div>
-
-                  <p style={{ fontSize: '13px', color: '#334155', textAlign: 'center', maxWidth: '800px', margin: '0 auto 20px auto', lineHeight: '1.5' }}>
-                    has successfully demonstrated exceptional proficiency across all official assessment modules, showcasing linguistic mastery, professional communication skills, and technical competency required for the Business Process Outsourcing (BPO) industry.
-                  </p>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 30px', maxWidth: '850px', margin: '0 auto 25px auto', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
-                    <div>🎧 Listening & Dictation ({examScores.listening}%)</div>
-                    <div>🎙️ Versant Speaking Simulation ({examScores.speaking}%)</div>
-                    <div>📖 Reading & Grammar ({examScores.reading}%)</div>
-                    <div>⌨️ Chat & Typing Accuracy ({examScores.typing}%)</div>
-                    <div>✍️ Business Writing Composition ({examScores.writing}%)</div>
-                    <div style={{ color: '#b45309', fontWeight: '700' }}>⭐ Final Cumulative Rating: ({overallExamAverage}%)</div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: '20px', marginTop: '10px' }}>
-                    <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
-                      Authorized Electronic Validation
-                    </div>
-
-                    <div style={{ width: '70px', height: '70px', background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)', color: '#ffffff', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '3px double #fef3c7', textAlign: 'center', fontSize: '8px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      <span>Official</span>
-                      <span>Verified</span>
-                    </div>
-
-                    <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
-                      Cally Evaluation Authority
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#64748b', fontWeight: '600', letterSpacing: '1px' }}>
-                    DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [TT-CALLY-BPO-2026-{Math.floor(1000 + Math.random() * 9000)}]
-                  </div>
-
                 </div>
               </div>
             </div>
