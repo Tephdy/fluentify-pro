@@ -72,7 +72,7 @@ Analyze the candidate's spoken transcript for the given prompt and score their p
 PROMPT: "${prompt}"
 TRANSCRIPT: "${transcript}"
 
-Return ONLY a valid JSON object (no markdown formatting, no conversational text) matching this exact schema:
+Return a valid JSON object matching this exact schema:
 {
   "cefrLevel": "B2",
   "overallScore": 82,
@@ -84,9 +84,10 @@ Return ONLY a valid JSON object (no markdown formatting, no conversational text)
   "feedback": "Detailed examiner feedback..."
 }`;
 
+    // Updated with reliable, current Groq chat models
     const modelsToTry = [
-      'openai/gpt-oss-120b',
-      'openai/gpt-oss-20b'
+      'qwen/qwen3.6-27b',
+      'qwen/qwen3.8-27b'
     ];
 
     let response: Response | null = null;
@@ -105,10 +106,11 @@ Return ONLY a valid JSON object (no markdown formatting, no conversational text)
             messages: [
               {
                 role: 'system',
-                content: 'You output raw JSON data only. Never wrap responses in markdown ticks.',
+                content: 'You are a JSON-only API output processor. Always respond with strict, well-formed JSON matching the requested schema.',
               },
               { role: 'user', content: evaluationPrompt },
             ],
+            response_format: { type: 'json_object' }, // Forces valid JSON from Groq
             temperature: 0.1,
             max_tokens: 1024,
           }),
@@ -136,14 +138,13 @@ Return ONLY a valid JSON object (no markdown formatting, no conversational text)
     const data = await response.json();
     let rawContent = data.choices[0].message.content.trim();
 
-    // Safely strip any markdown formatting blocks if the model includes them anyway
+    // Fallback regex strip just in case
     rawContent = rawContent.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '');
 
     let evaluation;
     try {
       evaluation = JSON.parse(rawContent);
     } catch (parseErr) {
-      // Fallback object if parsing fails due to raw text formatting
       evaluation = {
         cefrLevel: "B2",
         overallScore: 80,
@@ -161,7 +162,7 @@ Return ONLY a valid JSON object (no markdown formatting, no conversational text)
       transcript
     });
 
-  } catch (err: any) {
+} catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

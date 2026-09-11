@@ -8,6 +8,9 @@ const LISTENING_TOPICS = [
   'a support call about account verification and password reset security checks',
   'a technical support escalation with a frustrated client and a supervisor handoff',
   'a quality assurance review of an agent handling an empathy-driven complaint',
+  'a customer inquiring about international roaming fees and data plan add-ons',
+  'a troubleshooting session for a smart home device configuration failure',
+  'a retention specialist negotiating a contract renewal with a customer planning to switch providers',
 ];
 
 const READING_TOPICS = [
@@ -17,6 +20,12 @@ const READING_TOPICS = [
   'performance coaching strategies for call center agents in high-volume environments',
   'the role of empathy, active listening, and SLA compliance in BPO operations',
   'customer retention tactics in outsourced sales and support teams',
+  'artificial intelligence integration and human oversight in modern customer support workflows',
+  'omnichannel communication strategies for seamless customer experience management',
+  'managing agent burnout and maintaining mental wellness in high-stress support environments',
+  'data privacy regulations like GDPR and HIPAA compliance in outsourced customer operations',
+  'effective cross-cultural communication guidelines for global offshore customer support teams',
+  'the impact of first-contact resolution (FCR) on overall customer satisfaction scores',
 ];
 
 const WRITING_TOPICS = [
@@ -51,31 +60,27 @@ export async function POST(request: Request) {
     if (moduleType === 'speaking') topics = SPEAKING_TOPICS;
 
     const randomTopic = topics[Math.floor(Math.random() * topics.length)];
-    const randomIdSeed = Math.floor(Math.random() * 10000);
+    const randomTimestamp = Date.now();
+    const randomSeed = Math.floor(Math.random() * 999999);
 
-    const prompt = `You are an IELTS-style exam author focused on BPO / customer support / call center evaluation. Generate a brand new, unique behavioral assessment for the ${moduleType.toUpperCase()} module in valid JSON format.
+    const prompt = `You are an expert professional test author. Generate a unique, high-quality assessment for the ${moduleType.toUpperCase()} module in valid JSON format. 
 
-TOPIC FOR THIS TEST: ${randomTopic} (Unique ID: ${randomIdSeed})
+UNIQUE SESSION IDENTIFIER: ${randomTimestamp}-${randomSeed}
+SPECIFIC FOCUS/TOPIC: ${randomTopic}
 
-CRITICAL INSTRUCTIONS:
-1. "id" for each question MUST be a unique string (e.g. "q1", "q2", ..., "q10").
-2. EVERY question MUST have "type" set to "radio" and include EXACTLY 4 distinct string options in "options". Do NOT leave options empty.
-3. Every question MUST have non-empty text in "question" and a valid matching string in "correctAnswer".
-4. Make all questions closely related to BPO industry situations, customer service, call center behavior, escalation handling, sales objections, empathy, compliance, QA, retention, or account support.
-5. If you include any agent or representative names in the script, questions, or choices, you MUST use the name "Cally". Do NOT use names like Maya, Alex, John, or Sarah for the agent.
-6. ${
+CRITICAL RULES:
+1. "id" for each question must be unique (e.g., "q1", "q2", etc.).
+2. Every question must have "type": "radio", exactly 4 distinct options, a non-empty question text, and a valid matching correctAnswer.
+3. If representative or agent names appear anywhere, use ONLY the name "Cally". Never use Maya, John, or Sarah.
+4. DO NOT use sequential or static drill numbers (like "Drill #19") in the title. Create a professional, descriptive title directly related to the topic focus.
+5. ${
       moduleType === 'listening'
-        ? 'Provide a comprehensive realistic BPO customer support call script (250-350 words) in "audioScript" about the scenario where the agent is named Cally, to support 10 questions. Keep it natural and workplace-appropriate. Avoid special quotes.'
-        : 'Set "audioScript" to an empty string.'
+        ? 'Provide a comprehensive realistic BPO customer support call script (250-350 words) in "audioScript" centered on the topic focus. Set "passage" to an empty string.'
+        : moduleType === 'reading'
+        ? 'Provide a detailed, substantive, original professional reading passage (400-500 words split into multiple paragraphs) in the "passage" field that thoroughly analyzes the topic focus. Do NOT use short placeholder text or summaries. Set "audioScript" to an empty string.'
+        : 'Set "audioScript" to an empty string and "passage" to an empty string.'
     }
-7. ${
-      moduleType === 'reading'
-        ? 'Provide a detailed original professional reading passage (400-500 words) about BPO operations, customer handling standards, service recovery, SLA expectations, or call center quality management in "passage".'
-        : 'Set "passage" to an empty string.'
-    }
-8. For writing and speaking modules, the title should clearly describe a BPO situation or customer scenario.
-9. Generate EXACTLY 10 behavioral multiple-choice questions tailored to the BPO scenario. Each question should test how an agent should respond professionally in a realistic customer support or sales situation.
-10. Use realistic answer choices that include proper empathy, ownership, escalation, compliance, clarity, and customer-first behavior.`;
+6. Generate EXACTLY 10 multiple-choice questions directly assessing the text or scenario.`;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -84,7 +89,7 @@ CRITICAL INSTRUCTIONS:
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
+        model: 'qwen/qwen3.6-27b',
         messages: [{ role: 'user', content: prompt }],
         response_format: {
           type: 'json_schema',
@@ -122,7 +127,7 @@ CRITICAL INSTRUCTIONS:
             },
           },
         },
-        temperature: 0.7,
+        temperature: 0.95,
         max_tokens: 8192,
       }),
     });
@@ -147,7 +152,6 @@ CRITICAL INSTRUCTIONS:
 
     const parsedData = JSON.parse(content);
 
-    // --- SANITIZATION BACKUP: Forcefully replace any lingering "Maya" with "Cally" across the entire JSON response ---
     const sanitizeText = (text: string) => (text ? text.replace(/Maya/g, 'Cally') : text);
 
     if (parsedData.title) parsedData.title = sanitizeText(parsedData.title);
@@ -161,10 +165,6 @@ CRITICAL INSTRUCTIONS:
         correctAnswer: sanitizeText(q.correctAnswer),
         options: Array.isArray(q.options) ? q.options.map((opt: string) => sanitizeText(opt)) : q.options,
       }));
-    }
-
-    if (moduleType === 'listening' && (!parsedData.audioScript || parsedData.audioScript.trim() === '')) {
-      parsedData.audioScript = `Welcome to the expanded IELTS Listening test on ${randomTopic}. Please listen carefully to the conversation with Cally before answering the 10 questions below.`;
     }
 
     return NextResponse.json(parsedData);
