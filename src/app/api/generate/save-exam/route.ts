@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // 3. Insert individual module scores (Only once)
+    // 3. Insert individual module scores
     const moduleEntries = Object.entries(examScores).map(([moduleName, score]) => ({
       sessionId: examSession.id,
       moduleName,
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       data: moduleEntries,
     });
 
-    // 4. Generate a unique Certificate Code if it's a full exam
+    // 4. Generate a unique Certificate Code
     const certCode = `TEPHDYTECH-BPO-2026-${Math.floor(1000 + Math.random() * 9000)}`;
     const certificate = await prisma.certificate.create({
       data: {
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     });
 
   } catch (error: any) {
-    console.error('Database save error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    console.error('Save exam error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to save exam.' }, { status: 500 });
   }
 }
