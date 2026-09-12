@@ -12,7 +12,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required exam data.' }, { status: 400 });
     }
 
-    // 1. Find or create the user
     let user = await prisma.user.findFirst({
       where: { name: userName },
     });
@@ -23,7 +22,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // 2. Create the Exam Session record
     const examSession = await prisma.examSession.create({
       data: {
         userId: user.id,
@@ -31,7 +29,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // 3. Insert individual module scores
     const moduleEntries = Object.entries(examScores).map(([moduleName, score]) => ({
       sessionId: examSession.id,
       moduleName,
@@ -42,7 +39,6 @@ export async function POST(request: Request) {
       data: moduleEntries,
     });
 
-    // 4. Generate a unique Certificate Code
     const certCode = `TEPHDYTECH-BPO-2026-${Math.floor(1000 + Math.random() * 9000)}`;
     const certificate = await prisma.certificate.create({
       data: {
