@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import confetti from 'canvas-confetti';
+import { supabase } from '@/lib/supabase'; // Adjust path if your lib folder is located elsewhere
+
+
 
 interface AudioPlayerProps {
   script: string;
@@ -967,7 +970,7 @@ const FALLBACK_READING_QUESTIONS: TestData[] = [
     questions: [
       { id: 'rq_16_1', type: 'multiple_choice', question: 'What represents a major financial risk for subscription-based businesses?', options: ['Customer churn.', 'Excessive software licensing fees.', 'High office rental overhead expenses.', 'Upgrading employee computer hardware.'], correctAnswer: 'Customer churn.' },
       { id: 'rq_16_2', type: 'multiple_choice', question: 'What early behavioral warning signs indicate a customer is at risk of cancellation?', options: ['Sudden login drops, unresolved support tickets, or repeated billing complaints.', 'Frequent praise of customer service agents on social media.', 'Upgrading subscription tiers to enterprise packages.', 'Submitting multiple positive product reviews.'], correctAnswer: 'Sudden login drops, unresolved support tickets, or repeated billing complaints.' },
-      { id: 'rq_16_3', type: 'multiple_choice', question: 'How do retention specialists intervene when a customer signals intent to cancel?', options: ['By offering targeted loyalty discounts, billing flexibility, or feature upgrades.', 'By immediately deleting the account and charging a termination fee.', 'By transferring the client to a competitor’s sales department.', 'By ignoring the cancellation request until the contract expires.'], correctAnswer: 'By offering targeted loyalty discounts, billing flexibility, and feature upgrades.' },
+      { id: 'rq_16_3', type: 'multiple_choice', question: 'How do retention specialists intervene when a customer signals intent to cancel?', options: ['By offering targeted loyalty discounts, billing flexibility, and feature upgrades.', 'By immediately deleting the account and charging a termination fee.', 'By transferring the client to a competitor’s sales department.', 'By ignoring the cancellation request until the contract expires.'], correctAnswer: 'By offering targeted loyalty discounts, billing flexibility, and feature upgrades.' },
       { id: 'rq_16_4', type: 'multiple_choice', question: 'What is the primary objective of structured win-back campaigns?', options: ['To target former subscribers and recover lost recurring revenue.', 'To file legal lawsuits against individuals who cancel their subscriptions.', 'To prevent new customers from signing up for trial periods.', 'To eliminate the customer support department entirely.'], correctAnswer: 'To target former subscribers and recover lost recurring revenue.' },
       { id: 'rq_16_5', type: 'multiple_choice', question: 'Why do businesses prioritize customer retention over expensive new acquisitions?', options: ['Retaining an existing customer is significantly more cost-effective.', 'Acquiring new subscribers requires zero marketing expenditures.', 'Retaining customers guarantees they will never file complaints.', 'New acquisitions are legally prohibited by corporate compliance laws.'], correctAnswer: 'Retaining an existing customer is significantly more cost-effective.' }
     ]
@@ -1406,7 +1409,6 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Keep the child component synchronized with a newly generated test.
   useEffect(() => {
     const nextPrompt = prompts[0] || FALLBACK_SPEAKING_PROMPTS_POOL[0];
     setCurrentPrompt(nextPrompt);
@@ -1636,11 +1638,20 @@ const MOTIVATIONAL_QUOTES = [
 ];
 
 export default function Home() {
+  const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
-  const [isNameSubmitted, setIsNameSubmitted] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  // UI Theme State ('light' | 'dark' | 'midnight')
+  const [theme, setTheme] = useState<'light' | 'dark' | 'midnight'>('light');
 
   const [appMode, setAppMode] = useState<'dashboard' | 'full_exam'>('dashboard');
   const [selectedModule, setSelectedModule] = useState<ModuleType | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'logs' | ModuleType>('overview');
 
   const [examStepIndex, setExamStepIndex] = useState(0); 
   const examSequence: ModuleType[] = ['listening', 'reading', 'writing', 'speaking', 'typing'];
@@ -1688,6 +1699,95 @@ export default function Home() {
   const [usedReadingIds, setUsedReadingIds] = useState<string[]>([]);
   const [usedWritingPrompts, setUsedWritingPrompts] = useState<string[]>([]);
 
+  const [userScores, setUserScores] = useState<any[]>([]);
+  const [userCertificates, setUserCertificates] = useState<any[]>([]);
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  // Load saved theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('cally_ui_theme') as 'light' | 'dark' | 'midnight';
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+  }, []);
+
+  const handleThemeChange = (newTheme: 'light' | 'dark' | 'midnight') => {
+    setTheme(newTheme);
+    localStorage.setItem('cally_ui_theme', newTheme);
+  };
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchUserStats = async () => {
+      setLoadingStats(true);
+
+      const { data: scoresData, error: scoresError } = await supabase
+        .from('module_scores')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (scoresError) console.error('Error fetching scores:', scoresError.message);
+      else setUserScores(scoresData || []);
+
+      const { data: certsData, error: certsError } = await supabase
+        .from('certificates')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (certsError) console.error('Error fetching certificates:', certsError.message);
+      else setUserCertificates(certsData || []);
+
+      setLoadingStats(false);
+    };
+
+    fetchUserStats();
+  }, [userId]);
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('cally_user_email');
+    const savedName = localStorage.getItem('cally_user_name');
+    const savedId = localStorage.getItem('cally_user_id');
+
+    if (savedEmail && savedId) {
+      setEmail(savedEmail);
+      setUserName(savedName || '');
+      setUserId(savedId);
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const checkUserSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session && session.user) {
+        const googleEmail = session.user.email;
+        const googleName = session.user.user_metadata?.full_name || googleEmail?.split('@')[0];
+
+        const { data, error } = await supabase
+          .from('users')
+          .upsert({ email: googleEmail, name: googleName }, { onConflict: 'email' })
+          .select();
+
+        if (error) {
+          console.error('Error syncing user to database:', error.message);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          const currentUserId = (data[0] as any).id;
+          setUserId(currentUserId);
+          setUserName(googleName);
+          setEmail(googleEmail || '');
+          setIsLoggedIn(true);
+        }
+      }
+    };
+
+    checkUserSession();
+  }, []);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (startTime && !isTypingCompleted) {
@@ -1727,8 +1827,94 @@ export default function Home() {
     }
   };
 
+  const totalScores = userScores.reduce((acc, curr) => acc + (curr.score || 0), 0);
+  const averageScore = userScores.length > 0 ? Math.round(totalScores / userScores.length) : 0;
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      setAuthError('Please enter both email and password.');
+      return;
+    }
+
+    setAuthError('');
+    const derivedName = email.split('@')[0];
+    const finalName = userName.trim() || derivedName.charAt(0).toUpperCase() + derivedName.slice(1);
+    setUserName(finalName);
+
+    try {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
+
+      if (existingUser) {
+        setAuthError('An account with this email already exists. Please log in.');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('users')
+        .insert([{ email: email, name: finalName }])
+        .select();
+
+      if (error) {
+        console.error('Sign up error:', error.message);
+        setAuthError('Failed to create account.');
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const currentUserId = (data[0] as any).id;
+        setUserId(currentUserId);
+        localStorage.setItem('cally_user_email', email);
+        localStorage.setItem('cally_user_name', finalName);
+        localStorage.setItem('cally_user_id', currentUserId);
+      }
+
+      setIsLoggedIn(true);
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setAuthError('An unexpected error occurred.');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setAuthError('');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+
+    if (error) {
+      console.error('Google login error:', error.message);
+      setAuthError('Failed to sign in with Google.');
+    }
+  };
+
+  const handleSelectSidebarTab = (tab: 'overview' | 'logs' | ModuleType) => {
+    setActiveTab(tab);
+    if (tab === 'overview' || tab === 'logs') {
+      setAppMode('dashboard');
+      setSelectedModule(null);
+      setTestData(null);
+      setIsSubmitted(false);
+      setScore(null);
+      setShowScorePopup(false);
+      setShowInstructionsModal(false);
+      setSelectedAnswers({});
+      resetListeningState();
+    } else {
+      handleStartDashboardModule(tab);
+    }
+  };
+
   const handleStartDashboardModule = (mod: ModuleType) => {
     setAppMode('dashboard');
+    setActiveTab(mod);
     setSelectedModule(mod);
     setTestData(null);
     setIsSubmitted(false);
@@ -1758,6 +1944,7 @@ export default function Home() {
     setExamStepIndex(0);
     const firstMod = examSequence[0];
     setSelectedModule(firstMod);
+    setActiveTab(firstMod);
     setTestData(null);
     setIsSubmitted(false);
     setScore(null);
@@ -1772,6 +1959,7 @@ export default function Home() {
   const handleBackToDashboard = () => {
     setAppMode('dashboard');
     setSelectedModule(null);
+    setActiveTab('overview');
     setTestData(null);
     setIsSubmitted(false);
     setScore(null);
@@ -1821,9 +2009,6 @@ export default function Home() {
     }
 
     if (moduleType === 'speaking') {
-      // Select one fresh prompt per test instead of reshuffling the whole array.
-      // This guarantees that "Generate New Test" actually changes the task
-      // until the prompt pool has been exhausted.
       const availableSpeaking = FALLBACK_SPEAKING_PROMPTS_POOL.filter(
         (prompt) => !usedSpeakingPrompts.includes(prompt)
       );
@@ -1892,6 +2077,7 @@ export default function Home() {
       setExamStepIndex(nextIndex);
       const nextMod = examSequence[nextIndex];
       setSelectedModule(nextMod);
+      setActiveTab(nextMod);
       setIsSubmitted(false);
       setScore(null);
       setShowScorePopup(false);
@@ -1927,10 +2113,29 @@ export default function Home() {
     }
   };
 
-  const handleScoreFinalized = (finalPct: number) => {
+  const handleScoreFinalized = async (finalPct: number) => {
     setScore(finalPct);
     setIsSubmitted(true);
     setShowScorePopup(true);
+
+    if (userId && selectedModule) {
+      const { data, error } = await supabase
+        .from('module_scores')
+        .insert([
+          { 
+            user_id: userId, 
+            module_name: selectedModule, 
+            score: finalPct 
+          }
+        ])
+        .select();
+      
+      if (error) {
+        console.error('Error saving module score:', error.message);
+      } else if (data && data.length > 0) {
+        setUserScores(prev => [data[0], ...prev]);
+      }
+    }
 
     if (finalPct > 70) {
       triggerConfetti();
@@ -2119,427 +2324,640 @@ export default function Home() {
 
   const activeFeature = dashboardFeatures.find((f) => f.id === selectedModule);
 
-  if (!isNameSubmitted) {
+  // Dynamic Theme Styling Classes
+  const themeClasses = {
+    light: {
+      bg: 'min-h-screen bg-slate-50/50 text-slate-800',
+      header: 'bg-white/95 border-slate-200 text-slate-900',
+      sidebar: 'bg-white border-slate-200 text-slate-700',
+      card: 'bg-white border-slate-200 text-slate-900',
+      textMuted: 'text-slate-500',
+      tableHeader: 'border-slate-100 text-slate-400',
+      tableRowHover: 'hover:bg-slate-50/50',
+      divider: 'border-slate-100',
+    },
+    dark: {
+      bg: 'min-h-screen bg-slate-950 text-slate-100',
+      header: 'bg-slate-900/95 border-slate-800 text-white',
+      sidebar: 'bg-slate-900 border-slate-800 text-slate-300',
+      card: 'bg-slate-900 border-slate-800 text-white',
+      textMuted: 'text-slate-400',
+      tableHeader: 'border-slate-800 text-slate-400',
+      tableRowHover: 'hover:bg-slate-800/50',
+      divider: 'border-slate-800',
+    },
+    midnight: {
+      bg: 'min-h-screen bg-[#090d16] text-blue-50',
+      header: 'bg-[#0f172a]/95 border-blue-950 text-blue-100',
+      sidebar: 'bg-[#0f172a] border-blue-950 text-blue-200',
+      card: 'bg-[#111c33] border-blue-900/60 text-blue-50',
+      textMuted: 'text-blue-300/70',
+      tableHeader: 'border-blue-950 text-blue-400',
+      tableRowHover: 'hover:bg-blue-950/40',
+      divider: 'border-blue-950',
+    }
+  }[theme];
+
+  if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-6 text-center animate-fadeIn">
-          <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-2xl font-black shadow-inner">
-            ✨
-          </div>
-          <div className="space-y-1">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900">Welcome to TephdyTech</h1>
-            <p className="text-slate-500 text-xs">Please enter your full name to begin your assessment journey.</p>
-          </div>
-          <input
-            type="text"
-            placeholder="Enter your full name..."
-            value={userName}
-            onChange={(e) => setUserName(e.target.value)}
-            className="w-full p-3.5 border border-slate-300 rounded-xl text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+      <div className={`flex min-h-screen items-center justify-center p-4 ${themeClasses.bg}`}>
+        <div className={`w-full max-w-md rounded-xl p-8 shadow-md text-center border ${themeClasses.card}`}>
+          
+          <h2 className="text-2xl font-bold mb-2">Welcome to Exam App</h2>
+          <p className={`text-sm mb-6 ${themeClasses.textMuted}`}>Sign in to track your scores and certificates</p>
+
+          {authError && (
+            <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+              {authError}
+            </div>
+          )}
+
           <button
-            disabled={!userName.trim()}
-            onClick={() => setIsNameSubmitted(true)}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm py-3 rounded-xl transition shadow-md cursor-pointer"
+            onClick={handleGoogleLogin}
+            className="w-full flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white py-3 text-gray-700 font-medium hover:bg-gray-50 transition duration-200 shadow-sm"
           >
-            Enter Assessment Portal
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-8.87z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.2v3.14C3.18 21.38 7.26 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.62H1.2C.43 8.19 0 9.95 0 12s.43 3.81 1.2 5.38l4.07-3.14z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.26 0 3.18 2.62 1.2 6.62l4.07 3.14c.95-2.85 3.6-4.96 6.73-4.96z"/>
+            </svg>
+            Continue with Google
           </button>
+
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans text-slate-800">
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-8">
+    <div className={`${themeClasses.bg} flex flex-col font-sans transition-colors duration-300`}>
+      <header className={`sticky top-0 z-30 backdrop-blur-md border-b px-4 sm:px-8 ${themeClasses.header}`}>
         <div className="w-full max-w-[1800px] mx-auto flex items-center justify-between h-16">
           <div className="flex items-center gap-3 cursor-pointer" onClick={handleBackToDashboard}>
             <div className="relative w-8 h-8 sm:w-9 sm:h-9 shrink-0">
               <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
             </div>
-            <span className="font-bold text-slate-900 tracking-tight text-sm sm:text-lg">Cally Assessment Hub</span>
+            <span className="font-bold tracking-tight text-sm sm:text-lg">Cally Assessment Hub</span>
           </div>
-          <div className="flex items-center gap-4 text-xs font-semibold text-slate-700">
-            <span className="truncate max-w-[120px] sm:max-w-none">Candidate: <strong className="text-indigo-600">{userName}</strong></span>
+
+          <div className="flex items-center gap-4">
+            {/* Theme Select Dropdown */}
+            <div className="flex items-center gap-1.5 bg-slate-500/10 border border-slate-500/20 px-2.5 py-1 rounded-xl text-xs font-bold">
+              <span>🎨 Theme:</span>
+              <select
+                value={theme}
+                onChange={(e) => handleThemeChange(e.target.value as any)}
+                className="bg-transparent font-bold focus:outline-none cursor-pointer"
+              >
+                <option value="light" className="text-slate-900">Light</option>
+                <option value="dark" className="text-slate-900">Dark</option>
+                <option value="midnight" className="text-slate-900">Midnight</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3 text-xs font-semibold">
+              <span className="truncate max-w-[120px] sm:max-w-none">Candidate: <strong className="text-indigo-500">{userName}</strong></span>
+              <button
+                onClick={() => setIsLoggedIn(false)}
+                className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-lg transition cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-3 sm:px-8 py-4 sm:py-6">
-        {appMode === 'dashboard' && !selectedModule && (
-          <div className="space-y-8 sm:space-y-10">
-            <div className="p-6 sm:p-12 bg-slate-900 text-white rounded-3xl space-y-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="space-y-3 max-w-2xl relative z-10 text-center md:text-left">
-                <span className="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
-                  Cally Assessment & Certification Portal
-                </span>
-                <h1 className="text-2xl sm:text-4xl font-black">Choose Your Mode</h1>
-                <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                  Practice any module individually on the dashboard without a certificate, or take the official <strong>Full Exam</strong> pathway to download your verified certificate!
-                </p>
-              </div>
-              <div className="shrink-0 relative z-10 w-full md:w-auto">
+      {/* Main Container with Sidebar & Features */}
+      <div className="flex-1 flex flex-col md:flex-row w-full max-w-[1800px] mx-auto">
+        {/* Sidebar Navigation */}
+        <aside className={`w-full md:w-72 border-r p-4 sm:p-6 shrink-0 space-y-6 ${themeClasses.sidebar}`}>
+          <div className="space-y-1">
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>System Navigation</span>
+            <nav className="space-y-1 pt-1">
+              <button
+                onClick={() => handleSelectSidebarTab('overview')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer ${
+                  activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'hover:opacity-80'
+                }`}
+              >
+                <span>📊</span>
+                <span>Dashboard Overview</span>
+              </button>
+              <button
+                onClick={() => handleSelectSidebarTab('logs')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer ${
+                  activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-md' : 'hover:opacity-80'
+                }`}
+              >
+                <span>📈</span>
+                <span>Performance Logs</span>
+              </button>
+            </nav>
+          </div>
+
+          <div className="space-y-1">
+            <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>Practice Modules</span>
+            <nav className="space-y-1 pt-1">
+              {dashboardFeatures.map((feat) => (
                 <button
-                  onClick={handleStartFullExam}
-                  className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-base px-6 sm:px-8 py-4 rounded-2xl shadow-lg transition cursor-pointer flex items-center justify-center gap-3"
+                  key={feat.id}
+                  onClick={() => handleSelectSidebarTab(feat.id)}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ${
+                    activeTab === feat.id ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold shadow-xs' : 'hover:opacity-80'
+                  }`}
                 >
-                  <span>🎓 Take Full Exam & Download Certificate</span>
+                  <div className="flex items-center gap-2.5 truncate">
+                    <span>{feat.icon}</span>
+                    <span className="truncate">{feat.title}</span>
+                  </div>
                 </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className={`pt-4 border-t ${themeClasses.divider}`}>
+            <button
+              onClick={handleStartFullExam}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+            >
+              <span>🎓 Take Full Exam</span>
+            </button>
+          </div>
+        </aside>
+
+        {/* Content Area */}
+        <main className="flex-1 w-full max-w-[1400px] mx-auto px-3 sm:px-8 py-4 sm:py-6">
+          {appMode === 'dashboard' && !selectedModule && activeTab === 'overview' && (
+            <div className="space-y-8 sm:space-y-10 animate-fadeIn">
+              {/* Welcome Banner */}
+              <div className="p-6 sm:p-10 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl space-y-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-800">
+                <div className="space-y-3 max-w-2xl relative z-10 text-center md:text-left">
+                  <span className="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
+                    Cally Assessment & Certification Portal
+                  </span>
+                  <h1 className="text-2xl sm:text-4xl font-black">Welcome Back, {userName || 'Candidate'}!</h1>
+                  <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    Select a module from the left sidebar to practice your skills, or check your <strong>Performance Logs</strong> and official <strong>Full Exam</strong> pathway.
+                  </p>
+                </div>
+                <div className="shrink-0 relative z-10 w-full md:w-auto">
+                  <button
+                    onClick={handleStartFullExam}
+                    className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-base px-6 sm:px-8 py-4 rounded-2xl shadow-lg transition cursor-pointer flex items-center justify-center gap-3"
+                  >
+                    <span>🎓 Take Full Exam & Download Certificate</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Individual Practice Modules Quick-Access Section */}
+              <div className="space-y-6">
+                <div className={`border-b pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 ${themeClasses.divider}`}>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-bold">Individual Practice Modules</h2>
+                    <p className={`text-xs ${themeClasses.textMuted}`}>Practice freely module-by-module (No certificate generated)</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
+                  {dashboardFeatures.map((feat) => (
+                    <div
+                      key={feat.id}
+                      className={`border rounded-2xl p-5 sm:p-6 flex flex-col justify-between hover:border-indigo-400 hover:shadow-md transition ${themeClasses.card}`}
+                    >
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-2xl">{feat.icon}</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${feat.color}`}>
+                            {feat.tag}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-base font-bold">{feat.title}</h3>
+                          <p className={`text-xs leading-relaxed ${themeClasses.textMuted}`}>{feat.description}</p>
+                        </div>
+                      </div>
+                      <div className="pt-6">
+                        <button
+                          onClick={() => handleStartDashboardModule(feat.id)}
+                          className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition cursor-pointer ${feat.btnColor}`}
+                        >
+                          Practice Module
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="space-y-6">
-              <div className="border-b border-slate-200 pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
+          {appMode === 'dashboard' && !selectedModule && activeTab === 'logs' && (
+            <div className="space-y-6 animate-fadeIn">
+              <div className={`border-b pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 ${themeClasses.divider}`}>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-bold text-slate-900">Individual Practice Modules</h2>
-                  <p className="text-xs text-slate-500">Practice freely module-by-module (No certificate generated)</p>
+                  <h2 className="text-lg sm:text-xl font-bold">Performance & Historical Improvement Logs</h2>
+                  <p className={`text-xs ${themeClasses.textMuted}`}>Chronological tracking of every test attempt, score evolution, and exam dates</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
-                {dashboardFeatures.map((feat) => (
-                  <div
-                    key={feat.id}
-                    className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 flex flex-col justify-between hover:border-indigo-300 hover:shadow-md transition"
-                  >
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl">{feat.icon}</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${feat.color}`}>
-                          {feat.tag}
-                        </span>
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className="text-base font-bold text-slate-900">{feat.title}</h3>
-                        <p className="text-xs text-slate-500 leading-relaxed">{feat.description}</p>
-                      </div>
-                    </div>
-                    <div className="pt-6">
-                      <button
-                        onClick={() => handleStartDashboardModule(feat.id)}
-                        className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition cursor-pointer ${feat.btnColor}`}
-                      >
-                        Practice Module
-                      </button>
-                    </div>
+              {/* Stats Overview Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className={`p-6 rounded-2xl border shadow-xs space-y-2 ${themeClasses.card}`}>
+                  <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Total Test Attempts</span>
+                  <h3 className="text-3xl font-black">{userScores.length}</h3>
+                  <p className={`text-[11px] ${themeClasses.textMuted}`}>Logged practice and exam sessions</p>
+                </div>
+
+                <div className={`p-6 rounded-2xl border shadow-xs space-y-2 ${themeClasses.card}`}>
+                  <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Historical Average Score</span>
+                  <h3 className="text-3xl font-black text-indigo-500">
+                    {userScores.length > 0 
+                      ? Math.round(userScores.reduce((acc, curr) => acc + (curr.score || 0), 0) / userScores.length) 
+                      : 0}%
+                  </h3>
+                  <p className={`text-[11px] ${themeClasses.textMuted}`}>Average across all recorded attempts</p>
+                </div>
+
+                <div className={`p-6 rounded-2xl border shadow-xs space-y-2 ${themeClasses.card}`}>
+                  <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Best Performance</span>
+                  <h3 className="text-3xl font-black text-emerald-500">
+                    {userScores.length > 0 ? Math.max(...userScores.map(item => item.score || 0)) : 0}%
+                  </h3>
+                  <p className={`text-[11px] ${themeClasses.textMuted}`}>Highest score achieved in a single log</p>
+                </div>
+              </div>
+
+              {/* Attempt History Log Table including Exam Dates */}
+              <div className={`rounded-2xl border p-6 sm:p-8 shadow-xs space-y-4 ${themeClasses.card}`}>
+                <h3 className="text-base font-bold">Attempt Progress Timeline & Dates</h3>
+                
+                {loadingStats ? (
+                  <div className={`text-center py-8 font-bold text-xs sm:text-sm ${themeClasses.textMuted}`}>
+                    Loading historical progress logs...
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {appMode === 'full_exam' && examStepIndex === 5 && (
-          <div className="space-y-6 sm:space-y-8 max-w-[1300px] mx-auto text-center animate-fadeIn">
-            <div className="p-3 sm:p-6 bg-slate-100 rounded-3xl border border-slate-200 shadow-xl flex justify-center items-center overflow-hidden w-full">
-              <div className="w-full overflow-hidden flex justify-center py-2 sm:py-0">
-                <div className="w-[1100px] h-[778px] sm:h-auto shrink-0 origin-top transform scale-[0.38] min-[360px]:scale-[0.42] min-[400px]:scale-[0.47] min-[500px]:scale-[0.58] min-[640px]:scale-[0.75] md:scale-[0.88] lg:scale-100 transition-transform">
-                  <div
-                    id="certificate-to-download"
-                    style={{
-                      width: '1100px',
-                      backgroundColor: '#fbf9f4',
-                      border: '16px solid #1e293b',
-                      padding: '40px 60px',
-                      boxSizing: 'border-box',
-                      position: 'relative',
-                      margin: '0 auto',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <div style={{ border: '2px solid #b45309', padding: '30px 40px', position: 'relative' }}>
-                      
-                      <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                        <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '3px', color: '#1e293b', fontWeight: '700' }}>
-                          ✨ Cally Assessment Systems ✨
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#78350f', marginTop: '3px', fontWeight: '600' }}>EST. 2024</div>
-                      </div>
-
-                      <h1 style={{ fontSize: '38px', fontWeight: '800', color: '#78350f', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '2px', margin: '10px 0 5px 0', fontFamily: 'serif' }}>
-                        Certificate of Achievement
-                      </h1>
-                      <div style={{ fontSize: '13px', color: '#1e293b', textAlign: 'center', marginBottom: '20px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px' }}>
-                        Official Verification of Professional BPO Competency
-                      </div>
-
-                      <div style={{ fontSize: '14px', color: '#475569', textAlign: 'center', fontStyle: 'italic', marginBottom: '5px' }}>This is to certify that</div>
-                      <div style={{ fontSize: '36px', fontWeight: '700', color: '#1e293b', textAlign: 'center', margin: '0 auto 15px auto', paddingBottom: '4px', borderBottom: '2px solid #cbd5e1', display: 'table', fontFamily: 'serif' }}>
-                        {userName}
-                      </div>
-
-                      <p style={{ fontSize: '13px', color: '#334155', textAlign: 'center', maxWidth: '800px', margin: '0 auto 20px auto', lineHeight: '1.5' }}>
-                        has successfully demonstrated exceptional proficiency across all official TephdyTech assessment modules, showcasing linguistic mastery, professional communication skills, and technical competency required for the Business Process Outsourcing (BPO) industry.
-                      </p>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 30px', maxWidth: '850px', margin: '0 auto 25px auto', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
-                        <div>🎧 Listening & Dictation ({examScores.listening}%)</div>
-                        <div>🎙️ Speaking Simulation ({examScores.speaking}%)</div>
-                        <div>📖 Reading & Grammar ({examScores.reading}%)</div>
-                        <div>⌨️ Chat & Typing Accuracy ({examScores.typing}%)</div>
-                        <div>✍️ Business Writing Composition ({examScores.writing}%)</div>
-                        <div style={{ color: '#b45309', fontWeight: '700' }}>⭐ Final Cumulative Rating: ({overallExamAverage}%)</div>
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: '20px', marginTop: '10px' }}>
-                        <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
-                          Authorized Electronic Validation
-                        </div>
-
-                        <div style={{ width: '70px', height: '70px', background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)', color: '#ffffff', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '3px double #fef3c7', textAlign: 'center', fontSize: '8px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                          <span>Official</span>
-                          <span>Verified</span>
-                        </div>
-
-                        <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
-                          Cally Authority
-                        </div>
-                      </div>
-
-                      <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#64748b', fontWeight: '600', letterSpacing: '1px' }}>
-                        DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [TEPHDYTECH-BPO-2026-{Math.floor(1000 + Math.random() * 9000)}]
-                      </div>
-
-                    </div>
+                ) : userScores.length === 0 ? (
+                  <div className={`text-center py-8 text-xs sm:text-sm ${themeClasses.textMuted}`}>
+                    No test attempts logged yet. Complete a practice module or full exam to start tracking your progress!
                   </div>
-                </div>
-              </div>
-            </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${themeClasses.tableHeader}`}>
+                          <th className="pb-3 px-3">Date Taken</th>
+                          <th className="pb-3 px-3">Module</th>
+                          <th className="pb-3 px-3">Score</th>
+                          <th className="pb-3 px-3">Status / Improvement</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-500/10 text-xs sm:text-sm">
+                        {userScores.map((log, index) => {
+                          const formattedDate = log.created_at ? new Date(log.created_at).toLocaleString() : 'Recent';
+                          const previousAttempt = userScores.slice(index + 1).find(item => item.module_name === log.module_name);
+                          const diff = previousAttempt ? log.score - previousAttempt.score : null;
 
-            <div className="p-6 sm:p-8 bg-white border border-slate-200 rounded-3xl space-y-6 shadow-xl">
-              <div className="space-y-2">
-                <h2 className="text-xl sm:text-2xl font-black text-slate-900">Exam Finished Successfully!</h2>
-                <p className="text-xs sm:text-sm text-slate-600">Your verified TephdyTech certificate file (.pdf) is ready for download.</p>
-              </div>
-
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  disabled={isDownloadingPdf}
-                  onClick={handleDownloadPDF}
-                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-8 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <span>{isDownloadingPdf ? '⏳ Generating .pdf file...' : '📥 Download Certificate (.pdf)'}</span>
-                </button>
-                <button
-                  onClick={handleBackToDashboard}
-                  className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm px-6 py-3.5 rounded-xl transition cursor-pointer"
-                >
-                  Return to Dashboard
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedModule && (appMode === 'dashboard' || (appMode === 'full_exam' && examStepIndex < 5)) && (
-          <div className="space-y-6 max-w-[1400px] mx-auto">
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-              <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-                <button
-                  onClick={handleBackToDashboard}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
-                >
-                  ← Back to Dashboard
-                </button>
-                {appMode === 'dashboard' && selectedModule && (
-                  <button
-                    onClick={() => generateTest(selectedModule)}
-                    className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl transition cursor-pointer border border-indigo-200 flex items-center gap-1.5"
-                  >
-                    <span>🔄 Generate New Test</span>
-                  </button>
-                )}
-              </div>
-              <div className="text-left sm:text-right w-full sm:w-auto">
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 block">
-                  {appMode === 'full_exam' ? `Full Exam Step ${examStepIndex + 1} of 5` : 'Individual Practice Mode'}
-                </span>
-                <h2 className="text-base sm:text-lg font-bold text-slate-900 capitalize">{selectedModule} Module</h2>
-              </div>
-            </div>
-
-            {selectedModule === 'speaking' && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-xs">
-                <SpeakingRecorder
-                  key={speakingPrompts[0] || 'speaking-default'}
-                  prompts={speakingPrompts}
-                  onComplete={handleSpeakingComplete}
-                />
-              </div>
-            )}
-
-            {selectedModule === 'writing' && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-xs space-y-6">
-                <div className="p-4 sm:p-5 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-2">
-                  <span className="text-xs font-bold text-indigo-800 uppercase block">Writing Prompt:</span>
-                  <p className="text-slate-800 text-sm sm:text-base font-medium">{writingPrompt}</p>
-                </div>
-                <textarea
-                  rows={6}
-                  value={writingText}
-                  onChange={(e) => setWritingText(e.target.value)}
-                  placeholder="Type your professional response here..."
-                  className="w-full p-4 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <button
-                  onClick={handleSubmitWriting}
-                  disabled={isEvaluatingWriting || !writingText.trim()}
-                  className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
-                >
-                  {isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}
-                </button>
-                {isSubmitted && !showScorePopup && (
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 font-bold text-sm">
-                    ✓ Writing Submitted! Score: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
+                          return (
+                            <tr key={log.id || index} className={`transition ${themeClasses.tableRowHover}`}>
+                              <td className={`py-3 px-3 font-medium ${themeClasses.textMuted}`}>{formattedDate}</td>
+                              <td className="py-3 px-3 font-bold capitalize">{log.module_name}</td>
+                              <td className="py-3 px-3 font-black text-indigo-500">{log.score}%</td>
+                              <td className="py-3 px-3">
+                                {diff !== null ? (
+                                  <span className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full text-[11px] ${
+                                    diff > 0 ? 'bg-emerald-500/10 text-emerald-500' : diff < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-slate-500/10 text-slate-400'
+                                  }`}>
+                                    {diff > 0 ? `📈 +${diff}% improvement` : diff < 0 ? `📉 ${diff}% drop` : '⚖️ No change'}
+                                  </span>
+                                ) : (
+                                  <span className={`italic text-[11px] ${themeClasses.textMuted}`}>First recorded attempt</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>
-            )}
+            </div>
+          )}
 
-            {selectedModule === 'typing' && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-xs space-y-6">
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div className="p-4 bg-sky-50 rounded-xl border border-sky-100">
-                    <span className="text-xs text-sky-600 block font-bold uppercase">WPM</span>
-                    <span className="text-2xl font-black text-sky-950">{wpm}</span>
-                  </div>
-                  <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100">
-                    <span className="text-xs text-indigo-600 block font-bold uppercase">Accuracy</span>
-                    <span className="text-2xl font-black text-indigo-950">{accuracy}%</span>
-                  </div>
-                </div>
-
-                <div className="p-4 sm:p-6 bg-slate-900 text-slate-300 rounded-2xl font-mono text-xs sm:text-base leading-relaxed overflow-x-auto">
-                  {typingPassage.split('').map((char, index) => {
-                    let color = 'text-slate-500';
-                    if (index < userInput.length) {
-                      color = userInput[index] === char ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold underline';
-                    }
-                    return <span key={index} className={color}>{char}</span>;
-                  })}
-                </div>
-
-                <textarea
-                  ref={typingInputRef}
-                  rows={4}
-                  disabled={isTypingCompleted}
-                  value={userInput}
-                  onChange={handleTypingChange}
-                  placeholder="Type passage here..."
-                  className="w-full p-4 border border-slate-300 rounded-xl font-mono text-sm outline-none focus:ring-2 focus:ring-sky-500 shadow-xs"
-                />
-                {isTypingCompleted && !showScorePopup && (
-                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 font-bold text-sm">
-                    ✓ Typing Completed! Score Recorded: {score}% {appMode === 'full_exam' && '• Finalizing exam score...'}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {(selectedModule === 'listening' || selectedModule === 'reading') && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-xs space-y-6">
-                {loading && <div className="text-center py-12 text-slate-500 font-bold">Generating test questions...</div>}
-
-                {!loading && !testData && (
-                  <button
-                    onClick={() => generateTest(selectedModule)}
-                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
-                  >
-                    Load {selectedModule.toUpperCase()} Test
-                  </button>
-                )}
-
-                {testData && (
-                  <div className="space-y-6">
-                    <h3 className="text-lg sm:text-xl font-bold text-slate-900">{testData.title}</h3>
-
-                    {selectedModule === 'reading' && testData.passage && (
-                      <div className="p-5 sm:p-6 bg-amber-50/70 border border-amber-200 rounded-2xl font-serif text-slate-800 leading-relaxed shadow-xs text-xs sm:text-sm whitespace-pre-line">
-                        {testData.passage}
-                      </div>
-                    )}
-
-                    {selectedModule === 'listening' && testData.audioScript && !hasAudioEnded && (
-                      <div className="p-4 bg-slate-900 text-white rounded-xl space-y-3 shadow-inner">
-                        <AudioPlayer
-                          script={testData.audioScript}
-                          onPlay={() => setHasAudioStarted(true)}
-                          onEnded={() => {
-                            setHasAudioEnded(true);
-                            setIsListeningTimerActive(true);
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {(selectedModule === 'reading' || hasAudioEnded) && (
-                      <div className="space-y-6">
-                        {selectedModule === 'listening' && isListeningTimerActive && !isSubmitted && (
-                          <div className="p-3 bg-rose-600 text-white text-xs font-mono rounded-xl flex justify-between animate-bounce shadow-xs">
-                            <span>⏱️ Time Remaining:</span>
-                            <span>{listeningTimer}s</span>
+          {appMode === 'full_exam' && examStepIndex === 5 && (
+            <div className="space-y-6 sm:space-y-8 max-w-[1300px] mx-auto text-center animate-fadeIn">
+              <div className="p-3 sm:p-6 bg-slate-100 rounded-3xl border border-slate-200 shadow-xl flex justify-center items-center overflow-hidden w-full">
+                <div className="w-full overflow-hidden flex justify-center py-2 sm:py-0">
+                  <div className="w-[1100px] h-[778px] sm:h-auto shrink-0 origin-top transform scale-[0.38] min-[360px]:scale-[0.42] min-[400px]:scale-[0.47] min-[500px]:scale-[0.58] min-[640px]:scale-[0.75] md:scale-[0.88] lg:scale-100 transition-transform">
+                    <div
+                      id="certificate-to-download"
+                      style={{
+                        width: '1100px',
+                        backgroundColor: '#fbf9f4',
+                        border: '16px solid #1e293b',
+                        padding: '40px 60px',
+                        boxSizing: 'border-box',
+                        position: 'relative',
+                        margin: '0 auto',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <div style={{ border: '2px solid #b45309', padding: '30px 40px', position: 'relative' }}>
+                        
+                        <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                          <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '3px', color: '#1e293b', fontWeight: '700' }}>
+                            ✨ Cally Assessment Systems ✨
                           </div>
-                        )}
+                          <div style={{ fontSize: '11px', color: '#78350f', marginTop: '3px', fontWeight: '600' }}>EST. 2024</div>
+                        </div>
 
-                        {testData.questions.map((q, idx) => (
-                          <div key={q.id || idx} className="p-4 sm:p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                            <p className="font-semibold text-slate-900 text-3xl sm:text-xl">Question {idx + 1}: {q.question}</p>
-                            <div className="grid grid-cols-1 gap-2">
-                              {q.options?.map((opt, oIdx) => (
-                                <button
-                                  key={oIdx}
-                                  disabled={isSubmitted}
-                                  onClick={() => setSelectedAnswers(prev => ({ ...prev, [q.id]: opt }))}
-                                  className={`p-3 text-left rounded-xl border text-xs sm:text-sm font-medium transition cursor-pointer ${
-                                    selectedAnswers[q.id] === opt ? 'bg-amber-100 border-amber-500 text-amber-900 font-bold' : 'bg-white border-slate-200 text-slate-700'
-                                  }`}
-                                >
-                                  {opt}
-                                </button>
-                              ))}
+                        <h1 style={{ fontSize: '38px', fontWeight: '800', color: '#78350f', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '2px', margin: '10px 0 5px 0', fontFamily: 'serif' }}>
+                          Certificate of Achievement
+                        </h1>
+                        <div style={{ fontSize: '13px', color: '#1e293b', textAlign: 'center', marginBottom: '20px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px' }}>
+                          Official Verification of Professional BPO Competency
+                        </div>
+
+                        <div style={{ fontSize: '14px', color: '#475569', textAlign: 'center', fontStyle: 'italic', marginBottom: '5px' }}>This is to certify that</div>
+                        <div style={{ fontSize: '36px', fontWeight: '700', color: '#1e293b', textAlign: 'center', margin: '0 auto 15px auto', paddingBottom: '4px', borderBottom: '2px solid #cbd5e1', display: 'table', fontFamily: 'serif' }}>
+                          {userName}
+                        </div>
+
+                        <p style={{ fontSize: '13px', color: '#334155', textAlign: 'center', maxWidth: '800px', margin: '0 auto 20px auto', lineHeight: '1.5' }}>
+                          has successfully demonstrated exceptional proficiency across all official Cally assessment modules, showcasing linguistic mastery, professional communication skills, and technical competency required for the Business Process Outsourcing (BPO) industry.
+                        </p>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 30px', maxWidth: '850px', margin: '0 auto 25px auto', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                          <div>🎧 Listening & Dictation ({examScores.listening}%)</div>
+                          <div>🎙️ Speaking Simulation ({examScores.speaking}%)</div>
+                          <div>📖 Reading & Grammar ({examScores.reading}%)</div>
+                          <div>⌨️ Chat & Typing Accuracy ({examScores.typing}%)</div>
+                          <div>✍️ Business Writing Composition ({examScores.writing}%)</div>
+                          <div style={{ color: '#b45309', fontWeight: '700' }}>⭐ Final Cumulative Rating: ({overallExamAverage}%)</div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: '20px', marginTop: '10px' }}>
+                          <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
+                            Authorized Electronic Validation
+                          </div>
+
+                          <div style={{ width: '70px', height: '70px', background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)', color: '#ffffff', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '3px double #fef3c7', textAlign: 'center', fontSize: '8px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            <span>Official</span>
+                            <span>Verified</span>
+                          </div>
+
+                          <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
+                            Cally Authority
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#64748b', fontWeight: '600', letterSpacing: '1px' }}>
+                          DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [CALLY-BPO-2026-{Math.floor(1000 + Math.random() * 9000)}]
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={`p-6 sm:p-8 border rounded-3xl space-y-6 shadow-xl ${themeClasses.card}`}>
+                <div className="space-y-2">
+                  <h2 className="text-xl sm:text-2xl font-black">Exam Finished Successfully!</h2>
+                  <p className={`text-xs sm:text-sm ${themeClasses.textMuted}`}>Your verified Cally certificate file (.pdf) is ready for download.</p>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <button
+                    disabled={isDownloadingPdf}
+                    onClick={handleDownloadPDF}
+                    className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-8 py-3.5 rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <span>{isDownloadingPdf ? '⏳ Generating .pdf file...' : '📥 Download Certificate (.pdf)'}</span>
+                  </button>
+                  <button
+                    onClick={handleBackToDashboard}
+                    className="w-full sm:w-auto bg-slate-500/10 hover:bg-slate-500/20 font-bold text-sm px-6 py-3.5 rounded-xl transition cursor-pointer"
+                  >
+                    Return to Dashboard
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {selectedModule && (appMode === 'dashboard' || (appMode === 'full_exam' && examStepIndex < 5)) && (
+            <div className="space-y-6 max-w-[1400px] mx-auto">
+              <div className={`rounded-2xl border p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs ${themeClasses.card}`}>
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                  <button
+                    onClick={handleBackToDashboard}
+                    className="px-4 py-2 bg-slate-500/10 hover:bg-slate-500/20 text-xs font-bold rounded-xl transition cursor-pointer"
+                  >
+                    ← Back to Dashboard
+                  </button>
+                  {appMode === 'dashboard' && selectedModule && (
+                    <button
+                      onClick={() => generateTest(selectedModule)}
+                      className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold rounded-xl transition cursor-pointer border border-indigo-500/30 flex items-center gap-1.5"
+                    >
+                      <span>🔄 Generate New Test</span>
+                    </button>
+                  )}
+                </div>
+                <div className="text-left sm:text-right w-full sm:w-auto">
+                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-500 block">
+                    {appMode === 'full_exam' ? `Full Exam Step ${examStepIndex + 1} of 5` : 'Individual Practice Mode'}
+                  </span>
+                  <h2 className="text-base sm:text-lg font-bold capitalize">{selectedModule} Module</h2>
+                </div>
+              </div>
+
+              {selectedModule === 'speaking' && (
+                <div className={`rounded-2xl border p-5 sm:p-8 shadow-xs ${themeClasses.card}`}>
+                  <SpeakingRecorder
+                    key={speakingPrompts[0] || 'speaking-default'}
+                    prompts={speakingPrompts}
+                    onComplete={handleSpeakingComplete}
+                  />
+                </div>
+              )}
+
+              {selectedModule === 'writing' && (
+                <div className={`rounded-2xl border p-5 sm:p-8 shadow-xs space-y-6 ${themeClasses.card}`}>
+                  <div className="p-4 sm:p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl space-y-2">
+                    <span className="text-xs font-bold text-indigo-400 uppercase block">Writing Prompt:</span>
+                    <p className="text-sm sm:text-base font-medium">{writingPrompt}</p>
+                  </div>
+                  <textarea
+                    rows={6}
+                    value={writingText}
+                    onChange={(e) => setWritingText(e.target.value)}
+                    placeholder="Type your professional response here..."
+                    className="w-full p-4 border border-slate-500/30 bg-transparent rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <button
+                    onClick={handleSubmitWriting}
+                    disabled={isEvaluatingWriting || !writingText.trim()}
+                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
+                  >
+                    {isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}
+                  </button>
+                  {isSubmitted && !showScorePopup && (
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
+                      ✓ Writing Submitted! Score: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedModule === 'typing' && (
+                <div className={`rounded-2xl border p-5 sm:p-8 shadow-xs space-y-6 ${themeClasses.card}`}>
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="p-4 bg-sky-500/10 rounded-xl border border-sky-500/20">
+                      <span className="text-xs text-sky-400 block font-bold uppercase">WPM</span>
+                      <span className="text-2xl font-black">{wpm}</span>
+                    </div>
+                    <div className="p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                      <span className="text-xs text-indigo-400 block font-bold uppercase">Accuracy</span>
+                      <span className="text-2xl font-black">{accuracy}%</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 sm:p-6 bg-slate-950 text-slate-300 rounded-2xl font-mono text-xs sm:text-base leading-relaxed overflow-x-auto border border-slate-800">
+                    {typingPassage.split('').map((char, index) => {
+                      let color = 'text-slate-500';
+                      if (index < userInput.length) {
+                        color = userInput[index] === char ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold underline';
+                      }
+                      return <span key={index} className={color}>{char}</span>;
+                    })}
+                  </div>
+
+                  <textarea
+                    ref={typingInputRef}
+                    rows={4}
+                    disabled={isTypingCompleted}
+                    value={userInput}
+                    onChange={handleTypingChange}
+                    placeholder="Type passage here..."
+                    className="w-full p-4 border border-slate-500/30 bg-transparent rounded-xl font-mono text-sm outline-none focus:ring-2 focus:ring-sky-500 shadow-xs"
+                  />
+                  {isTypingCompleted && !showScorePopup && (
+                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
+                      ✓ Typing Completed! Score Recorded: {score}% {appMode === 'full_exam' && '• Finalizing exam score...'}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(selectedModule === 'listening' || selectedModule === 'reading') && (
+                <div className={`rounded-2xl border p-5 sm:p-8 shadow-xs space-y-6 ${themeClasses.card}`}>
+                  {loading && <div className={`text-center py-12 font-bold ${themeClasses.textMuted}`}>Generating test questions...</div>}
+
+                  {!loading && !testData && (
+                    <button
+                      onClick={() => generateTest(selectedModule)}
+                      className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
+                    >
+                      Load {selectedModule.toUpperCase()} Test
+                    </button>
+                  )}
+
+                  {testData && (
+                    <div className="space-y-6">
+                      <h3 className="text-lg sm:text-xl font-bold">{testData.title}</h3>
+
+                      {selectedModule === 'reading' && testData.passage && (
+                        <div className="p-5 sm:p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl font-serif leading-relaxed shadow-xs text-xs sm:text-sm whitespace-pre-line">
+                          {testData.passage}
+                        </div>
+                      )}
+
+                      {selectedModule === 'listening' && testData.audioScript && !hasAudioEnded && (
+                        <div className="p-4 bg-slate-950 text-white rounded-xl space-y-3 shadow-inner border border-slate-800">
+                          <AudioPlayer
+                            script={testData.audioScript}
+                            onPlay={() => setHasAudioStarted(true)}
+                            onEnded={() => {
+                              setHasAudioEnded(true);
+                              setIsListeningTimerActive(true);
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {(selectedModule === 'reading' || hasAudioEnded) && (
+                        <div className="space-y-6">
+                          {selectedModule === 'listening' && isListeningTimerActive && !isSubmitted && (
+                            <div className="p-3 bg-rose-600 text-white text-xs font-mono rounded-xl flex justify-between animate-bounce shadow-xs">
+                              <span>⏱️ Time Remaining:</span>
+                              <span>{listeningTimer}s</span>
                             </div>
-                          </div>
-                        ))}
+                          )}
 
-                        {!isSubmitted ? (
-                          <button
-                            onClick={selectedModule === 'listening' ? handleSubmitListening : handleSubmitReading}
-                            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
-                          >
-                            Submit {selectedModule} Answers
-                          </button>
-                        ) : !showScorePopup && (
-                          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 font-bold text-sm">
-                            ✓ {selectedModule.toUpperCase()} Module Complete! Score Recorded: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </main>
+                          {testData.questions.map((q, idx) => (
+                            <div key={q.id || idx} className="p-4 sm:p-5 bg-slate-500/5 border border-slate-500/10 rounded-xl space-y-3">
+                              <p className="font-semibold text-sm sm:text-base">Question {idx + 1}: {q.question}</p>
+                              <div className="grid grid-cols-1 gap-2">
+                                {q.options?.map((opt, oIdx) => (
+                                  <button
+                                    key={oIdx}
+                                    disabled={isSubmitted}
+                                    onClick={() => setSelectedAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                                    className={`p-3 text-left rounded-xl border text-xs sm:text-sm font-medium transition cursor-pointer ${
+                                      selectedAnswers[q.id] === opt ? 'bg-amber-500/20 border-amber-500 text-amber-500 font-bold' : 'border-slate-500/20 bg-transparent'
+                                    }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+
+                          {!isSubmitted ? (
+                            <button
+                              onClick={selectedModule === 'listening' ? handleSubmitListening : handleSubmitReading}
+                              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
+                            >
+                              Submit {selectedModule} Answers
+                            </button>
+                          ) : !showScorePopup && (
+                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
+                              ✓ {selectedModule.toUpperCase()} Module Complete! Score Recorded: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </main>
+      </div>
 
       {showScorePopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-8 shadow-2xl border border-slate-100 text-center space-y-5 transform animate-bounce-short">
-            <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto text-4xl shadow-inner ${score !== null && score <= 70 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'}`}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center space-y-5 transform animate-bounce-short">
+            <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto text-4xl shadow-inner ${score !== null && score <= 70 ? 'bg-rose-500/20 text-rose-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
               {score !== null && score <= 70 ? '😢' : '🏆'}
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest block">TephdyTech Module Completed</span>
-              <h3 className="text-2xl font-black text-slate-900">Your Score</h3>
+              <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest block">TephdyTech Module Completed</span>
+              <h3 className="text-2xl font-black">Your Score</h3>
             </div>
             
-            <div className={`py-3 rounded-2xl border ${score !== null && score <= 70 ? 'bg-rose-50 border-rose-200' : 'bg-slate-50 border-slate-200/80'}`}>
-              <span className={`text-5xl font-black ${score !== null && score <= 70 ? 'text-rose-600' : 'text-emerald-600'}`}>{score}%</span>
+            <div className={`py-3 rounded-2xl border ${score !== null && score <= 70 ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
+              <span className="text-5xl font-black">{score}%</span>
             </div>
 
             {score !== null && score <= 70 && (
-              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 text-xs italic font-medium leading-relaxed">
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-300 text-xs italic font-medium leading-relaxed">
                 {motivationalQuote}
               </div>
             )}
@@ -2563,7 +2981,7 @@ export default function Home() {
                     setShowScorePopup(false);
                     generateTest(selectedModule);
                   }}
-                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm py-3 px-4 rounded-xl transition cursor-pointer border border-slate-200"
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm py-3 px-4 rounded-xl transition cursor-pointer border border-slate-700"
                 >
                   🔄 Generate New Test
                 </button>
@@ -2574,27 +2992,27 @@ export default function Home() {
       )}
 
       {showInstructionsModal && activeFeature && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 relative">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 relative">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-lg sm:text-xl shadow-inner shrink-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center text-lg sm:text-xl shadow-inner shrink-0">
                   📌
                 </div>
                 <div>
-                  <span className="text-[10px] sm:text-[11px] font-bold text-indigo-600 uppercase tracking-widest block">TephdyTech Module Guide</span>
-                  <h3 className="text-base sm:text-lg font-black text-slate-900">{activeFeature.title}</h3>
+                  <span className="text-[10px] sm:text-[11px] font-bold text-indigo-400 uppercase tracking-widest block">TephdyTech Module Guide</span>
+                  <h3 className="text-base sm:text-lg font-black">{activeFeature.title}</h3>
                 </div>
               </div>
               <button
                 onClick={() => setShowInstructionsModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer text-sm font-bold shrink-0"
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition cursor-pointer text-sm font-bold shrink-0"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200/60 text-slate-700 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-medium">
+            <div className="space-y-3 bg-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-800 text-slate-300 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-medium">
               {activeFeature.instructions}
             </div>
 
@@ -2610,10 +3028,10 @@ export default function Home() {
         </div>
       )}
 
-      <footer className="w-full border-t border-slate-200/80 bg-white py-6 px-4 sm:px-8 mt-auto shadow-xs">
-        <div className="max-w-6xl mx-auto flex items-center justify-center text-xs text-slate-500 text-center">
+      <footer className={`w-full border-t py-6 px-4 sm:px-8 mt-auto shadow-xs ${themeClasses.header}`}>
+        <div className="max-w-6xl mx-auto flex items-center justify-center text-xs text-center">
           <div className="flex items-center gap-2 justify-center flex-wrap">
-            <span className="font-bold text-slate-700">Developed By TephdyTech</span>
+            <span className="font-bold">Developed By TephdyTech</span>
             <span>&bull;</span>
             <span>&copy; {new Date().getFullYear()} All rights reserved.</span>
           </div>

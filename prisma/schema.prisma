@@ -1,0 +1,43 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String         @id @default(uuid())
+  name         String
+  createdAt    DateTime       @default(now())
+  examSessions ExamSession[]
+}
+
+model ExamSession {
+  id           String         @id @default(uuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       String         @default("COMPLETED") // COMPLETED, IN_PROGRESS
+  overallScore Int
+  completedAt  DateTime       @default(now())
+  scores       ModuleScore[]
+  certificate  Certificate?
+}
+
+model ModuleScore {
+  id            String      @id @default(uuid())
+  sessionId     String
+  examSession   ExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  moduleName    String      // listening, reading, writing, speaking, typing
+  score         Int
+  feedbackText  String?     // Stores AI feedback or details if applicable
+  createdAt     DateTime    @default(now())
+}
+
+model Certificate {
+  id              String      @id @default(uuid())
+  sessionId       String      @unique
+  examSession     ExamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  certificateCode String      @unique
+  issuedAt        DateTime    @default(now())
+}
