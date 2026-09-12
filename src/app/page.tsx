@@ -1702,6 +1702,7 @@ export default function Home() {
   const [userScores, setUserScores] = useState<any[]>([]);
   const [userCertificates, setUserCertificates] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [generatedCertificateCode, setGeneratedCertificateCode] = useState<string>('TEPHDYTECH-BPO-2026-9412');
 
   // Load saved theme from localStorage on mount
   useEffect(() => {
@@ -1830,7 +1831,7 @@ export default function Home() {
   const totalScores = userScores.reduce((acc, curr) => acc + (curr.score || 0), 0);
   const averageScore = userScores.length > 0 ? Math.round(totalScores / userScores.length) : 0;
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
       setAuthError('Please enter both email and password.');
@@ -1849,31 +1850,41 @@ export default function Home() {
         .eq('email', email)
         .single();
 
-      if (existingUser) {
-        setAuthError('An account with this email already exists. Please log in.');
+      if (isSignUpMode && existingUser) {
+        setAuthError('An account with this email already exists. Please sign in.');
         return;
       }
 
-      const { data, error } = await supabase
-        .from('users')
-        .insert([{ email: email, name: finalName }])
-        .select();
-
-      if (error) {
-        console.error('Sign up error:', error.message);
-        setAuthError('Failed to create account.');
+      if (!isSignUpMode && !existingUser) {
+        setAuthError('No account found with this email. Please sign up first.');
         return;
       }
 
-      if (data && data.length > 0) {
-        const currentUserId = (data[0] as any).id;
+      let currentUserId = existingUser?.id;
+
+      if (isSignUpMode && !existingUser) {
+        const { data, error } = await supabase
+          .from('users')
+          .insert([{ email: email, name: finalName }])
+          .select();
+
+        if (error) {
+          console.error('Sign up error:', error.message);
+          setAuthError('Failed to create account.');
+          return;
+        }
+        if (data && data.length > 0) {
+          currentUserId = (data[0] as any).id;
+        }
+      }
+
+      if (currentUserId) {
         setUserId(currentUserId);
         localStorage.setItem('cally_user_email', email);
         localStorage.setItem('cally_user_name', finalName);
         localStorage.setItem('cally_user_id', currentUserId);
+        setIsLoggedIn(true);
       }
-
-      setIsLoggedIn(true);
     } catch (err) {
       console.error('Unexpected error:', err);
       setAuthError('An unexpected error occurred.');
@@ -2067,7 +2078,7 @@ export default function Home() {
     setLoading(false);
   };
 
-  const handleAdvanceExamStep = (moduleScore: number) => {
+  const handleAdvanceExamStep = async (moduleScore: number) => {
     const currentMod = examSequence[examStepIndex];
     const updatedScores = { ...examScores, [currentMod]: moduleScore };
     setExamScores(updatedScores);
@@ -2098,12 +2109,30 @@ export default function Home() {
       }
     } else {
       setExamStepIndex(5);
+      try {
+        const finalAvg = Math.round(Object.values(updatedScores).reduce((a, b) => a + b, 0) / 5);
+        const res = await fetch('/api/generate/save-exam', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userName: userName || email.split('@')[0] || 'Candidate',
+            examScores: updatedScores,
+            overallScore: finalAvg,
+          }),
+        });
+        const data = await res.json();
+        if (data.success && data.certificateCode) {
+          setGeneratedCertificateCode(data.certificateCode);
+        }
+      } catch (err) {
+        console.error('Failed to save exam session via API:', err);
+      }
     }
   };
 
   const triggerConfetti = () => {
     try {
-      confetti({
+      (window as any).confetti?.({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 }
@@ -2118,7 +2147,7 @@ export default function Home() {
     setIsSubmitted(true);
     setShowScorePopup(true);
 
-    if (userId && selectedModule) {
+    if (userId && selectedModule && appMode === 'dashboard') {
       const { data, error } = await supabase
         .from('module_scores')
         .insert([
@@ -2254,7 +2283,7 @@ export default function Home() {
 
       const opt = {
         margin: 0,
-        filename: `TephdyTech_Certificate_${userName.replace(/\s+/g, '_')}.pdf`,
+        filename: `TephdyTech_Certificate_${(userName || 'Candidate').replace(/\s+/g, '_')}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
@@ -2360,31 +2389,167 @@ export default function Home() {
 
   if (!isLoggedIn) {
     return (
-      <div className={`flex min-h-screen items-center justify-center p-4 ${themeClasses.bg}`}>
-        <div className={`w-full max-w-md rounded-xl p-8 shadow-md text-center border ${themeClasses.card}`}>
+      <div className={`min-h-screen grid grid-cols-1 lg:grid-cols-12 ${themeClasses.bg}`}>
+        {/* Left Side: Branding & Platform Highlights Showcase */}
+        <div className="lg:col-span-6 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden border-r border-slate-800">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
           
-          <h2 className="text-2xl font-bold mb-2">Welcome to Exam App</h2>
-          <p className={`text-sm mb-6 ${themeClasses.textMuted}`}>Sign in to track your scores and certificates</p>
-
-          {authError && (
-            <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
-              {authError}
+          <div className="relative z-10 space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="relative w-10 h-10 shrink-0">
+                <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
+              </div>
+              <span className="font-black text-xl tracking-tight text-white">Cally Assessment Hub</span>
             </div>
-          )}
+            
+            <div className="space-y-4 max-w-lg pt-8">
+              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
+                ✨ Official BPO Readiness & Certification Portal
+              </span>
+              <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
+                Master Your Skills. <br />
+                <span className="text-indigo-400">Validate Your Career.</span>
+              </h1>
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                Take professional simulation exams, track your historical improvement logs, and earn verifiable BPO competency certificates instantly.
+              </p>
+            </div>
+          </div>
 
-          <button
-            onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white py-3 text-gray-700 font-medium hover:bg-gray-50 transition duration-200 shadow-sm"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-8.87z"/>
-              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.2v3.14C3.18 21.38 7.26 24 12 24z"/>
-              <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.62H1.2C.43 8.19 0 9.95 0 12s.43 3.81 1.2 5.38l4.07-3.14z"/>
-              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.26 0 3.18 2.62 1.2 6.62l4.07 3.14c.95-2.85 3.6-4.96 6.73-4.96z"/>
-            </svg>
-            Continue with Google
-          </button>
+          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-3 pt-10">
+            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
+              <span className="text-xl">🎧</span>
+              <h4 className="text-xs font-bold">Listening Drills</h4>
+            </div>
+            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
+              <span className="text-xl">📖</span>
+              <h4 className="text-xs font-bold">SVAR Reading</h4>
+            </div>
+            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
+              <span className="text-xl">✍️</span>
+              <h4 className="text-xs font-bold">Business Writing</h4>
+            </div>
+            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
+              <span className="text-xl">🎙️</span>
+              <h4 className="text-xs font-bold">AI Speaking</h4>
+            </div>
+            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
+              <span className="text-xl">⌨️</span>
+              <h4 className="text-xs font-bold">WPM Typing</h4>
+            </div>
+            <div className="p-3 bg-indigo-950/50 border border-indigo-500/30 rounded-xl space-y-1 flex flex-col justify-center items-center text-center">
+              <span className="text-xs font-bold text-indigo-300">🎓 Certified PDF</span>
+            </div>
+          </div>
 
+          <div className="relative z-10 pt-8 text-xs text-slate-400">
+            &copy; {new Date().getFullYear()} Developed by TephdyTech &bull; All rights reserved.
+          </div>
+        </div>
+
+        {/* Right Side: Authentication Form Card */}
+        <div className="lg:col-span-6 flex items-center justify-center p-6 sm:p-12">
+          <div className={`w-full max-w-md rounded-3xl p-8 sm:p-10 shadow-xl border ${themeClasses.card} space-y-6`}>
+            
+            <div className="space-y-2 text-center">
+              <h2 className="text-2xl font-black tracking-tight">
+                {isSignUpMode ? 'Create Your Account' : 'Welcome Back'}
+              </h2>
+              <p className={`text-xs ${themeClasses.textMuted}`}>
+                {isSignUpMode ? 'Sign up to begin your assessment journey' : 'Sign in to track your scores and certificates'}
+              </p>
+            </div>
+
+            {/* Mode Switcher Tabs */}
+            <div className="grid grid-cols-2 p-1 bg-slate-500/10 rounded-2xl text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => { setIsSignUpMode(false); setAuthError(''); }}
+                className={`py-2.5 rounded-xl transition cursor-pointer ${!isSignUpMode ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => { setIsSignUpMode(true); setAuthError(''); }}
+                className={`py-2.5 rounded-xl transition cursor-pointer ${isSignUpMode ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                Create Account
+              </button>
+            </div>
+
+            {authError && (
+              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs font-semibold text-rose-500 text-center">
+                {authError}
+              </div>
+            )}
+
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
+              {isSignUpMode && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Full Name</label>
+                  <input
+                    type="text"
+                    value={userName}
+                    onChange={(e) => setUserName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="candidate@example.com"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Password</label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer"
+              >
+                {isSignUpMode ? 'Create Account & Start' : 'Sign In to Dashboard'}
+              </button>
+            </form>
+
+            <div className="flex items-center my-4">
+              <div className="flex-grow border-t border-slate-500/20"></div>
+              <span className="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Or</span>
+              <div className="flex-grow border-t border-slate-500/20"></div>
+            </div>
+
+            <button
+              onClick={handleGoogleLogin}
+              className="w-full flex items-center justify-center gap-3 rounded-xl border border-slate-500/30 bg-white dark:bg-slate-900 py-3.5 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition duration-200 shadow-xs cursor-pointer"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-8.87z"/>
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.2v3.14C3.18 21.38 7.26 24 12 24z"/>
+                <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.62H1.2C.43 8.19 0 9.95 0 12s.43 3.81 1.2 5.38l4.07-3.14z"/>
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.26 0 3.18 2.62 1.2 6.62l4.07 3.14c.95-2.85 3.6-4.96 6.73-4.96z"/>
+              </svg>
+              Continue with Google
+            </button>
+
+          </div>
         </div>
       </div>
     );
@@ -2402,7 +2567,6 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Theme Select Dropdown */}
             <div className="flex items-center gap-1.5 bg-slate-500/10 border border-slate-500/20 px-2.5 py-1 rounded-xl text-xs font-bold">
               <span>🎨 Theme:</span>
               <select
@@ -2417,9 +2581,9 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-3 text-xs font-semibold">
-              <span className="truncate max-w-[120px] sm:max-w-none">Candidate: <strong className="text-indigo-500">{userName}</strong></span>
+              <span className="truncate max-w-[120px] sm:max-w-none">Candidate: <strong className="text-indigo-500">{userName || 'Candidate'}</strong></span>
               <button
-                onClick={() => setIsLoggedIn(false)}
+                onClick={() => { setIsLoggedIn(false); localStorage.removeItem('cally_user_email'); localStorage.removeItem('cally_user_id'); }}
                 className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-lg transition cursor-pointer"
               >
                 Sign Out
@@ -2429,9 +2593,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Container with Sidebar & Features */}
       <div className="flex-1 flex flex-col md:flex-row w-full max-w-[1800px] mx-auto">
-        {/* Sidebar Navigation */}
         <aside className={`w-full md:w-72 border-r p-4 sm:p-6 shrink-0 space-y-6 ${themeClasses.sidebar}`}>
           <div className="space-y-1">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>System Navigation</span>
@@ -2487,11 +2649,9 @@ export default function Home() {
           </div>
         </aside>
 
-        {/* Content Area */}
         <main className="flex-1 w-full max-w-[1400px] mx-auto px-3 sm:px-8 py-4 sm:py-6">
           {appMode === 'dashboard' && !selectedModule && activeTab === 'overview' && (
             <div className="space-y-8 sm:space-y-10 animate-fadeIn">
-              {/* Welcome Banner */}
               <div className="p-6 sm:p-10 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl space-y-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-800">
                 <div className="space-y-3 max-w-2xl relative z-10 text-center md:text-left">
                   <span className="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
@@ -2512,7 +2672,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Individual Practice Modules Quick-Access Section */}
               <div className="space-y-6">
                 <div className={`border-b pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 ${themeClasses.divider}`}>
                   <div>
@@ -2563,7 +2722,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Stats Overview Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className={`p-6 rounded-2xl border shadow-xs space-y-2 ${themeClasses.card}`}>
                   <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Total Test Attempts</span>
@@ -2590,7 +2748,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Attempt History Log Table including Exam Dates */}
               <div className={`rounded-2xl border p-6 sm:p-8 shadow-xs space-y-4 ${themeClasses.card}`}>
                 <h3 className="text-base font-bold">Attempt Progress Timeline & Dates</h3>
                 
@@ -2682,7 +2839,7 @@ export default function Home() {
 
                         <div style={{ fontSize: '14px', color: '#475569', textAlign: 'center', fontStyle: 'italic', marginBottom: '5px' }}>This is to certify that</div>
                         <div style={{ fontSize: '36px', fontWeight: '700', color: '#1e293b', textAlign: 'center', margin: '0 auto 15px auto', paddingBottom: '4px', borderBottom: '2px solid #cbd5e1', display: 'table', fontFamily: 'serif' }}>
-                          {userName}
+                          {userName || 'Candidate'}
                         </div>
 
                         <p style={{ fontSize: '13px', color: '#334155', textAlign: 'center', maxWidth: '800px', margin: '0 auto 20px auto', lineHeight: '1.5' }}>
@@ -2714,7 +2871,7 @@ export default function Home() {
                         </div>
 
                         <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#64748b', fontWeight: '600', letterSpacing: '1px' }}>
-                          DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [CALLY-BPO-2026-{Math.floor(1000 + Math.random() * 9000)}]
+                          DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [{generatedCertificateCode}]
                         </div>
 
                       </div>
