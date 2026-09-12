@@ -1,8 +1,7 @@
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
-// rest of your login route code...
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
