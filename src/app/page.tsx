@@ -15,6 +15,169 @@ import Image from 'next/image';
 import confetti from 'canvas-confetti';
 import { supabase } from '@/lib/supabase'; // Adjust path if your lib folder is located elsewhere
 
+interface IconProps {
+  name: string;
+  className?: string;
+}
+
+function Icon({ name, className = "w-5 h-5" }: IconProps) {
+  switch (name) {
+    case 'audio':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+        </svg>
+      );
+    case 'mic':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+        </svg>
+      );
+    case 'stop':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <rect x="6" y="6" width="12" height="12" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'headphones':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 18v-6a9 9 0 0118 0v6M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z" />
+        </svg>
+      );
+    case 'book':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      );
+    case 'pencil':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+      );
+    case 'keyboard':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <rect x="2" y="6" width="20" height="12" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12" />
+        </svg>
+      );
+    case 'academic':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 14v7" />
+        </svg>
+      );
+    case 'chart':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      );
+    case 'trending':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      );
+    case 'trending-down':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+        </svg>
+      );
+    case 'scale':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M15 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-9-3h6" />
+        </svg>
+      );
+    case 'sparkles':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      );
+    case 'refresh':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      );
+    case 'clock':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
+        </svg>
+      );
+    case 'trophy':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 3h14a2 2 0 012 2v2a6 6 0 01-6 6H9a6 6 0 01-6-6V5a2 2 0 012-2zm0 10v2a5 5 0 005 5h4a5 5 0 005-5v-2m-9 9v3m-3 0h6" />
+        </svg>
+      );
+    case 'alert-circle':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01" />
+        </svg>
+      );
+    case 'info':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 11v4m0-7h.01" />
+        </svg>
+      );
+    case 'sun':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="4" strokeLinecap="round" strokeLinejoin="round" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41m12.02-12.02l-1.41 1.41" />
+        </svg>
+      );
+    case 'moon':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+        </svg>
+      );
+    case 'download':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+      );
+    case 'arrow-left':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+      );
+    case 'x':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      );
+    case 'menu':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 interface AudioPlayerProps {
   script: string;
   onPlay?: () => void;
@@ -64,21 +227,20 @@ function AudioPlayer({ script, onPlay, onEnded }: AudioPlayerProps) {
       <div className="flex items-center gap-2">
         <span className={`w-2.5 h-2.5 rounded-full ${isPlaying ? 'bg-emerald-400 animate-ping' : 'bg-indigo-400'}`} />
         <span className="text-xs font-mono text-slate-300">
-          {isPlaying ? 'Playing Audio...' : 'Audio Stream Ready'}
+          {isPlaying ? 'Playing Audio Stream...' : 'Audio Stream Ready'}
         </span>
       </div>
       <button
         onClick={handlePlayAudio}
         disabled={isPlaying}
-        className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+        className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition shadow-xs cursor-pointer flex items-center justify-center gap-2"
       >
-        <span>{isPlaying ? '🔊 Speaking...' : '▶ Play Audio'}</span>
+        <Icon name="audio" className="w-4 h-4" />
+        <span>{isPlaying ? 'Speaking...' : 'Play Audio'}</span>
       </button>
     </div>
   );
 }
-
-
 
 function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComplete?: (score: number) => void }) {
   const promptList = prompts.length > 0 ? prompts : FALLBACK_SPEAKING_PROMPTS_POOL;
@@ -256,14 +418,16 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
               disabled={isAnalyzing}
               className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>🎙️ Start Recording</span>
+              <Icon name="mic" className="w-4 h-4" />
+              <span>Start Recording</span>
             </button>
           ) : (
             <button
               onClick={handleStopRecording}
               className="w-full sm:w-auto px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2 animate-pulse"
             >
-              <span>⏹️ Stop Recording & Analyze</span>
+              <Icon name="stop" className="w-4 h-4" />
+              <span>Stop Recording & Analyze</span>
             </button>
           )}
         </div>
@@ -296,7 +460,7 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
 
 interface Question {
   id: string;
-  type?: string; // Add the optional modifier (?) here
+  type?: string;
   question: string;
   options?: string[];
   correctAnswer?: string;
@@ -510,9 +674,6 @@ export default function Home() {
       window.speechSynthesis.cancel();
     }
   };
-
-  const totalScores = userScores.reduce((acc, curr) => acc + (curr.score || 0), 0);
-  const averageScore = userScores.length > 0 ? Math.round(totalScores / userScores.length) : 0;
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -913,7 +1074,6 @@ export default function Home() {
   };
 
   const handleSpeakingComplete = (scoreVal: number) => {
-    // If the recorder returns its empty/unspoken default of 5 (or 80), set it to 0
     const finalScore = (scoreVal === 5 || scoreVal === 80) ? 0 : scoreVal;
     handleScoreFinalized(finalScore);
   };
@@ -995,7 +1155,7 @@ export default function Home() {
       color: 'border-rose-200 bg-rose-50/40 text-rose-700',
       btnColor: 'bg-rose-600 hover:bg-rose-700',
       instructions: "1. Click 'Play Audio' (plays ONCE).\n2. Answer the questions before the 1-minute timer expires.",
-      icon: '🎧',
+      icon: 'headphones',
     },
     {
       id: 'reading' as ModuleType,
@@ -1005,7 +1165,7 @@ export default function Home() {
       color: 'border-amber-200 bg-amber-50/40 text-amber-700',
       btnColor: 'bg-amber-600 hover:bg-amber-700',
       instructions: "1. Review reading passage.\n2. Answer the multiple choice questions.",
-      icon: '📖',
+      icon: 'book',
     },
     {
       id: 'writing' as ModuleType,
@@ -1015,7 +1175,7 @@ export default function Home() {
       color: 'border-indigo-200 bg-indigo-50/40 text-indigo-700',
       btnColor: 'bg-indigo-600 hover:bg-indigo-700',
       instructions: "1. Read scenario prompt.\n2. Draft professional email response.",
-      icon: '✍️',
+      icon: 'pencil',
     },
     {
       id: 'speaking' as ModuleType,
@@ -1025,7 +1185,7 @@ export default function Home() {
       color: 'border-emerald-200 bg-emerald-50/40 text-emerald-700',
       btnColor: 'bg-emerald-600 hover:bg-emerald-700',
       instructions: "1. Read prompt.\n2. Record audio via microphone and analyze.",
-      icon: '🎙️',
+      icon: 'mic',
     },
     {
       id: 'typing' as ModuleType,
@@ -1035,14 +1195,12 @@ export default function Home() {
       color: 'border-sky-200 bg-sky-50/40 text-sky-700',
       btnColor: 'bg-sky-600 hover:bg-sky-700',
       instructions: "1. Type the displayed passage accurately to complete the module.",
-      icon: '⌨️',
+      icon: 'keyboard',
     },
   ];
 
   const activeFeature = dashboardFeatures.find((f) => f.id === selectedModule);
 
-  // Dynamic Theme Styling Classes
-  // Dynamic Theme Styling Classes
   const themeClasses = {
     light: {
       bg: 'h-screen overflow-y-auto bg-slate-50/50 text-slate-800',
@@ -1078,8 +1236,7 @@ export default function Home() {
 
   if (!isLoggedIn) {
     return (
-        <div className={`h-screen overflow-y-auto grid grid-cols-1 lg:grid-cols-12 ${themeClasses.bg}`}>
-        {/* Left Side: Branding & Platform Highlights Showcase */}
+      <div className={`h-screen overflow-y-auto grid grid-cols-1 lg:grid-cols-12 ${themeClasses.bg}`}>
         <div className="lg:col-span-6 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden border-r border-slate-800">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
           
@@ -1093,7 +1250,7 @@ export default function Home() {
             
             <div className="space-y-4 max-w-lg pt-8">
               <span className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
-                ✨ Official BPO Readiness & Certification Portal
+                <Icon name="sparkles" className="w-3.5 h-3.5" /> Official BPO Readiness & Certification Portal
               </span>
               <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
                 Master Your Skills. <br />
@@ -1107,27 +1264,28 @@ export default function Home() {
 
           <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-3 pt-10">
             <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
-              <span className="text-xl">🎧</span>
+              <Icon name="headphones" className="w-6 h-6 text-indigo-400" />
               <h4 className="text-xs font-bold">Listening Drills</h4>
             </div>
             <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
-              <span className="text-xl">📖</span>
+              <Icon name="book" className="w-6 h-6 text-amber-400" />
               <h4 className="text-xs font-bold">SVAR Reading</h4>
             </div>
             <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
-              <span className="text-xl">✍️</span>
+              <Icon name="pencil" className="w-6 h-6 text-indigo-400" />
               <h4 className="text-xs font-bold">Business Writing</h4>
             </div>
             <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
-              <span className="text-xl">🎙️</span>
+              <Icon name="mic" className="w-6 h-6 text-emerald-400" />
               <h4 className="text-xs font-bold">AI Speaking</h4>
             </div>
             <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
-              <span className="text-xl">⌨️</span>
+              <Icon name="keyboard" className="w-6 h-6 text-sky-400" />
               <h4 className="text-xs font-bold">WPM Typing</h4>
             </div>
             <div className="p-3 bg-indigo-950/50 border border-indigo-500/30 rounded-xl space-y-1 flex flex-col justify-center items-center text-center">
-              <span className="text-xs font-bold text-indigo-300">🎓 Certified PDF</span>
+              <Icon name="academic" className="w-6 h-6 text-indigo-300" />
+              <span className="text-xs font-bold text-indigo-300">Certified PDF</span>
             </div>
           </div>
 
@@ -1136,10 +1294,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right Side: Authentication Form Card */}
         <div className="lg:col-span-6 flex items-center justify-center p-6 sm:p-12">
           <div className={`w-full max-w-md rounded-3xl p-8 sm:p-10 shadow-xl border ${themeClasses.card} space-y-6`}>
-            
             <div className="space-y-2 text-center">
               <h2 className="text-2xl font-black tracking-tight">
                 {isSignUpMode ? 'Create Your Account' : 'Welcome Back'}
@@ -1149,7 +1305,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Mode Switcher Tabs */}
             <div className="grid grid-cols-2 p-1 bg-slate-500/10 rounded-2xl text-xs font-bold">
               <button
                 type="button"
@@ -1237,7 +1392,6 @@ export default function Home() {
               </svg>
               Continue with Google
             </button>
-
           </div>
         </div>
       </div>
@@ -1281,13 +1435,12 @@ export default function Home() {
               onClick={() => setIsMobileMenuOpen((open) => !open)}
               className="md:hidden w-11 h-11 shrink-0 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center transition shadow-sm"
             >
-              <span className="text-xl leading-none">{isMobileMenuOpen ? '✕' : '☰'}</span>
+              <Icon name={isMobileMenuOpen ? 'x' : 'menu'} className="w-5 h-5" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Mobile navigation drawer */}
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-40">
           <button
@@ -1309,7 +1462,7 @@ export default function Home() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center"
               >
-                ✕
+                <Icon name="x" className="w-5 h-5" />
               </button>
             </div>
 
@@ -1322,7 +1475,7 @@ export default function Home() {
                     activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <span>📊</span>
+                  <Icon name="chart" className="w-5 h-5" />
                   <span>Dashboard Overview</span>
                 </button>
                 <button
@@ -1331,7 +1484,7 @@ export default function Home() {
                     activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <span>📈</span>
+                  <Icon name="trending" className="w-5 h-5" />
                   <span>Performance Logs</span>
                 </button>
               </nav>
@@ -1349,10 +1502,10 @@ export default function Home() {
                     }`}
                   >
                     <span className="flex items-center gap-3 min-w-0">
-                      <span>{feat.icon}</span>
+                      <Icon name={feat.icon} className="w-5 h-5 text-indigo-500" />
                       <span className="truncate">{feat.title}</span>
                     </span>
-                    <span className="text-[10px] text-slate-400">›</span>
+                    <span className="text-xs text-slate-400">&gt;</span>
                   </button>
                 ))}
               </nav>
@@ -1368,9 +1521,9 @@ export default function Home() {
                     onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'midnight')}
                     className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-9 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                   >
-                    <option value="light">☀️ Light</option>
-                    <option value="dark">🌙 Dark</option>
-                    <option value="midnight">🌌 Midnight</option>
+                    <option value="light">Light Theme</option>
+                    <option value="dark">Dark Theme</option>
+                    <option value="midnight">Midnight Theme</option>
                   </select>
                   <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">⌄</span>
                 </div>
@@ -1383,7 +1536,8 @@ export default function Home() {
                 }}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
               >
-                <span>🎓 Take Full Exam</span>
+                <Icon name="academic" className="w-5 h-5" />
+                <span>Take Full Exam</span>
               </button>
 
               <button
@@ -1402,9 +1556,7 @@ export default function Home() {
         </div>
       )}
 
-         {/* Main Container with Sidebar & Features */}
-        <div className="flex-1 flex flex-col md:flex-row w-full">
-        {/* Sidebar Navigation */}
+      <div className="flex-1 flex flex-col md:flex-row w-full">
         <aside className={`hidden md:flex md:flex-col md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:w-72 border-r p-4 sm:p-6 shrink-0 space-y-6 ${themeClasses.sidebar}`}>
           <div className="space-y-1">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>System Navigation</span>
@@ -1415,7 +1567,7 @@ export default function Home() {
                   activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-50'
                 }`}
               >
-                <span>📊</span>
+                <Icon name="chart" className="w-4 h-4" />
                 <span>Dashboard Overview</span>
               </button>
               <button
@@ -1424,7 +1576,7 @@ export default function Home() {
                   activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-50'
                 }`}
               >
-                <span>📈</span>
+                <Icon name="trending" className="w-4 h-4" />
                 <span>Performance Logs</span>
               </button>
             </nav>
@@ -1442,7 +1594,7 @@ export default function Home() {
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
-                    <span>{feat.icon}</span>
+                    <Icon name={feat.icon} className="w-4 h-4 text-indigo-500" />
                     <span className="truncate">{feat.title}</span>
                   </div>
                 </button>
@@ -1460,9 +1612,9 @@ export default function Home() {
                   onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'midnight')}
                   className={`w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${theme === 'light' ? 'bg-white border-slate-200 text-slate-700' : 'bg-slate-800 border-slate-700 text-white'}`}
                 >
-                  <option value="light">☀️ Light</option>
-                  <option value="dark">🌙 Dark</option>
-                  <option value="midnight">🌌 Midnight</option>
+                  <option value="light">Light Theme</option>
+                  <option value="dark">Dark Theme</option>
+                  <option value="midnight">Midnight Theme</option>
                 </select>
                 <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center ${themeClasses.textMuted}`}>⌄</span>
               </div>
@@ -1472,7 +1624,8 @@ export default function Home() {
               onClick={handleStartFullExam}
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
             >
-              <span>🎓 Take Full Exam</span>
+              <Icon name="academic" className="w-4 h-4" />
+              <span>Take Full Exam</span>
             </button>
           </div>
         </aside>
@@ -1482,8 +1635,8 @@ export default function Home() {
             <div className="space-y-8 sm:space-y-10 animate-fadeIn">
               <div className="p-6 sm:p-10 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl space-y-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-800">
                 <div className="space-y-3 max-w-2xl relative z-10 text-center md:text-left">
-                  <span className="inline-block px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
-                    Cally Assessment & Certification Portal
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
+                    <Icon name="sparkles" className="w-3.5 h-3.5" /> Cally Assessment & Certification Portal
                   </span>
                   <h1 className="text-2xl sm:text-4xl font-black">Welcome Back, {userName || 'Candidate'}!</h1>
                   <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
@@ -1495,7 +1648,8 @@ export default function Home() {
                     onClick={handleStartFullExam}
                     className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-base px-6 sm:px-8 py-4 rounded-2xl shadow-lg transition cursor-pointer flex items-center justify-center gap-3"
                   >
-                    <span>🎓 Take Full Exam & Download Certificate</span>
+                    <Icon name="academic" className="w-5 h-5" />
+                    <span>Take Full Exam & Download Certificate</span>
                   </button>
                 </div>
               </div>
@@ -1516,8 +1670,10 @@ export default function Home() {
                     >
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-2xl">{feat.icon}</span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${feat.color}`}>
+                          <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-500">
+                            <Icon name={feat.icon} className="w-6 h-6" />
+                          </div>
+                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${feat.color}`}>
                             {feat.tag}
                           </span>
                         </div>
@@ -1534,11 +1690,11 @@ export default function Home() {
                           Practice Module
                         </button>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             </div>
+          </div>
           )}
 
           {appMode === 'dashboard' && !selectedModule && activeTab === 'logs' && (
@@ -1611,10 +1767,11 @@ export default function Home() {
                               <td className="py-3 px-3 font-black text-indigo-500">{log.score}%</td>
                               <td className="py-3 px-3">
                                 {diff !== null ? (
-                                  <span className={`inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full text-[11px] ${
+                                  <span className={`inline-flex items-center gap-1.5 font-bold px-2.5 py-1 rounded-full text-[11px] ${
                                     diff > 0 ? 'bg-emerald-500/10 text-emerald-500' : diff < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-slate-500/10 text-slate-400'
                                   }`}>
-                                    {diff > 0 ? `📈 +${diff}% improvement` : diff < 0 ? `📉 ${diff}% drop` : '⚖️ No change'}
+                                    {diff > 0 ? <Icon name="trending" className="w-3.5 h-3.5" /> : diff < 0 ? <Icon name="trending-down" className="w-3.5 h-3.5" /> : <Icon name="scale" className="w-3.5 h-3.5" />}
+                                    {diff > 0 ? `+${diff}% improvement` : diff < 0 ? `${diff}% drop` : 'No change'}
                                   </span>
                                 ) : (
                                   <span className={`italic text-[11px] ${themeClasses.textMuted}`}>First recorded attempt</span>
@@ -1650,10 +1807,9 @@ export default function Home() {
                       }}
                     >
                       <div style={{ border: '2px solid #b45309', padding: '30px 40px', position: 'relative' }}>
-                        
                         <div style={{ textAlign: 'center', marginBottom: '15px' }}>
                           <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '3px', color: '#1e293b', fontWeight: '700' }}>
-                            ✨ Cally Assessment Systems ✨
+                            Cally Assessment Systems
                           </div>
                           <div style={{ fontSize: '11px', color: '#78350f', marginTop: '3px', fontWeight: '600' }}>EST. 2026</div>
                         </div>
@@ -1675,12 +1831,12 @@ export default function Home() {
                         </p>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 30px', maxWidth: '850px', margin: '0 auto 25px auto', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
-                          <div>🎧 Listening & Dictation ({examScores.listening}%)</div>
-                          <div>🎙️ Speaking Simulation ({examScores.speaking}%)</div>
-                          <div>📖 Reading & Grammar ({examScores.reading}%)</div>
-                          <div>⌨️ Chat & Typing Accuracy ({examScores.typing}%)</div>
-                          <div>✍️ Business Writing Composition ({examScores.writing}%)</div>
-                          <div style={{ color: '#b45309', fontWeight: '700' }}>⭐ Final Cumulative Rating: ({overallExamAverage}%)</div>
+                          <div>Listening & Dictation ({examScores.listening}%)</div>
+                          <div>Speaking Simulation ({examScores.speaking}%)</div>
+                          <div>Reading & Grammar ({examScores.reading}%)</div>
+                          <div>Chat & Typing Accuracy ({examScores.typing}%)</div>
+                          <div>Business Writing Composition ({examScores.writing}%)</div>
+                          <div style={{ color: '#b45309', fontWeight: '700' }}>Final Cumulative Rating: ({overallExamAverage}%)</div>
                         </div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: '20px', marginTop: '10px' }}>
@@ -1701,7 +1857,6 @@ export default function Home() {
                         <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#64748b', fontWeight: '600', letterSpacing: '1px' }}>
                           DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [{generatedCertificateCode}]
                         </div>
-
                       </div>
                     </div>
                   </div>
@@ -1720,7 +1875,8 @@ export default function Home() {
                     onClick={handleDownloadPDF}
                     className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-8 py-3.5 rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <span>{isDownloadingPdf ? '⏳ Generating .pdf file...' : '📥 Download Certificate (.pdf)'}</span>
+                    <Icon name="download" className="w-4 h-4" />
+                    <span>{isDownloadingPdf ? 'Generating .pdf file...' : 'Download Certificate (.pdf)'}</span>
                   </button>
                   <button
                     onClick={handleBackToDashboard}
@@ -1739,16 +1895,18 @@ export default function Home() {
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
                   <button
                     onClick={handleBackToDashboard}
-                    className="flex-1 sm:flex-none px-3.5 py-2.5 bg-slate-500/10 hover:bg-slate-500/20 text-xs font-bold rounded-xl transition cursor-pointer"
+                    className="flex-1 sm:flex-none px-3.5 py-2.5 bg-slate-500/10 hover:bg-slate-500/20 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2"
                   >
-                    ← Back to Dashboard
+                    <Icon name="arrow-left" className="w-4 h-4" />
+                    <span>Back to Dashboard</span>
                   </button>
                   {appMode === 'dashboard' && selectedModule && (
                     <button
                       onClick={() => generateTest(selectedModule)}
                       className="flex-1 sm:flex-none px-3.5 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold rounded-xl transition cursor-pointer border border-indigo-500/30 flex items-center justify-center gap-1.5"
                     >
-                      <span>🔄 Generate New Test</span>
+                      <Icon name="refresh" className="w-4 h-4" />
+                      <span>Generate New Test</span>
                     </button>
                   )}
                 </div>
@@ -1792,7 +1950,7 @@ export default function Home() {
                   </button>
                   {isSubmitted && !showScorePopup && (
                     <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
-                      ✓ Writing Submitted! Score: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
+                      Writing Submitted! Score: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
                     </div>
                   )}
                 </div>
@@ -1832,7 +1990,7 @@ export default function Home() {
                   />
                   {isTypingCompleted && !showScorePopup && (
                     <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
-                      ✓ Typing Completed! Score Recorded: {score}% {appMode === 'full_exam' && '• Finalizing exam score...'}
+                      Typing Completed! Score Recorded: {score}% {appMode === 'full_exam' && '• Finalizing exam score...'}
                     </div>
                   )}
                 </div>
@@ -1877,8 +2035,8 @@ export default function Home() {
                       {(selectedModule === 'reading' || hasAudioEnded) && (
                         <div className="space-y-6">
                           {selectedModule === 'listening' && isListeningTimerActive && !isSubmitted && (
-                            <div className="p-3 bg-rose-600 text-white text-xs font-mono rounded-xl flex justify-between animate-bounce shadow-xs">
-                              <span>⏱️ Time Remaining:</span>
+                            <div className="p-3 bg-rose-600 text-white text-xs font-mono rounded-xl flex items-center justify-between animate-bounce shadow-xs">
+                              <span className="flex items-center gap-1.5"><Icon name="clock" className="w-4 h-4" /> Time Remaining:</span>
                               <span>{listeningTimer}s</span>
                             </div>
                           )}
@@ -1894,7 +2052,7 @@ export default function Home() {
                                     onClick={() => setSelectedAnswers(prev => ({ ...prev, [q.id]: opt }))}
                                     className={`p-3 text-left rounded-xl border text-xs sm:text-sm font-medium transition cursor-pointer ${
                                       selectedAnswers[q.id] === opt ? 'bg-amber-500/20 border-amber-500 text-amber-500 font-bold' : 'border-slate-500/20 bg-transparent'
-                                    }`}
+                                  }`}
                                   >
                                     {opt}
                                   </button>
@@ -1912,7 +2070,7 @@ export default function Home() {
                             </button>
                           ) : !showScorePopup && (
                             <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
-                              ✓ {selectedModule.toUpperCase()} Module Complete! Score Recorded: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
+                              {selectedModule.toUpperCase()} Module Complete! Score Recorded: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
                             </div>
                           )}
                         </div>
@@ -1930,7 +2088,7 @@ export default function Home() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center space-y-5 transform animate-bounce-short">
             <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto text-4xl shadow-inner ${score !== null && score <= 70 ? 'bg-rose-500/20 text-rose-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
-              {score !== null && score <= 70 ? '😢' : '🏆'}
+              <Icon name={score !== null && score <= 70 ? 'alert-circle' : 'trophy'} className="w-10 h-10" />
             </div>
             <div className="space-y-1">
               <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest block">TephdyTech Module Completed</span>
@@ -1966,9 +2124,10 @@ export default function Home() {
                     setShowScorePopup(false);
                     generateTest(selectedModule);
                   }}
-                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm py-3 px-4 rounded-xl transition cursor-pointer border border-slate-700"
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm py-3 px-4 rounded-xl transition cursor-pointer border border-slate-700 flex items-center justify-center gap-2"
                 >
-                  🔄 Generate New Test
+                  <Icon name="refresh" className="w-4 h-4" />
+                  <span>Generate New Test</span>
                 </button>
               )}
             </div>
@@ -1981,8 +2140,8 @@ export default function Home() {
           <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 relative">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center text-lg sm:text-xl shadow-inner shrink-0">
-                  📌
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center shrink-0">
+                  <Icon name="info" className="w-6 h-6" />
                 </div>
                 <div>
                   <span className="text-[10px] sm:text-[11px] font-bold text-indigo-400 uppercase tracking-widest block">TephdyTech Module Guide</span>
@@ -1993,35 +2152,35 @@ export default function Home() {
                 onClick={() => setShowInstructionsModal(false)}
                 className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition cursor-pointer text-sm font-bold shrink-0"
               >
-                ✕
+                <Icon name="x" className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-3 bg-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-800 text-slate-300 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-medium">
               {activeFeature.instructions}
-            </div>
+          </div>
 
-            <div className="pt-2">
-              <button
-                onClick={() => setShowInstructionsModal(false)}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm py-3 px-4 rounded-xl transition shadow-md cursor-pointer"
-              >
-                Got it, Let's Begin!
-              </button>
-            </div>
+          <div className="pt-2">
+            <button
+              onClick={() => setShowInstructionsModal(false)}
+              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm py-3 px-4 rounded-xl transition shadow-md cursor-pointer"
+          >
+              Got it, Let's Begin!
+          </button>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-      <footer className={`w-full border-t py-5 px-3 sm:px-8 mt-auto shadow-xs ${themeClasses.header}`}>
-        <div className="max-w-6xl mx-auto flex items-center justify-center text-xs text-center">
-          <div className="flex items-center gap-2 justify-center flex-wrap">
-            <span className="font-bold">Developed By TephdyTech</span>
-            <span>&bull;</span>
-            <span>&copy; {new Date().getFullYear()} All rights reserved.</span>
-          </div>
+    <footer className={`w-full border-t py-5 px-3 sm:px-8 mt-auto shadow-xs ${themeClasses.header}`}>
+      <div className="max-w-6xl mx-auto flex items-center justify-center text-xs text-center">
+        <div className="flex items-center gap-2 justify-center flex-wrap">
+          <span className="font-bold">Developed By TephdyTech</span>
+          <span>&bull;</span>
+          <span>&copy; {new Date().getFullYear()} All rights reserved.</span>
         </div>
-      </footer>
-    </div>
+      </div>
+    </footer>
+  </div>
   );
 }
