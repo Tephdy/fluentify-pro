@@ -596,7 +596,16 @@ export default function Home() {
 
   const handleSubmitRating = async (e: React.FormEvent) => {
   e.preventDefault();
-  if (!userId) return;
+  if (!userId) {
+    alert('Please sign in before submitting a rating.');
+    return;
+  }
+
+  const normalizedRating = Math.round(Number(userRating) * 2) / 2;
+  if (!Number.isFinite(normalizedRating) || normalizedRating < 0.5 || normalizedRating > 5) {
+    alert('Please select a rating between 0.5 and 5 stars.');
+    return;
+  }
 
   setIsSubmittingRating(true);
   try {
@@ -605,7 +614,7 @@ export default function Home() {
       .insert([
         {
           user_id: userId,
-          rating: userRating,
+          rating: normalizedRating,
           feedback: userFeedback.trim(),
         },
       ]);
