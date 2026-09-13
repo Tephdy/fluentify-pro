@@ -2239,7 +2239,9 @@ export default function Home() {
   };
 
   const handleSpeakingComplete = (scoreVal: number) => {
-    handleScoreFinalized(scoreVal);
+    // If the recorder returns its empty/unspoken default of 5 (or 80), set it to 0
+    const finalScore = (scoreVal === 5 || scoreVal === 80) ? 0 : scoreVal;
+    handleScoreFinalized(finalScore);
   };
 
   const handleTypingChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
