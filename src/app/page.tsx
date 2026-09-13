@@ -2166,7 +2166,8 @@ export default function Home() {
           { 
             user_id: userId, 
             module_name: selectedModule, 
-            score: finalPct 
+            score: finalPct,
+            created_at: new Date().toISOString()
           }
         ])
         .select();
@@ -2192,7 +2193,7 @@ export default function Home() {
       }, 4000);
     }
   };
-
+  
   const handleSubmitListening = () => {
     if (isSubmitted) return;
     setIsListeningTimerActive(false);
@@ -2923,7 +2924,7 @@ export default function Home() {
                       </thead>
                       <tbody className="divide-y divide-slate-500/10 text-xs sm:text-sm">
                         {userScores.map((log, index) => {
-                          const formattedDate = log.created_at ? new Date(log.created_at).toLocaleString() : 'Recent';
+                          const formattedDate = log.created_at ? new Date(log.created_at).toLocaleString() : new Date().toLocaleString();
                           const previousAttempt = userScores.slice(index + 1).find(item => item.module_name === log.module_name);
                           const diff = previousAttempt ? log.score - previousAttempt.score : null;
 
