@@ -2145,6 +2145,87 @@ export default function Home() {
         </main>
       </div>
 
+      {showRatingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className={`border rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
+            <div className="flex items-center justify-between border-b pb-4">
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest block">System Feedback</span>
+                <h3 className="text-lg font-black">Rate & Recommend Cally</h3>
+              </div>
+              <button
+                onClick={() => setShowRatingModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-500/10 hover:bg-slate-500/20 flex items-center justify-center transition cursor-pointer"
+              >
+                <Icon name="x" className="w-4 h-4" />
+              </button>
+            </div>
+
+            {ratingSubmitted ? (
+              <div className="py-8 text-center space-y-3">
+                <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto">
+                  <Icon name="sparkles" className="w-6 h-6" />
+                </div>
+                <h4 className="text-base font-bold">Thank you for your feedback!</h4>
+                <p className={`text-xs ${themeClasses.textMuted}`}>Your review helps us improve the assessment platform.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitRating} className="space-y-5">
+                <div className="space-y-2 text-center">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Select Star Rating</label>
+                  <div className="flex items-center justify-center gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        type="button"
+                        key={star}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        onClick={() => setUserRating(star)}
+                        className="p-1 transition transform hover:scale-110 cursor-pointer"
+                      >
+                        <svg
+                          className={`w-8 h-8 ${
+                            (hoverRating || userRating) >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-500/30'
+                          }`}
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={1.5}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
+                          />
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Your Recommendation & Comments</label>
+                  <textarea
+                    rows={4}
+                    value={userFeedback}
+                    onChange={(e) => setUserFeedback(e.target.value)}
+                    placeholder="Tell us what you like about the system or what can be improved..."
+                    className="w-full p-3.5 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingRating}
+                  className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer"
+                >
+                  {isSubmittingRating ? 'Submitting Review...' : 'Submit Rating & Feedback'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
       {showScorePopup && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center space-y-5 transform animate-bounce-short">
