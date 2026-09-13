@@ -296,7 +296,7 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
 
 interface Question {
   id: string;
-  type: string;
+  type?: string; // Add the optional modifier (?) here
   question: string;
   options?: string[];
   correctAnswer?: string;
