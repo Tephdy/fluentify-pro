@@ -1564,14 +1564,6 @@ export default function Home() {
               </nav>
             </div>
 
-            <button
-              onClick={() => setShowRatingModal(true)}
-              className="px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-xl text-xs font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2"
-            >
-              <svg className="w-4 h-4 fill-amber-500" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              <span>Rate System</span>
-            </button>
-
             <div className="mt-auto pt-6 border-t border-slate-100">
               <div className="px-3 py-3 mb-2 rounded-2xl bg-slate-50 border border-slate-200">
                 <label htmlFor="mobile-theme" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Appearance</label>
@@ -1592,7 +1584,7 @@ export default function Home() {
 
               <button
                   onClick={() => setShowRatingModal(true)}
-                  className="px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-xl text-xs font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2"
+                  className="w-full px-4 py-3 mb-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2 justify-center"
                 >
                   <svg className="w-4 h-4 fill-amber-500" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                   <span>Rate System</span>
@@ -1688,6 +1680,15 @@ export default function Home() {
                 <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center ${themeClasses.textMuted}`}>⌄</span>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowRatingModal(true)}
+              className="w-full mb-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-xs sm:text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4 fill-amber-500" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+              <span>Rate System</span>
+            </button>
 
             <button
               onClick={handleStartFullExam}
