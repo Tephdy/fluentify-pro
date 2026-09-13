@@ -2573,8 +2573,8 @@ export default function Home() {
 
   return (
     <div className={`${themeClasses.bg} min-h-screen overflow-x-hidden flex flex-col font-sans transition-colors duration-300`} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <header className={`fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-md border-b px-3 sm:px-6 lg:px-8 ${themeClasses.header}`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="w-full max-w-[1800px] mx-auto flex items-center justify-between min-h-16 py-2 gap-3">
+      <header className={`sticky top-0 z-30 backdrop-blur-md border-b px-4 sm:px-8 ${themeClasses.header}`}>
+        <div className="w-full flex items-center justify-between h-16">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" onClick={handleBackToDashboard}>
               <div className="relative w-8 h-8 sm:w-9 sm:h-9 shrink-0">
@@ -2729,7 +2729,9 @@ export default function Home() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col md:flex-row w-full max-w-[1800px] mx-auto">
+         {/* Main Container with Sidebar & Features */}
+        <div className="flex-1 flex flex-col md:flex-row w-full">
+        {/* Sidebar Navigation */}
         <aside className={`hidden md:flex md:flex-col md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:w-72 border-r p-4 sm:p-6 shrink-0 space-y-6 ${themeClasses.sidebar}`}>
           <div className="space-y-1">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>System Navigation</span>
