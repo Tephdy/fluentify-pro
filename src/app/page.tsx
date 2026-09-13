@@ -2369,9 +2369,10 @@ export default function Home() {
   const activeFeature = dashboardFeatures.find((f) => f.id === selectedModule);
 
   // Dynamic Theme Styling Classes
+  // Dynamic Theme Styling Classes
   const themeClasses = {
     light: {
-      bg: 'min-h-screen bg-slate-50/50 text-slate-800',
+      bg: 'h-screen overflow-y-auto bg-slate-50/50 text-slate-800',
       header: 'bg-white/95 border-slate-200 text-slate-900',
       sidebar: 'bg-white border-slate-200 text-slate-700',
       card: 'bg-white border-slate-200 text-slate-900',
@@ -2381,7 +2382,7 @@ export default function Home() {
       divider: 'border-slate-100',
     },
     dark: {
-      bg: 'min-h-screen bg-slate-950 text-slate-100',
+      bg: 'h-screen overflow-y-auto bg-slate-950 text-slate-100',
       header: 'bg-slate-900/95 border-slate-800 text-white',
       sidebar: 'bg-slate-900 border-slate-800 text-slate-300',
       card: 'bg-slate-900 border-slate-800 text-white',
@@ -2391,7 +2392,7 @@ export default function Home() {
       divider: 'border-slate-800',
     },
     midnight: {
-      bg: 'min-h-screen bg-[#090d16] text-blue-50',
+      bg: 'h-screen overflow-y-auto bg-[#090d16] text-blue-50',
       header: 'bg-[#0f172a]/95 border-blue-950 text-blue-100',
       sidebar: 'bg-[#0f172a] border-blue-950 text-blue-200',
       card: 'bg-[#111c33] border-blue-900/60 text-blue-50',
@@ -2404,7 +2405,7 @@ export default function Home() {
 
   if (!isLoggedIn) {
     return (
-      <div className={`min-h-screen grid grid-cols-1 lg:grid-cols-12 ${themeClasses.bg}`}>
+        <div className={`h-screen overflow-y-auto grid grid-cols-1 lg:grid-cols-12 ${themeClasses.bg}`}>
         {/* Left Side: Branding & Platform Highlights Showcase */}
         <div className="lg:col-span-6 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden border-r border-slate-800">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
