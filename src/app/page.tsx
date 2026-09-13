@@ -184,6 +184,44 @@ function Icon({ name, className = "w-5 h-5" }: IconProps) {
   }
 }
 
+
+function RatingStar({ star, value, onPreview, onSelect }: {
+  star: number;
+  value: number;
+  onPreview: (value: number) => void;
+  onSelect: (value: number) => void;
+}) {
+  const fill = Math.max(0, Math.min(1, value - star + 1));
+
+  const getRatingFromPointer = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    return ratio <= 0.5 ? star - 0.5 : star;
+  };
+
+  return (
+    <button
+      type="button"
+      aria-label={`Rate ${star - 0.5} to ${star} stars`}
+      onPointerMove={(e) => onPreview(getRatingFromPointer(e))}
+      onPointerDown={(e) => onSelect(getRatingFromPointer(e))}
+      onPointerLeave={() => onPreview(0)}
+      className="relative w-10 h-10 p-1 transition-transform hover:scale-110 cursor-pointer touch-manipulation"
+    >
+      <svg className="absolute inset-1 w-8 h-8 text-slate-300 dark:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+      </svg>
+      {fill > 0 && (
+        <div className="absolute inset-1 h-8 overflow-hidden pointer-events-none" style={{ width: `${fill * 100}%` }}>
+          <svg className="w-8 h-8 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+          </svg>
+        </div>
+      )}
+    </button>
+  );
+}
+
 interface AudioPlayerProps {
   script: string;
   onPlay?: () => void;
@@ -1589,14 +1627,6 @@ export default function Home() {
               </div>
 
               <button
-                  onClick={() => setShowRatingModal(true)}
-                  className="w-full px-4 py-3 mb-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2 justify-center"
-                >
-                  <svg className="w-4 h-4 fill-amber-500" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <span>Rate Us</span>
-              </button>
-
-              <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   handleStartFullExam();
@@ -1605,6 +1635,14 @@ export default function Home() {
               >
                 <Icon name="academic" className="w-5 h-5" />
                 <span>Take Full Exam</span>
+              </button>
+
+              <button
+                onClick={() => setShowRatingModal(true)}
+                className="w-full mt-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2 justify-center"
+              >
+                <Icon name="star" className="w-4 h-4" />
+                <span>Rate Us</span>
               </button>
 
               <button
@@ -1628,7 +1666,7 @@ export default function Home() {
           <div className="space-y-1">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>System Navigation</span>
             <nav className="space-y-1 pt-1">
-              <button
+<button
                 onClick={() => handleSelectSidebarTab('overview')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer text-left ${
                   activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-50'
@@ -1688,20 +1726,20 @@ export default function Home() {
             </div>
 
             <button
+              onClick={handleStartFullExam}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2 mb-2"
+            >
+              <Icon name="academic" className="w-4 h-4" />
+              <span>Take Full Exam</span>
+            </button>
+
+            <button
               type="button"
               onClick={() => setShowRatingModal(true)}
               className="w-full mb-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-xs sm:text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center justify-center gap-2"
             >
               <Icon name="star" className="w-4 h-4" />
               <span>Rate Us</span>
-            </button>
-
-            <button
-              onClick={handleStartFullExam}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
-            >
-              <Icon name="academic" className="w-4 h-4" />
-              <span>Take Full Exam</span>
             </button>
           </div>
         </aside>
@@ -2189,30 +2227,14 @@ export default function Home() {
                 <div className="space-y-2 text-center">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Select Star Rating</label>
                   <div className="flex items-center justify-center gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        type="button"
+                    {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => (
+                      <RatingStar
                         key={star}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        onClick={() => setUserRating(star)}
-                        className="p-1 transition transform hover:scale-110 cursor-pointer"
-                      >
-                        <svg
-                          className={`w-8 h-8 ${
-                            (hoverRating || userRating) >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-500/30'
-                          }`}
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={1.5}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                          />
-                        </svg>
-                      </button>
+                        star={star}
+                        value={hoverRating || userRating}
+                        onPreview={setHoverRating}
+                        onSelect={setUserRating}
+                      />
                     ))}
                   </div>
                 </div>
@@ -2321,30 +2343,14 @@ export default function Home() {
                 <div className="space-y-2 text-center">
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Select Star Rating</label>
                   <div className="flex items-center justify-center gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        type="button"
+                    {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => (
+                      <RatingStar
                         key={star}
-                        onMouseEnter={() => setHoverRating(star)}
-                        onMouseLeave={() => setHoverRating(0)}
-                        onClick={() => setUserRating(star)}
-                        className="p-1 transition transform hover:scale-110 cursor-pointer"
-                      >
-                        <svg
-                          className={`w-8 h-8 ${
-                            (hoverRating || userRating) >= star ? 'text-amber-400 fill-amber-400' : 'text-slate-500/30'
-                          }`}
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={1.5}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                          />
-                        </svg>
-                      </button>
+                        star={star}
+                        value={hoverRating || userRating}
+                        onPreview={setHoverRating}
+                        onSelect={setUserRating}
+                      />
                     ))}
                   </div>
                 </div>
