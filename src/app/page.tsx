@@ -2091,7 +2091,7 @@ export default function Home() {
               <Icon name={score !== null && score <= 70 ? 'alert-circle' : 'trophy'} className="w-10 h-10" />
             </div>
             <div className="space-y-1">
-              <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest block">TephdyTech Module Completed</span>
+              <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest block">Cally Assessment Hub Module Completed</span>
               <h3 className="text-2xl font-black">Your Score</h3>
             </div>
             
