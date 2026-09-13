@@ -1652,6 +1652,7 @@ export default function Home() {
   const [appMode, setAppMode] = useState<'dashboard' | 'full_exam'>('dashboard');
   const [selectedModule, setSelectedModule] = useState<ModuleType | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'logs' | ModuleType>('overview');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [examStepIndex, setExamStepIndex] = useState(0); 
   const examSequence: ModuleType[] = ['listening', 'reading', 'writing', 'speaking', 'typing'];
@@ -1716,6 +1717,15 @@ export default function Home() {
     setTheme(newTheme);
     localStorage.setItem('cally_ui_theme', newTheme);
   };
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobileMenuOpen]);
 
   useEffect(() => {
     if (!userId) return;
@@ -1908,6 +1918,7 @@ export default function Home() {
 
   const handleSelectSidebarTab = (tab: 'overview' | 'logs' | ModuleType) => {
     setActiveTab(tab);
+    setIsMobileMenuOpen(false);
     if (tab === 'overview' || tab === 'logs') {
       setAppMode('dashboard');
       setSelectedModule(null);
@@ -1968,6 +1979,7 @@ export default function Home() {
   };
 
   const handleBackToDashboard = () => {
+    setIsMobileMenuOpen(false);
     setAppMode('dashboard');
     setSelectedModule(null);
     setActiveTab('overview');
@@ -2556,52 +2568,172 @@ export default function Home() {
   }
 
   return (
-    <div className={`${themeClasses.bg} flex flex-col font-sans transition-colors duration-300`}>
-      <header className={`sticky top-0 z-30 backdrop-blur-md border-b px-4 sm:px-8 ${themeClasses.header}`}>
-        <div className="w-full max-w-[1800px] mx-auto flex items-center justify-between h-16">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={handleBackToDashboard}>
-            <div className="relative w-8 h-8 sm:w-9 sm:h-9 shrink-0">
-              <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
+    <div className={`${themeClasses.bg} min-h-screen overflow-x-hidden flex flex-col font-sans transition-colors duration-300`} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <header className={`fixed top-0 left-0 right-0 z-50 w-full backdrop-blur-md border-b px-3 sm:px-6 lg:px-8 ${themeClasses.header}`} style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="w-full max-w-[1800px] mx-auto flex items-center justify-between min-h-16 py-2 gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" onClick={handleBackToDashboard}>
+              <div className="relative w-8 h-8 sm:w-9 sm:h-9 shrink-0">
+                <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
+              </div>
+              <span className="font-bold tracking-tight text-sm sm:text-lg truncate">Cally Assessment Hub</span>
             </div>
-            <span className="font-bold tracking-tight text-sm sm:text-lg">Cally Assessment Hub</span>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 bg-slate-500/10 border border-slate-500/20 px-2.5 py-1 rounded-xl text-xs font-bold">
-              <span>🎨 Theme:</span>
-              <select
-                value={theme}
-                onChange={(e) => handleThemeChange(e.target.value as any)}
-                className="bg-transparent font-bold focus:outline-none cursor-pointer"
-              >
-                <option value="light" className="text-slate-900">Light</option>
-                <option value="dark" className="text-slate-900">Dark</option>
-                <option value="midnight" className="text-slate-900">Midnight</option>
-              </select>
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <div className="hidden sm:flex items-center gap-2 text-xs font-semibold min-w-0">
+              <span className="truncate max-w-[150px]">Candidate: <strong className="text-indigo-500">{userName || 'Candidate'}</strong></span>
             </div>
 
-            <div className="flex items-center gap-3 text-xs font-semibold">
-              <span className="truncate max-w-[120px] sm:max-w-none">Candidate: <strong className="text-indigo-500">{userName || 'Candidate'}</strong></span>
-              <button
-                onClick={() => { setIsLoggedIn(false); localStorage.removeItem('cally_user_email'); localStorage.removeItem('cally_user_id'); }}
-                className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-lg transition cursor-pointer"
-              >
-                Sign Out
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                setIsLoggedIn(false);
+                setIsMobileMenuOpen(false);
+                localStorage.removeItem('cally_user_email');
+                localStorage.removeItem('cally_user_id');
+              }}
+              className="hidden sm:inline-flex px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-lg transition cursor-pointer text-xs font-semibold"
+            >
+              Sign Out
+            </button>
+
+            <button
+              type="button"
+              aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={isMobileMenuOpen}
+              onClick={() => setIsMobileMenuOpen((open) => !open)}
+              className="md:hidden w-11 h-11 shrink-0 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center transition shadow-sm"
+            >
+              <span className="text-xl leading-none">{isMobileMenuOpen ? '✕' : '☰'}</span>
+            </button>
           </div>
         </div>
       </header>
 
+      {/* Mobile navigation drawer */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-40">
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="absolute inset-0 bg-slate-950/20 backdrop-blur-[2px]"
+          />
+
+          <aside className={`absolute top-0 bottom-0 left-0 w-[min(88vw,340px)] ${themeClasses.sidebar} border-r shadow-2xl p-4 pt-5 flex flex-col overflow-y-auto`} style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top))', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">System Navigation</span>
+                <p className="text-sm font-black text-slate-900 truncate">Cally Assessment Hub</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close menu"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-3 text-slate-400">Workspace</span>
+              <nav className="space-y-1 pt-1">
+                <button
+                  onClick={() => handleSelectSidebarTab('overview')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition cursor-pointer text-left ${
+                    activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>📊</span>
+                  <span>Dashboard Overview</span>
+                </button>
+                <button
+                  onClick={() => handleSelectSidebarTab('logs')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition cursor-pointer text-left ${
+                    activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>📈</span>
+                  <span>Performance Logs</span>
+                </button>
+              </nav>
+            </div>
+
+            <div className="space-y-1 mt-6">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-3 text-slate-400">Practice Modules</span>
+              <nav className="space-y-1 pt-1">
+                {dashboardFeatures.map((feat) => (
+                  <button
+                    key={feat.id}
+                    onClick={() => handleSelectSidebarTab(feat.id)}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition cursor-pointer text-left ${
+                      activeTab === feat.id ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="flex items-center gap-3 min-w-0">
+                      <span>{feat.icon}</span>
+                      <span className="truncate">{feat.title}</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">›</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            <div className="mt-auto pt-6 border-t border-slate-100">
+              <div className="px-3 py-3 mb-2 rounded-2xl bg-slate-50 border border-slate-200">
+                <label htmlFor="mobile-theme" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Appearance</label>
+                <div className="relative">
+                  <select
+                    id="mobile-theme"
+                    value={theme}
+                    onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'midnight')}
+                    className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-9 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  >
+                    <option value="light">☀️ Light</option>
+                    <option value="dark">🌙 Dark</option>
+                    <option value="midnight">🌌 Midnight</option>
+                  </select>
+                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">⌄</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  handleStartFullExam();
+                }}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>🎓 Take Full Exam</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsLoggedIn(false);
+                  setIsMobileMenuOpen(false);
+                  localStorage.removeItem('cally_user_email');
+                  localStorage.removeItem('cally_user_id');
+                }}
+                className="w-full mt-2 sm:hidden px-4 py-3 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition cursor-pointer text-sm font-bold"
+              >
+                Sign Out
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
+
       <div className="flex-1 flex flex-col md:flex-row w-full max-w-[1800px] mx-auto">
-        <aside className={`w-full md:w-72 border-r p-4 sm:p-6 shrink-0 space-y-6 ${themeClasses.sidebar}`}>
+        <aside className={`hidden md:flex md:flex-col md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:w-72 border-r p-4 sm:p-6 shrink-0 space-y-6 ${themeClasses.sidebar}`}>
           <div className="space-y-1">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>System Navigation</span>
             <nav className="space-y-1 pt-1">
               <button
                 onClick={() => handleSelectSidebarTab('overview')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer ${
-                  activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'hover:opacity-80'
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer text-left ${
+                  activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-50'
                 }`}
               >
                 <span>📊</span>
@@ -2609,8 +2741,8 @@ export default function Home() {
               </button>
               <button
                 onClick={() => handleSelectSidebarTab('logs')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer ${
-                  activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-md' : 'hover:opacity-80'
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer text-left ${
+                  activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-50'
                 }`}
               >
                 <span>📈</span>
@@ -2626,8 +2758,8 @@ export default function Home() {
                 <button
                   key={feat.id}
                   onClick={() => handleSelectSidebarTab(feat.id)}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ${
-                    activeTab === feat.id ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold shadow-xs' : 'hover:opacity-80'
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-left ${
+                    activeTab === feat.id ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold shadow-xs' : 'hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
@@ -2639,7 +2771,24 @@ export default function Home() {
             </nav>
           </div>
 
-          <div className={`pt-4 border-t ${themeClasses.divider}`}>
+          <div className={`mt-auto pt-4 border-t ${themeClasses.divider}`}>
+            <div className={`mb-3 p-3 rounded-2xl border ${themeClasses.card}`}>
+              <label htmlFor="desktop-theme" className={`block text-[10px] font-bold uppercase tracking-wider mb-2 ${themeClasses.textMuted}`}>Appearance</label>
+              <div className="relative">
+                <select
+                  id="desktop-theme"
+                  value={theme}
+                  onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'midnight')}
+                  className={`w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${theme === 'light' ? 'bg-white border-slate-200 text-slate-700' : 'bg-slate-800 border-slate-700 text-white'}`}
+                >
+                  <option value="light">☀️ Light</option>
+                  <option value="dark">🌙 Dark</option>
+                  <option value="midnight">🌌 Midnight</option>
+                </select>
+                <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center ${themeClasses.textMuted}`}>⌄</span>
+              </div>
+            </div>
+
             <button
               onClick={handleStartFullExam}
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
@@ -2649,7 +2798,7 @@ export default function Home() {
           </div>
         </aside>
 
-        <main className="flex-1 w-full max-w-[1400px] mx-auto px-3 sm:px-8 py-4 sm:py-6">
+        <main className="flex-1 w-full max-w-[1400px] mx-auto px-3 sm:px-8 pt-20 pb-4 sm:pt-24 sm:pb-6">
           {appMode === 'dashboard' && !selectedModule && activeTab === 'overview' && (
             <div className="space-y-8 sm:space-y-10 animate-fadeIn">
               <div className="p-6 sm:p-10 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl space-y-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-800">
@@ -2701,7 +2850,7 @@ export default function Home() {
                       <div className="pt-6">
                         <button
                           onClick={() => handleStartDashboardModule(feat.id)}
-                          className={`w-full py-2.5 px-4 rounded-xl text-xs font-bold text-white transition cursor-pointer ${feat.btnColor}`}
+                          className={`w-full min-h-11 py-2.5 px-4 rounded-xl text-xs font-bold text-white transition cursor-pointer touch-manipulation ${feat.btnColor}`}
                         >
                           Practice Module
                         </button>
@@ -2906,25 +3055,25 @@ export default function Home() {
           )}
 
           {selectedModule && (appMode === 'dashboard' || (appMode === 'full_exam' && examStepIndex < 5)) && (
-            <div className="space-y-6 max-w-[1400px] mx-auto">
-              <div className={`rounded-2xl border p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs ${themeClasses.card}`}>
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="space-y-4 sm:space-y-6 max-w-[1400px] mx-auto">
+              <div className={`rounded-2xl border p-3.5 sm:p-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-xs ${themeClasses.card}`}>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
                   <button
                     onClick={handleBackToDashboard}
-                    className="px-4 py-2 bg-slate-500/10 hover:bg-slate-500/20 text-xs font-bold rounded-xl transition cursor-pointer"
+                    className="flex-1 sm:flex-none px-3.5 py-2.5 bg-slate-500/10 hover:bg-slate-500/20 text-xs font-bold rounded-xl transition cursor-pointer"
                   >
                     ← Back to Dashboard
                   </button>
                   {appMode === 'dashboard' && selectedModule && (
                     <button
                       onClick={() => generateTest(selectedModule)}
-                      className="px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold rounded-xl transition cursor-pointer border border-indigo-500/30 flex items-center gap-1.5"
+                      className="flex-1 sm:flex-none px-3.5 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold rounded-xl transition cursor-pointer border border-indigo-500/30 flex items-center justify-center gap-1.5"
                     >
                       <span>🔄 Generate New Test</span>
                     </button>
                   )}
                 </div>
-                <div className="text-left sm:text-right w-full sm:w-auto">
+                <div className="text-left sm:text-right w-full sm:w-auto px-1">
                   <span className="text-xs font-bold uppercase tracking-wider text-indigo-500 block">
                     {appMode === 'full_exam' ? `Full Exam Step ${examStepIndex + 1} of 5` : 'Individual Practice Mode'}
                   </span>
@@ -2933,7 +3082,7 @@ export default function Home() {
               </div>
 
               {selectedModule === 'speaking' && (
-                <div className={`rounded-2xl border p-5 sm:p-8 shadow-xs ${themeClasses.card}`}>
+                <div className={`rounded-2xl border p-3 sm:p-8 shadow-xs ${themeClasses.card}`}>
                   <SpeakingRecorder
                     key={speakingPrompts[0] || 'speaking-default'}
                     prompts={speakingPrompts}
@@ -3185,7 +3334,7 @@ export default function Home() {
         </div>
       )}
 
-      <footer className={`w-full border-t py-6 px-4 sm:px-8 mt-auto shadow-xs ${themeClasses.header}`}>
+      <footer className={`w-full border-t py-5 px-3 sm:px-8 mt-auto shadow-xs ${themeClasses.header}`}>
         <div className="max-w-6xl mx-auto flex items-center justify-center text-xs text-center">
           <div className="flex items-center gap-2 justify-center flex-wrap">
             <span className="font-bold">Developed By TephdyTech</span>
