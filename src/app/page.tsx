@@ -2159,7 +2159,7 @@ export default function Home() {
           <div className={`border rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
             <div className="flex items-center justify-between border-b pb-4">
               <div className="space-y-0.5">
-                <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest block">System Feedback</span>
+                <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest block">Rate Us</span>
                 <h3 className="text-lg font-black">Rate & Recommend Cally</h3>
               </div>
               <button
