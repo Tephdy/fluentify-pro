@@ -584,6 +584,8 @@ export default function Home() {
   const [userScores, setUserScores] = useState<any[]>([]);
   const [userCertificates, setUserCertificates] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
+  // NEW: surfaces the real Supabase/RLS error instead of silently showing "no logs yet"
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [generatedCertificateCode, setGeneratedCertificateCode] = useState<string>('TEPHDYTECH-BPO-2026-9412');
 
    // Rating System States
@@ -748,18 +750,44 @@ export default function Home() {
     };
   }, [isTimedEvaluationActive]);
 
+  // UPDATED: now tracks + surfaces errors instead of only console.error'ing them,
+  // and no longer silently overwrites userScores/userCertificates with an empty
+  // array when a query fails (which made an RLS/permissions failure look like
+  // "no logs yet" in the UI).
   const refreshUserStats = async () => {
     if (!userId) return;
     setLoadingStats(true);
+    setStatsError(null);
+
+    let firstError: string | null = null;
+
     const { data: scoresData, error: scoresError } = await supabase
-      .from('module_scores').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-    if (scoresError) console.error('Error fetching scores:', scoresError.message);
-    else setUserScores(scoresData || []);
+      .from('module_scores')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (scoresError) {
+      console.error('Error fetching scores:', scoresError.message);
+      firstError = scoresError.message;
+    } else {
+      setUserScores(scoresData || []);
+    }
 
     const { data: certsData, error: certsError } = await supabase
-      .from('certificates').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-    if (certsError) console.error('Error fetching certificates:', certsError.message);
-    else setUserCertificates(certsData || []);
+      .from('certificates')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (certsError) {
+      console.error('Error fetching certificates:', certsError.message);
+      firstError = firstError || certsError.message;
+    } else {
+      setUserCertificates(certsData || []);
+    }
+
+    if (firstError) setStatsError(firstError);
     setLoadingStats(false);
   };
 
@@ -1938,7 +1966,35 @@ export default function Home() {
                   <h2 className="text-lg sm:text-xl font-bold">Performance & Historical Improvement Logs</h2>
                   <p className={`text-xs ${themeClasses.textMuted}`}>Chronological tracking of every test attempt, score evolution, and exam dates</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={refreshUserStats}
+                  disabled={loadingStats}
+                  className="px-3.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-50 text-indigo-500 text-xs font-bold rounded-xl transition cursor-pointer border border-indigo-500/20 flex items-center gap-1.5 shrink-0"
+                >
+                  <Icon name="refresh" className="w-3.5 h-3.5" />
+                  <span>{loadingStats ? 'Refreshing...' : 'Refresh Logs'}</span>
+                </button>
               </div>
+
+              {/* NEW: shows the real fetch error (e.g. a Supabase/RLS permissions issue)
+                  instead of letting it masquerade as "no attempts yet". */}
+              {statsError && (
+                <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/5 flex items-start gap-3">
+                  <Icon name="alert-circle" className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-rose-500">Couldn't load your performance logs</p>
+                    <p className={`text-xs ${themeClasses.textMuted}`}>{statsError}</p>
+                    <p className={`text-[11px] ${themeClasses.textMuted}`}>
+                      This is usually a database permissions (Row Level Security) issue on the
+                      <code className="mx-1 px-1 py-0.5 rounded bg-slate-500/10">module_scores</code>
+                      or
+                      <code className="mx-1 px-1 py-0.5 rounded bg-slate-500/10">certificates</code>
+                      table rather than something wrong with this page.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className={`p-6 rounded-2xl border shadow-xs space-y-2 ${themeClasses.card}`}>
@@ -1975,7 +2031,9 @@ export default function Home() {
                   </div>
                 ) : userScores.length === 0 ? (
                   <div className={`text-center py-8 text-xs sm:text-sm ${themeClasses.textMuted}`}>
-                    No test attempts logged yet. Complete a practice module or full exam to start tracking your progress!
+                    {statsError
+                      ? 'Logs could not be loaded due to the error above.'
+                      : 'No test attempts logged yet. Complete a practice module or full exam to start tracking your progress!'}
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -2456,71 +2514,6 @@ export default function Home() {
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {showRatingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className={`border rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
-            <div className="flex items-center justify-between border-b pb-4">
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest block">System Feedback</span>
-                <h3 className="text-lg font-black">Rate & Recommend Cally</h3>
-              </div>
-              <button
-                onClick={() => setShowRatingModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-500/10 hover:bg-slate-500/20 flex items-center justify-center transition cursor-pointer"
-              >
-                <Icon name="x" className="w-4 h-4" />
-              </button>
-            </div>
-
-            {ratingSubmitted ? (
-              <div className="py-8 text-center space-y-3">
-                <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto">
-                  <Icon name="sparkles" className="w-6 h-6" />
-                </div>
-                <h4 className="text-base font-bold">Thank you for your feedback!</h4>
-                <p className={`text-xs ${themeClasses.textMuted}`}>Your review helps us improve the assessment platform.</p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmitRating} className="space-y-5">
-                <div className="space-y-2 text-center">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Select Star Rating</label>
-                  <div className="flex items-center justify-center gap-2">
-                    {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => (
-                      <RatingStar
-                        key={star}
-                        star={star}
-                        value={hoverRating || userRating}
-                        onPreview={setHoverRating}
-                        onSelect={setUserRating}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Your Recommendation & Comments</label>
-                  <textarea
-                    rows={4}
-                    value={userFeedback}
-                    onChange={(e) => setUserFeedback(e.target.value)}
-                    placeholder="Tell us what you like about the system or what can be improved..."
-                    className="w-full p-3.5 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmittingRating}
-                  className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer"
-                >
-                  {isSubmittingRating ? 'Submitting Review...' : 'Submit Rating & Feedback'}
-                </button>
-              </form>
-            )}
           </div>
         </div>
       )}
