@@ -1879,7 +1879,7 @@ export default function Home() {
           </div>
         </aside>
 
-        <main className="flex-1 w-full max-w-[1400px] mx-auto px-3 sm:px-8 pt-20 pb-4 sm:pt-24 sm:pb-6">
+        <main className="flex-1 w-full max-w-[1400px] mx-auto px-3 sm:px-8 pt-5 sm:pt-15 sm:pb-6">
           {isTimedEvaluationActive && (antiCheatViolations > 0 || !isFullscreen) && (
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs">
               <div className="flex items-center gap-2 font-semibold text-amber-600"><Icon name="alert-circle" className="w-4 h-4" /><span>Assessment Integrity: {antiCheatViolations} event{antiCheatViolations === 1 ? '' : 's'} detected{!isFullscreen ? ' • Fullscreen required' : ''}</span></div>
