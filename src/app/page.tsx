@@ -517,9 +517,6 @@ interface TestData {
   questions: Question[];
 }
 
-// ============================================================
-// NEW: Types for the enhanced writing evaluation
-// ============================================================
 type WritingNoteType = 'success' | 'warning' | 'info';
 
 interface WritingNote {
@@ -550,7 +547,7 @@ export default function Home() {
 
   const [appMode, setAppMode] = useState<'dashboard' | 'full_exam'>('dashboard');
   const [selectedModule, setSelectedModule] = useState<ModuleType | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'logs' | ModuleType>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'logs' | 'support' | ModuleType>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [examStepIndex, setExamStepIndex] = useState(0); 
@@ -567,6 +564,12 @@ export default function Home() {
   const [testData, setTestData] = useState<TestData | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  const [writingSubPrompts, setWritingSubPrompts] = useState<string[]>([]);
+  const [writingSubIndex, setWritingSubIndex] = useState(0);
+  const [writingDrafts, setWritingDrafts] = useState<string[]>([]);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState<number | null>(null);
@@ -595,7 +598,6 @@ export default function Home() {
   const [isEvaluatingWriting, setIsEvaluatingWriting] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
-  // NEW: detailed writing evaluation result
   const [writingEvaluationDetails, setWritingEvaluationDetails] = useState<WritingEvaluationDetails | null>(null);
 
   const [usedListeningIds, setUsedListeningIds] = useState<string[]>([]);
@@ -629,6 +631,117 @@ export default function Home() {
     setAntiCheatViolations((prev) => prev + 1);
     setIntegrityWarning(message);
     setShowIntegrityWarning(true);
+  };
+
+  const [userTickets, setUserTickets] = useState<any[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [ticketMessages, setTicketMessages] = useState<any[]>([]);
+  const [newTicketSubject, setNewTicketSubject] = useState('');
+  const [newTicketCategory, setNewTicketCategory] = useState('technical');
+  const [newTicketPriority, setNewTicketPriority] = useState('medium');
+  const [newTicketMessage, setNewTicketMessage] = useState('');
+  const [replyMessage, setReplyMessage] = useState('');
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [showNewTicketModal, setShowNewTicketModal] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchTickets = async () => {
+      const { data, error } = await supabase
+        .from('tickets')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (!error) setUserTickets(data || []);
+    };
+    fetchTickets();
+  }, [userId, activeTab]);
+
+  const handleOpenTicketDetails = async (ticket: any) => {
+    setSelectedTicket(ticket);
+    const { data, error } = await supabase
+      .from('ticket_messages')
+      .select('*')
+      .eq('ticket_id', ticket.id)
+      .order('created_at', { ascending: true });
+
+    if (!error) setTicketMessages(data || []);
+  };
+
+  const handleCreateTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !newTicketSubject.trim() || !newTicketMessage.trim()) return;
+
+    setIsCreatingTicket(true);
+    try {
+      const { data: ticketData, error: ticketError } = await supabase
+        .from('tickets')
+        .insert([
+          {
+            user_id: userId,
+            subject: newTicketSubject.trim(),
+            category: newTicketCategory,
+            priority: newTicketPriority,
+            status: 'open',
+          },
+        ])
+        .select()
+        .single();
+
+      if (ticketError) throw ticketError;
+
+      const { error: msgError } = await supabase
+        .from('ticket_messages')
+        .insert([
+          {
+            ticket_id: ticketData.id,
+            user_id: userId,
+            message: newTicketMessage.trim(),
+            is_admin: false,
+          },
+        ]);
+
+      if (msgError) throw msgError;
+
+      setUserTickets(prev => [ticketData, ...prev]);
+      setNewTicketSubject('');
+      setNewTicketMessage('');
+      setShowNewTicketModal(false);
+      alert('Support ticket submitted successfully!');
+    } catch (err: any) {
+      console.error('Error creating ticket:', err.message);
+      alert('Failed to submit ticket. Please try again.');
+    } finally {
+      setIsCreatingTicket(false);
+    }
+  };
+
+  const handleSendReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTicket || !replyMessage.trim() || !userId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('ticket_messages')
+        .insert([
+          {
+            ticket_id: selectedTicket.id,
+            user_id: userId,
+            message: replyMessage.trim(),
+            is_admin: false,
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setTicketMessages(prev => [...prev, data]);
+      setReplyMessage('');
+    } catch (err: any) {
+      console.error('Error sending reply:', err.message);
+    }
   };
 
   const requestExamFullscreen = async () => {
@@ -876,6 +989,10 @@ export default function Home() {
     return () => clearInterval(timer);
   }, [selectedModule, isListeningTimerActive, listeningTimer, isSubmitted]);
 
+  useEffect(() => {
+    setCurrentQuestionIndex(0);
+  }, [testData?.id]);
+
   const resetListeningState = () => {
     setHasAudioStarted(false);
     setHasAudioEnded(false);
@@ -885,6 +1002,29 @@ export default function Home() {
       window.speechSynthesis.cancel();
     }
   };
+
+  const totalQuestions = testData?.questions?.length ?? 0;
+
+  const handleSelectAnswer = (questionId: string, value: string) => {
+    if (isSubmitted) return;
+    setSelectedAnswers((prev) => ({ ...prev, [questionId]: value }));
+  };
+
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < totalQuestions - 1) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    }
+  };
+
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex((prev) => prev - 1);
+    }
+  };
+
+  const isLastQuestion = currentQuestionIndex === totalQuestions - 1;
+  const answeredCount = Object.keys(selectedAnswers).length;
+  const allQuestionsAnswered = answeredCount === totalQuestions && totalQuestions > 0;
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -961,10 +1101,10 @@ export default function Home() {
     }
   };
 
-  const handleSelectSidebarTab = (tab: 'overview' | 'logs' | ModuleType) => {
-    setActiveTab(tab);
+  const handleSelectSidebarTab = (tab: 'overview' | 'logs' | 'support' | ModuleType) => {
+    setActiveTab(tab as any);
     setIsMobileMenuOpen(false);
-    if (tab === 'overview' || tab === 'logs') {
+    if (tab === 'overview' || tab === 'logs' || tab === 'support') {
       setAppMode('dashboard');
       setSelectedModule(null);
       setTestData(null);
@@ -974,6 +1114,10 @@ export default function Home() {
       setShowInstructionsModal(false);
       setSelectedAnswers({});
       setWritingEvaluationDetails(null);
+      setCurrentQuestionIndex(0);
+      setWritingSubIndex(0);
+      setWritingDrafts([]);
+      setWritingSubPrompts([]);
       resetListeningState();
     } else {
       handleStartDashboardModule(tab);
@@ -990,6 +1134,10 @@ export default function Home() {
     setShowScorePopup(false);
     setSelectedAnswers({});
     setWritingEvaluationDetails(null);
+    setCurrentQuestionIndex(0);
+    setWritingSubIndex(0);
+    setWritingDrafts([]);
+    setWritingSubPrompts([]);
     resetListeningState();
     setShowInstructionsModal(true);
 
@@ -1023,6 +1171,10 @@ export default function Home() {
     setShowScorePopup(false);
     setSelectedAnswers({});
     setWritingEvaluationDetails(null);
+    setCurrentQuestionIndex(0);
+    setWritingSubIndex(0);
+    setWritingDrafts([]);
+    setWritingSubPrompts([]);
     resetListeningState();
     setShowInstructionsModal(true);
     generateTest(firstMod);
@@ -1041,6 +1193,10 @@ export default function Home() {
     setShowInstructionsModal(false);
     setSelectedAnswers({});
     setWritingEvaluationDetails(null);
+    setCurrentQuestionIndex(0);
+    setWritingSubIndex(0);
+    setWritingDrafts([]);
+    setWritingSubPrompts([]);
     resetListeningState();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -1052,6 +1208,7 @@ export default function Home() {
     setShowScorePopup(false);
     setSelectedAnswers({});
     setWritingEvaluationDetails(null);
+    setCurrentQuestionIndex(0);
     resetListeningState();
 
     if (moduleType === 'typing') {
@@ -1079,6 +1236,15 @@ export default function Home() {
       }
 
       setWritingPrompt(selectedPrompt);
+
+      const subs = [
+        `Step 1 of 3 — Opening: Introduce yourself and acknowledge the customer's concern.\n\nMain task: ${selectedPrompt}`,
+        `Step 2 of 3 — Body: Explain the resolution, next steps, or relevant details clearly.`,
+        `Step 3 of 3 — Closing: Offer further help, apologise for inconvenience, and sign off professionally.`,
+      ];
+      setWritingSubPrompts(subs);
+      setWritingSubIndex(0);
+      setWritingDrafts(['', '', '']);
       setWritingText('');
       setLoading(false);
       return;
@@ -1120,6 +1286,7 @@ export default function Home() {
       }
 
       setTestData(selectedItem);
+      setCurrentQuestionIndex(0);
       setLoading(false);
       return;
     }
@@ -1136,6 +1303,7 @@ export default function Home() {
       }
 
       setTestData(selectedItem);
+      setCurrentQuestionIndex(0);
       setLoading(false);
       return;
     }
@@ -1159,6 +1327,10 @@ export default function Home() {
       setShowScorePopup(false);
       setSelectedAnswers({});
       setWritingEvaluationDetails(null);
+      setCurrentQuestionIndex(0);
+      setWritingSubIndex(0);
+      setWritingDrafts([]);
+      setWritingSubPrompts([]);
       resetListeningState();
 
       if (nextMod === 'typing') {
@@ -1282,9 +1454,6 @@ export default function Home() {
     handleScoreFinalized(finalPct);
   };
 
-  // ============================================================
-  // UPDATED: Enhanced writing evaluation with detailed analysis
-  // ============================================================
   const handleSubmitWriting = () => {
     if (!writingText.trim()) return;
     setIsEvaluatingWriting(true);
@@ -1305,7 +1474,6 @@ export default function Home() {
       const sentenceCount = sentences.length || 1;
       const avgSentenceLength = wordCount / sentenceCount;
 
-      // --- Grammar scoring ---
       if (wordCount < 50) {
         grammarScore -= 15;
         grammarNotes.push({
@@ -1372,7 +1540,6 @@ export default function Home() {
         });
       }
 
-      // --- Vocabulary scoring ---
       const words = writingText.toLowerCase().match(/\b[a-z']+\b/g) || [];
       const uniqueWords = new Set(words);
       const lexicalDiversity = words.length
@@ -1407,7 +1574,6 @@ export default function Home() {
         });
       }
 
-      // --- Coherence scoring ---
       const linkingWords = [
         'however',
         'moreover',
@@ -1472,7 +1638,6 @@ export default function Home() {
         });
       }
 
-      // --- Task achievement scoring ---
       if (wordCount < 50) {
         taskAchievement -= 25;
       } else if (wordCount < 100) {
@@ -1577,6 +1742,10 @@ export default function Home() {
     setShowScorePopup(false);
     setShowInstructionsModal(false);
     setWritingEvaluationDetails(null);
+    setCurrentQuestionIndex(0);
+    setWritingSubIndex(0);
+    setWritingDrafts([]);
+    setWritingSubPrompts([]);
     setTypingPassage(DEFAULT_TYPING_PASSAGES[0]);
     setUserInput('');
     setWpm(0);
@@ -1630,7 +1799,7 @@ export default function Home() {
       tag: 'Listening',
       color: 'border-rose-200 bg-rose-50/40 text-rose-700',
       btnColor: 'bg-rose-600 hover:bg-rose-700',
-      instructions: "1. Click 'Play Audio' (plays ONCE).\n2. Answer the questions before the 1-minute timer expires.",
+      instructions: "1. Click 'Play Audio' (plays ONCE).\n2. Answer each question one by one before the 1-minute timer expires.",
       icon: 'headphones',
     },
     {
@@ -1640,7 +1809,7 @@ export default function Home() {
       tag: 'Reading',
       color: 'border-amber-200 bg-amber-50/40 text-amber-700',
       btnColor: 'bg-amber-600 hover:bg-amber-700',
-      instructions: "1. Review reading passage.\n2. Answer the multiple choice questions.",
+      instructions: "1. Review reading passage.\n2. Answer each multiple-choice question one at a time.",
       icon: 'book',
     },
     {
@@ -1650,7 +1819,7 @@ export default function Home() {
       tag: 'Writing',
       color: 'border-indigo-200 bg-indigo-50/40 text-indigo-700',
       btnColor: 'bg-indigo-600 hover:bg-indigo-700',
-      instructions: "1. Read scenario prompt.\n2. Draft professional email response.",
+      instructions: "1. Read scenario prompt.\n2. Draft your response in 3 guided steps (Opening → Body → Closing).",
       icon: 'pencil',
     },
     {
@@ -1679,38 +1848,49 @@ export default function Home() {
 
   const themeClasses = {
     light: {
-      bg: 'h-screen overflow-y-auto bg-slate-50/50 text-slate-800',
+      bg: 'bg-slate-50/50 text-slate-800',
       header: 'bg-white/95 border-slate-200 text-slate-900',
-      sidebar: 'bg-white border-slate-200 text-slate-700',
-      card: 'bg-white border-slate-200 text-slate-900',
+      sidebar: 'bg-white border-slate-200 text-slate-800',
+      card: 'bg-white border-slate-200 text-slate-800 shadow-sm',
+      tableHeader: 'bg-slate-50 text-slate-500 border-slate-200',
+      tableRowHover: 'hover:bg-slate-50',
       textMuted: 'text-slate-500',
-      tableHeader: 'border-slate-100 text-slate-400',
-      tableRowHover: 'hover:bg-slate-50/50',
-      divider: 'border-slate-100',
+      divider: 'border-slate-200',
+      hoverBg: 'hover:bg-slate-100',
+      activeBg: 'bg-indigo-600 text-white shadow-md',
+      activeSoftBg: 'bg-indigo-500/20 text-indigo-600 border border-indigo-500/30 font-bold shadow-xs',
+      mobileText: 'text-slate-700',
     },
     dark: {
-      bg: 'h-screen overflow-y-auto bg-slate-950 text-slate-100',
+      bg: 'bg-slate-950 text-slate-100',
       header: 'bg-slate-900/95 border-slate-800 text-white',
-      sidebar: 'bg-slate-900 border-slate-800 text-slate-300',
-      card: 'bg-slate-900 border-slate-800 text-white',
+      sidebar: 'bg-slate-900 border-slate-800 text-slate-100',
+      card: 'bg-slate-900 border-slate-800 text-slate-100 shadow-xl',
+      tableHeader: 'bg-slate-800/50 text-slate-400 border-slate-800',
+      tableRowHover: 'hover:bg-slate-800/60',
       textMuted: 'text-slate-400',
-      tableHeader: 'border-slate-800 text-slate-400',
-      tableRowHover: 'hover:bg-slate-800/50',
       divider: 'border-slate-800',
+      hoverBg: 'hover:bg-slate-800',
+      activeBg: 'bg-indigo-600 text-white shadow-md',
+      activeSoftBg: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold shadow-xs',
+      mobileText: 'text-slate-300',
     },
     midnight: {
-      bg: 'h-screen overflow-y-auto bg-[#090d16] text-blue-50',
+      bg: 'bg-[#090d16] text-blue-50',
       header: 'bg-[#0f172a]/95 border-blue-950 text-blue-100',
       sidebar: 'bg-[#0f172a] border-blue-950 text-blue-200',
-      card: 'bg-[#111c33] border-blue-900/60 text-blue-50',
-      textMuted: 'text-blue-300/70',
-      tableHeader: 'border-blue-950 text-blue-400',
+      card: 'bg-[#111c33] border-blue-900/60 text-blue-50 shadow-2xl',
+      tableHeader: 'bg-[#0f172a] text-blue-400 border-blue-950',
       tableRowHover: 'hover:bg-blue-950/40',
+      textMuted: 'text-blue-300/70',
       divider: 'border-blue-950',
-    }
+      hoverBg: 'hover:bg-blue-950/50',
+      activeBg: 'bg-indigo-600 text-white shadow-md',
+      activeSoftBg: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold shadow-xs',
+      mobileText: 'text-blue-200',
+    },
   }[theme];
 
-  // Helper functions for writing evaluation UI colors
   const getWritingScoreColor = (s: number) => {
     if (s >= 85) return 'text-emerald-500';
     if (s >= 70) return 'text-amber-500';
@@ -1749,8 +1929,9 @@ export default function Home() {
 
   if (!isLoggedIn) {
     return (
-      <div className={`h-screen overflow-y-auto grid grid-cols-1 lg:grid-cols-12 ${themeClasses.bg}`}>
-        <div className="lg:col-span-6 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden border-r border-slate-800">
+      <div className="h-screen w-screen overflow-hidden grid grid-cols-1 lg:grid-cols-12 bg-slate-50/50 text-slate-800">
+        {/* Left marketing panel — scrolls internally if too tall */}
+        <div className="lg:col-span-6 h-full overflow-y-auto bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-8 lg:p-16 flex flex-col justify-between relative border-r border-slate-800">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
           
           <div className="relative z-10 space-y-6">
@@ -1807,13 +1988,14 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="lg:col-span-6 flex items-center justify-center p-6 sm:p-12">
-          <div className={`w-full max-w-md rounded-3xl p-8 sm:p-10 shadow-xl border ${themeClasses.card} space-y-6`}>
+        {/* Right auth panel — scrolls internally if too tall */}
+        <div className="lg:col-span-6 h-full overflow-y-auto flex items-center justify-center p-6 sm:p-12">
+          <div className="w-full max-w-md rounded-3xl p-8 sm:p-10 shadow-xl border bg-white border-slate-200 text-slate-800 space-y-6">
             <div className="space-y-2 text-center">
               <h2 className="text-2xl font-black tracking-tight">
                 {isSignUpMode ? 'Create Your Account' : 'Welcome Back'}
               </h2>
-              <p className={`text-xs ${themeClasses.textMuted}`}>
+              <p className="text-xs text-slate-500">
                 {isSignUpMode ? 'Sign up to begin your assessment journey' : 'Sign in to track your scores and certificates'}
               </p>
             </div>
@@ -1912,8 +2094,9 @@ export default function Home() {
   }
 
   return (
-    <div className={`${themeClasses.bg} min-h-screen overflow-x-hidden flex flex-col font-sans transition-colors duration-300`} style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <header className={`sticky top-0 z-30 backdrop-blur-md border-b px-4 sm:px-8 ${themeClasses.header}`}>
+    <div className={`h-screen w-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 ${themeClasses.bg}`}>
+      {/* STICKY HEADER - fixed height, never scrolls */}
+      <header className={`shrink-0 z-30 border-b px-4 sm:px-8 ${themeClasses.header}`}>
         <div className="w-full flex items-center justify-between h-16">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" onClick={handleBackToDashboard}>
@@ -1946,7 +2129,7 @@ export default function Home() {
               aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
               aria-expanded={isMobileMenuOpen}
               onClick={() => setIsMobileMenuOpen((open) => !open)}
-              className="md:hidden w-11 h-11 shrink-0 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center transition shadow-sm"
+              className={`md:hidden w-11 h-11 shrink-0 rounded-xl border flex items-center justify-center transition shadow-sm ${themeClasses.sidebar} ${themeClasses.hoverBg}`}
             >
               <Icon name={isMobileMenuOpen ? 'x' : 'menu'} className="w-5 h-5" />
             </button>
@@ -1954,138 +2137,17 @@ export default function Home() {
         </div>
       </header>
 
-      {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40">
-          <button
-            type="button"
-            aria-label="Close navigation menu"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="absolute inset-0 bg-slate-950/20 backdrop-blur-[2px]"
-          />
-
-          <aside className={`absolute top-0 bottom-0 left-0 w-[min(88vw,340px)] ${themeClasses.sidebar} border-r shadow-2xl p-4 pt-5 flex flex-col overflow-y-auto`} style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top))', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
-              <div className="min-w-0">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">System Navigation</span>
-                <p className="text-sm font-black text-slate-900 truncate">Cally Assessment Hub</p>
-              </div>
-              <button
-                type="button"
-                aria-label="Close menu"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center"
-              >
-                <Icon name="x" className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider px-3 text-slate-400">Workspace</span>
-              <nav className="space-y-1 pt-1">
-                <button
-                  onClick={() => handleSelectSidebarTab('overview')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition cursor-pointer text-left ${
-                    activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon name="chart" className="w-5 h-5" />
-                  <span>Dashboard Overview</span>
-                </button>
-                <button
-                  onClick={() => handleSelectSidebarTab('logs')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition cursor-pointer text-left ${
-                    activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon name="trending" className="w-5 h-5" />
-                  <span>Performance Logs</span>
-                </button>
-              </nav>
-            </div>
-
-            <div className="space-y-1 mt-6">
-              <span className="text-[10px] font-bold uppercase tracking-wider px-3 text-slate-400">Practice Modules</span>
-              <nav className="space-y-1 pt-1">
-                {dashboardFeatures.map((feat) => (
-                  <button
-                    key={feat.id}
-                    onClick={() => handleSelectSidebarTab(feat.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition cursor-pointer text-left ${
-                      activeTab === feat.id ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold' : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className="flex items-center gap-3 min-w-0">
-                      <Icon name={feat.icon} className="w-5 h-5 text-indigo-500" />
-                      <span className="truncate">{feat.title}</span>
-                    </span>
-                    <span className="text-xs text-slate-400">&gt;</span>
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            <div className="mt-auto pt-6 border-t border-slate-100">
-              <div className="px-3 py-3 mb-2 rounded-2xl bg-slate-50 border border-slate-200">
-                <label htmlFor="mobile-theme" className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Appearance</label>
-                <div className="relative">
-                  <select
-                    id="mobile-theme"
-                    value={theme}
-                    onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'midnight')}
-                    className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2.5 pr-9 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                  >
-                    <option value="light">Light Theme</option>
-                    <option value="dark">Dark Theme</option>
-                    <option value="midnight">Midnight Theme</option>
-                  </select>
-                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">⌄</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  handleStartFullExam();
-                }}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Icon name="academic" className="w-5 h-5" />
-                <span>Take Full Exam</span>
-              </button>
-
-              <button
-                onClick={() => {
-                  setIsLoggedIn(false);
-                  setIsMobileMenuOpen(false);
-                  localStorage.removeItem('cally_user_email');
-                  localStorage.removeItem('cally_user_id');
-                }}
-                className="w-full mt-2 sm:hidden px-4 py-3 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition cursor-pointer text-sm font-bold"
-              >
-                Sign Out
-              </button>
-
-              <button
-                onClick={() => setShowRatingModal(true)}
-                className="w-full mt-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2 justify-center"
-              >
-                <Icon name="star" className="w-4 h-4" />
-                <span>Rate Us</span>
-              </button>
-            </div>
-          </aside>
-        </div>
-      )}
-
-      <div className="flex-1 flex flex-col md:flex-row w-full">
-        <aside className={`hidden md:flex md:flex-col md:sticky md:top-16 md:h-[calc(100vh-4rem)] md:w-72 border-r p-4 sm:p-6 shrink-0 space-y-6 ${themeClasses.sidebar}`}>
+      {/* MAIN BODY: sidebar + main content, fills remaining height */}
+      <div className="flex-1 flex flex-row w-full min-h-0">
+        {/* DESKTOP SIDEBAR - fixed width, own scrollbar */}
+        <aside className={`hidden md:flex md:flex-col md:w-72 shrink-0 border-r p-4 sm:p-6 space-y-6 overflow-y-auto ${themeClasses.sidebar}`}>
           <div className="space-y-1">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>System Navigation</span>
             <nav className="space-y-1 pt-1">
-            <button
+              <button
                 onClick={() => handleSelectSidebarTab('overview')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer text-left ${
-                  activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-50'
+                  activeTab === 'overview' ? themeClasses.activeBg : themeClasses.hoverBg
                 }`}
               >
                 <Icon name="chart" className="w-4 h-4" />
@@ -2094,7 +2156,7 @@ export default function Home() {
               <button
                 onClick={() => handleSelectSidebarTab('logs')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer text-left ${
-                  activeTab === 'logs' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-50'
+                  activeTab === 'logs' ? themeClasses.activeBg : themeClasses.hoverBg
                 }`}
               >
                 <Icon name="trending" className="w-4 h-4" />
@@ -2111,7 +2173,7 @@ export default function Home() {
                   key={feat.id}
                   onClick={() => handleSelectSidebarTab(feat.id)}
                   className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-left ${
-                    activeTab === feat.id ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold shadow-xs' : 'hover:bg-slate-50'
+                    activeTab === feat.id ? themeClasses.activeSoftBg : themeClasses.hoverBg
                   }`}
                 >
                   <div className="flex items-center gap-2.5 truncate">
@@ -2121,46 +2183,70 @@ export default function Home() {
                 </button>
               ))}
             </nav>
-          </div>
-
-          <div className={`mt-auto pt-4 border-t ${themeClasses.divider}`}>
-            <div className={`mb-3 p-3 rounded-2xl border ${themeClasses.card}`}>
-              <label htmlFor="desktop-theme" className={`block text-[10px] font-bold uppercase tracking-wider mb-2 ${themeClasses.textMuted}`}>Appearance</label>
-              <div className="relative">
-                <select
-                  id="desktop-theme"
-                  value={theme}
-                  onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'midnight')}
-                  className={`w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${theme === 'light' ? 'bg-white border-slate-200 text-slate-700' : 'bg-slate-800 border-slate-700 text-white'}`}
-                >
-                  <option value="light">Light Theme</option>
-                  <option value="dark">Dark Theme</option>
-                  <option value="midnight">Midnight Theme</option>
-                </select>
-                <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center ${themeClasses.textMuted}`}>⌄</span>
-              </div>
-            </div>
-
             <button
               onClick={handleStartFullExam}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2 mb-2"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2 mt-2"
             >
               <Icon name="academic" className="w-4 h-4" />
               <span>Take Full Exam</span>
             </button>
+          </div>
 
-            <button
-              type="button"
-              onClick={() => setShowRatingModal(true)}
-              className="w-full mt-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-xs sm:text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center justify-center gap-2"
-            >
-              <Icon name="star" className="w-4 h-4" />
-              <span>Rate Us</span>
-            </button>
+          <div className={`mt-auto pt-4 border-t ${themeClasses.divider} space-y-4`}>
+            <div className="space-y-2">
+              <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>Preferences & Support</span>
+              
+              <div className={`p-3 rounded-2xl border ${themeClasses.card} space-y-2 shadow-xs`}>
+                <div className={`flex items-center gap-2 text-xs font-bold ${themeClasses.textMuted}`}>
+                  <Icon name="sun" className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Appearance</span>
+                </div>
+                <div className="relative">
+                  <select
+                    id="desktop-theme"
+                    value={theme}
+                    onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'midnight')}
+                    className={`w-full appearance-none rounded-xl border px-3 py-2 pr-8 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${
+                      theme === 'light'
+                        ? 'bg-white border-slate-200 text-slate-700'
+                        : theme === 'midnight'
+                          ? 'bg-slate-950 border-slate-900 text-white'
+                          : 'bg-slate-800 border-slate-700 text-white'
+                    }`}
+                  >
+                    <option value="light">Light Theme</option>
+                    <option value="dark">Dark Theme</option>
+                    <option value="midnight">Midnight Theme</option>
+                  </select>
+                  <span className={`pointer-events-none absolute inset-y-0 right-2.5 flex items-center ${themeClasses.textMuted}`}>⌄</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => handleSelectSidebarTab('support' as any)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer text-left ${
+                  activeTab === 'support' ? themeClasses.activeBg : themeClasses.hoverBg
+                }`}
+              >
+                <Icon name="info" className="w-4 h-4 text-indigo-400" />
+                <span>Support Tickets</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowRatingModal(true)}
+                className="w-full px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-xl text-xs font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-3 text-left shadow-xs"
+              >
+                <Icon name="star" className="w-4 h-4 text-amber-400" />
+                <span>Rate Us</span>
+              </button>
+            </div>
           </div>
         </aside>
 
-        <main className="flex-1 w-full max-w-[1400px] mx-auto px-3 sm:px-8 pt-5 sm:pt-15 sm:pb-6">
+        {/* MAIN CONTENT - only this scrolls */}
+        <main className="flex-1 min-w-0 h-full overflow-y-auto">
+          <div className="w-full max-w-[1400px] mx-auto px-3 sm:px-8 py-5 sm:py-6">
           {isTimedEvaluationActive && (antiCheatViolations > 0 || !isFullscreen) && (
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs">
               <div className="flex items-center gap-2 font-semibold text-amber-600"><Icon name="alert-circle" className="w-4 h-4" /><span>Assessment Integrity: {antiCheatViolations} event{antiCheatViolations === 1 ? '' : 's'} detected{!isFullscreen ? ' • Fullscreen required' : ''}</span></div>
@@ -2239,6 +2325,221 @@ export default function Home() {
             </div>
           </div>
           )}
+
+          {appMode === 'dashboard' && !selectedModule && activeTab === 'support' && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className={`border-b pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${themeClasses.divider}`}>
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold">Helpdesk & Support Tickets</h2>
+                <p className={`text-xs ${themeClasses.textMuted}`}>Submit inquiries, report technical glitches, or request score reviews</p>
+              </div>
+              <button
+                onClick={() => setShowNewTicketModal(true)}
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2"
+              >
+                <Icon name="pencil" className="w-4 h-4" />
+                <span>Create New Ticket</span>
+              </button>
+            </div>
+
+    {selectedTicket ? (
+      <div className={`rounded-2xl border p-6 space-y-6 ${themeClasses.card}`}>
+        <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.divider}`}>
+          <div>
+            <button
+              onClick={() => setSelectedTicket(null)}
+              className="text-xs font-bold text-indigo-400 hover:underline mb-2 flex items-center gap-1 cursor-pointer"
+            >
+              <Icon name="arrow-left" className="w-3.5 h-3.5" /> Back to Tickets List
+            </button>
+            <h3 className="text-lg font-bold">{selectedTicket.subject}</h3>
+            <span className={`text-xs ${themeClasses.textMuted} capitalize`}>Category: {selectedTicket.category} &bull; Status: {selectedTicket.status}</span>
+          </div>
+          <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+            selectedTicket.status === 'open' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
+          }`}>
+            {selectedTicket.status}
+          </span>
+        </div>
+
+        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+          {ticketMessages.map((msg, idx) => (
+            <div key={idx} className={`p-4 rounded-2xl space-y-1 ${msg.is_admin ? 'bg-indigo-500/10 border border-indigo-500/20 ml-6' : 'bg-slate-500/5 border border-slate-500/10 mr-6'}`}>
+              <div className={`flex items-center justify-between text-[11px] font-bold ${themeClasses.textMuted}`}>
+                <span>{msg.is_admin ? 'Support Agent' : 'You'}</span>
+                <span>{new Date(msg.created_at).toLocaleString()}</span>
+              </div>
+              <p className="text-sm font-medium leading-relaxed">{msg.message}</p>
+            </div>
+          ))}
+        </div>
+
+        <form onSubmit={handleSendReply} className={`flex gap-3 pt-2 border-t ${themeClasses.divider}`}>
+          <input
+            type="text"
+            required
+            value={replyMessage}
+            onChange={(e) => setReplyMessage(e.target.value)}
+            placeholder="Type your reply message..."
+            className="flex-1 p-3 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <button
+            type="submit"
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition cursor-pointer shrink-0"
+          >
+            Send Reply
+          </button>
+        </form>
+      </div>
+    ) : (
+      <div className={`rounded-2xl border p-6 shadow-xs ${themeClasses.card}`}>
+        {userTickets.length === 0 ? (
+          <div className="text-center py-12 space-y-3">
+            <div className="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center mx-auto">
+              <Icon name="info" className="w-6 h-6" />
+            </div>
+            <h4 className="text-base font-bold">No support tickets found</h4>
+            <p className={`text-xs ${themeClasses.textMuted}`}>Have a question or issue? Create a new ticket to get assistance.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${themeClasses.tableHeader}`}>
+                  <th className="pb-3 px-3">Subject</th>
+                  <th className="pb-3 px-3">Category</th>
+                  <th className="pb-3 px-3">Priority</th>
+                  <th className="pb-3 px-3">Status</th>
+                  <th className="pb-3 px-3">Date</th>
+                  <th className="pb-3 px-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-500/10 text-xs sm:text-sm">
+                {userTickets.map((ticket) => (
+                  <tr key={ticket.id} className={`transition ${themeClasses.tableRowHover}`}>
+                    <td className="py-3.5 px-3 font-bold">{ticket.subject}</td>
+                    <td className="py-3.5 px-3 capitalize">{ticket.category}</td>
+                    <td className="py-3.5 px-3 capitalize font-semibold">{ticket.priority}</td>
+                    <td className="py-3.5 px-3">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                        ticket.status === 'open' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
+                      }`}>
+                        {ticket.status}
+                      </span>
+                    </td>
+                    <td className={`py-3.5 px-3 ${themeClasses.textMuted}`}>{new Date(ticket.created_at).toLocaleDateString()}</td>
+                    <td className="py-3.5 px-3 text-right">
+                      <button
+                        onClick={() => handleOpenTicketDetails(ticket)}
+                        className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold text-xs rounded-lg transition cursor-pointer"
+                      >
+                        View Thread
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    )}
+
+    {showNewTicketModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className={`border rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
+            <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.divider}`}>
+              <h3 className="text-lg font-black">Create Support Ticket</h3>
+              <button
+                onClick={() => setShowNewTicketModal(false)}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition cursor-pointer ${themeClasses.hoverBg}`}
+              >
+                <Icon name="x" className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTicket} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Subject / Issue Summary</label>
+                <input
+                  type="text"
+                  required
+                  value={newTicketSubject}
+                  onChange={(e) => setNewTicketSubject(e.target.value)}
+                  placeholder="e.g., Audio playback error in listening module"
+                  className="w-full p-3.5 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+             <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Category</label>
+                <div className="relative">
+                  <select
+                    value={newTicketCategory}
+                    onChange={(e) => setNewTicketCategory(e.target.value)}
+                    className={`w-full appearance-none p-3.5 pr-8 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${
+                      theme === 'light' 
+                        ? 'bg-white text-slate-800 border-slate-300' 
+                        : theme === 'midnight' 
+                          ? 'bg-slate-950 text-white border-slate-800' 
+                          : 'bg-slate-900 text-white border-slate-700'
+                    }`}
+                  >
+                    <option value="technical">Technical Bug</option>
+                    <option value="scoring">Score Dispute</option>
+                    <option value="account">Account Issue</option>
+                    <option value="general">General Inquiry</option>
+                  </select>
+                  <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center ${themeClasses.textMuted}`}>⌄</span>
+                </div>
+              </div>
+
+                <div className="space-y-1.5">
+                  <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Priority</label>
+                 <select
+                  value={newTicketPriority}
+                  onChange={(e) => setNewTicketPriority(e.target.value)}
+                  className={`w-full appearance-none p-3.5 pr-8 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${
+                    theme === 'light' 
+                      ? 'bg-white text-slate-800 border-slate-300' 
+                      : theme === 'midnight' 
+                        ? 'bg-slate-950 text-white border-slate-800' 
+                        : 'bg-slate-900 text-white border-slate-700'
+                  }`}
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Description / Details</label>
+                <textarea
+                  rows={4}
+                  required
+                  value={newTicketMessage}
+                  onChange={(e) => setNewTicketMessage(e.target.value)}
+                  placeholder="Describe your issue in detail..."
+                  className="w-full p-3.5 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isCreatingTicket}
+                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer"
+              >
+                {isCreatingTicket ? 'Submitting Ticket...' : 'Submit Support Ticket'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  )}
 
           {appMode === 'dashboard' && !selectedModule && activeTab === 'logs' && (
             <div className="space-y-6 animate-fadeIn">
@@ -2452,7 +2753,7 @@ export default function Home() {
                   </button>
                   <button
                     onClick={handleBackToDashboard}
-                    className="w-full sm:w-auto bg-slate-500/10 hover:bg-slate-500/20 font-bold text-sm px-6 py-3.5 rounded-xl transition cursor-pointer"
+                    className={`w-full sm:w-auto font-bold text-sm px-6 py-3.5 rounded-xl transition cursor-pointer ${themeClasses.hoverBg}`}
                   >
                     Return to Dashboard
                   </button>
@@ -2479,7 +2780,7 @@ export default function Home() {
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
                   <button
                     onClick={handleBackToDashboard}
-                    className="flex-1 sm:flex-none px-3.5 py-2.5 bg-slate-500/10 hover:bg-slate-500/20 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2"
+                    className={`flex-1 sm:flex-none px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2 ${themeClasses.hoverBg}`}
                   >
                     <Icon name="arrow-left" className="w-4 h-4" />
                     <span>Back to Dashboard</span>
@@ -2514,29 +2815,91 @@ export default function Home() {
 
               {selectedModule === 'writing' && (
                 <div className={`rounded-2xl border p-5 sm:p-8 shadow-xs space-y-6 ${themeClasses.card}`}>
-                  <div className="p-4 sm:p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl space-y-2">
-                    <span className="text-xs font-bold text-indigo-400 uppercase block">Writing Prompt:</span>
-                    <p className="text-sm sm:text-base font-medium">{writingPrompt}</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <span className={themeClasses.textMuted}>
+                        Writing Step {writingSubIndex + 1} of {writingSubPrompts.length || 1}
+                      </span>
+                      <span className="text-indigo-500">
+                        {writingDrafts.filter(d => d.trim().length > 0).length} / {writingSubPrompts.length || 1} completed
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-500/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 transition-all duration-500"
+                        style={{
+                          width: `${((writingSubIndex + 1) / Math.max(writingSubPrompts.length, 1)) * 100}%`,
+                        }}
+                      />
+                    </div>
                   </div>
+
+                  <div className="p-4 sm:p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl space-y-2">
+                    <span className="text-xs font-bold text-indigo-400 uppercase block">
+                      Step {writingSubIndex + 1} Prompt:
+                    </span>
+                    <p className="text-sm sm:text-base font-medium whitespace-pre-line">
+                      {writingSubPrompts[writingSubIndex] || writingPrompt}
+                    </p>
+                  </div>
+
                   <textarea
-                    rows={6}
-                    value={writingText}
-                    onChange={(e) => setWritingText(e.target.value)}
-                    placeholder="Type your professional response here..."
+                    rows={8}
+                    value={writingDrafts[writingSubIndex] ?? ''}
+                    onChange={(e) => {
+                      const updated = [...writingDrafts];
+                      updated[writingSubIndex] = e.target.value;
+                      setWritingDrafts(updated);
+                      setWritingText(updated.filter(Boolean).join('\n\n'));
+                    }}
+                    placeholder="Type your response for this step..."
                     className="w-full p-4 border border-slate-500/30 bg-transparent rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
+
                   <div className="flex items-center justify-between text-xs">
                     <span className={themeClasses.textMuted}>
-                      {writingText.trim() ? writingText.trim().split(/\s+/).length : 0} words
+                      {(writingDrafts[writingSubIndex] ?? '').trim()
+                        ? (writingDrafts[writingSubIndex] ?? '').trim().split(/\s+/).length
+                        : 0}{' '}
+                      words this step
+                    </span>
+                    <span className={themeClasses.textMuted}>
+                      Total: {writingText.trim() ? writingText.trim().split(/\s+/).length : 0} words
                     </span>
                   </div>
-                  <button
-                    onClick={handleSubmitWriting}
-                    disabled={isEvaluatingWriting || !writingText.trim()}
-                    className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
-                  >
-                    {isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}
-                  </button>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setWritingSubIndex((i) => Math.max(0, i - 1))}
+                      disabled={writingSubIndex === 0}
+                      className={`w-full sm:w-auto px-5 py-3 text-sm font-bold rounded-xl transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${themeClasses.hoverBg}`}
+                    >
+                      <Icon name="arrow-left" className="w-4 h-4" />
+                      <span>Previous Step</span>
+                    </button>
+
+                    {writingSubIndex < writingSubPrompts.length - 1 ? (
+                      <button
+                        type="button"
+                        onClick={() => setWritingSubIndex((i) => Math.min(writingSubPrompts.length - 1, i + 1))}
+                        disabled={!(writingDrafts[writingSubIndex] ?? '').trim()}
+                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <span>Next Step</span>
+                        <span>→</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSubmitWriting}
+                        disabled={isEvaluatingWriting || !writingText.trim()}
+                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <span>{isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}</span>
+                      </button>
+                    )}
+                  </div>
 
                   {isEvaluatingWriting && (
                     <div className="p-5 text-center space-y-3 bg-slate-500/5 rounded-2xl border border-slate-500/10">
@@ -2548,12 +2911,8 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* ============================================================
-                      NEW: Detailed Writing Evaluation Results Panel
-                      ============================================================ */}
                   {writingEvaluationDetails && !isEvaluatingWriting && (
                     <div className={`mt-4 pt-6 border-t space-y-6 animate-fadeIn ${themeClasses.divider}`}>
-                      {/* Overall Score */}
                       <div className="text-center border-b border-slate-500/10 pb-6">
                         <p className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
                           Overall Writing Score
@@ -2567,7 +2926,6 @@ export default function Home() {
                         </p>
                       </div>
 
-                      {/* Sub-scores */}
                       <div className="space-y-4">
                         <h3 className="text-sm font-bold uppercase tracking-wider">Score Breakdown</h3>
                         {[
@@ -2593,7 +2951,6 @@ export default function Home() {
                         ))}
                       </div>
 
-                      {/* Feedback Notes */}
                       <div>
                         <h3 className="text-sm font-bold uppercase tracking-wider mb-3">Detailed Feedback</h3>
                         <div className="space-y-2">
@@ -2663,7 +3020,11 @@ export default function Home() {
 
               {(selectedModule === 'listening' || selectedModule === 'reading') && (
                 <div className={`rounded-2xl border p-5 sm:p-8 shadow-xs space-y-6 ${themeClasses.card}`}>
-                  {loading && <div className={`text-center py-12 font-bold ${themeClasses.textMuted}`}>Generating test questions...</div>}
+                  {loading && (
+                    <div className={`text-center py-12 font-bold ${themeClasses.textMuted}`}>
+                      Generating test questions...
+                    </div>
+                  )}
 
                   {!loading && !testData && (
                     <button
@@ -2679,9 +3040,15 @@ export default function Home() {
                       <h3 className="text-lg sm:text-xl font-bold">{testData.title}</h3>
 
                       {selectedModule === 'reading' && testData.passage && (
-                        <div className="p-5 sm:p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl font-serif leading-relaxed shadow-xs text-xs sm:text-sm whitespace-pre-line">
-                          {testData.passage}
-                        </div>
+                        <details
+                          open
+                          className="p-5 sm:p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl font-serif leading-relaxed shadow-xs text-xs sm:text-sm"
+                        >
+                          <summary className="cursor-pointer font-sans font-bold text-xs uppercase tracking-wider text-amber-600 mb-3">
+                            Reading Passage (click to collapse)
+                          </summary>
+                          <div className="whitespace-pre-line">{testData.passage}</div>
+                        </details>
                       )}
 
                       {selectedModule === 'listening' && testData.audioScript && !hasAudioEnded && (
@@ -2701,41 +3068,155 @@ export default function Home() {
                         <div className="space-y-6">
                           {selectedModule === 'listening' && isListeningTimerActive && !isSubmitted && (
                             <div className="p-3 bg-rose-600 text-white text-xs font-mono rounded-xl flex items-center justify-between animate-bounce shadow-xs">
-                              <span className="flex items-center gap-1.5"><Icon name="clock" className="w-4 h-4" /> Time Remaining:</span>
+                              <span className="flex items-center gap-1.5">
+                                <Icon name="clock" className="w-4 h-4" /> Time Remaining:
+                              </span>
                               <span>{listeningTimer}s</span>
                             </div>
                           )}
 
-                          {testData.questions.map((q, idx) => (
-                            <div key={q.id || idx} className="p-4 sm:p-5 bg-slate-500/5 border border-slate-500/10 rounded-xl space-y-3">
-                              <p className="font-semibold text-sm sm:text-base">Question {idx + 1}: {q.question}</p>
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs font-bold">
+                              <span className={themeClasses.textMuted}>
+                                Question {currentQuestionIndex + 1} of {totalQuestions}
+                              </span>
+                              <span className="text-indigo-500">
+                                {answeredCount} / {totalQuestions} answered
+                              </span>
+                            </div>
+                            <div className="w-full h-2 bg-slate-500/20 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-indigo-500 transition-all duration-500"
+                                style={{
+                                  width: `${((currentQuestionIndex + 1) / Math.max(totalQuestions, 1)) * 100}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          {testData.questions[currentQuestionIndex] && (
+                            <div className="p-5 sm:p-6 bg-slate-500/5 border border-slate-500/10 rounded-2xl space-y-4">
+                              <p className="font-semibold text-sm sm:text-base">
+                                {testData.questions[currentQuestionIndex].question}
+                              </p>
+
                               <div className="grid grid-cols-1 gap-2">
-                                {q.options?.map((opt, oIdx) => (
-                                  <button
-                                    key={oIdx}
-                                    disabled={isSubmitted}
-                                    onClick={() => setSelectedAnswers(prev => ({ ...prev, [q.id]: opt }))}
-                                    className={`p-3 text-left rounded-xl border text-xs sm:text-sm font-medium transition cursor-pointer ${
-                                      selectedAnswers[q.id] === opt ? 'bg-amber-500/20 border-amber-500 text-amber-500 font-bold' : 'border-slate-500/20 bg-transparent'
-                                  }`}
-                                  >
-                                    {opt}
-                                  </button>
-                                ))}
+                                {testData.questions[currentQuestionIndex].options?.map((opt, oIdx) => {
+                                  const qId = testData.questions[currentQuestionIndex].id;
+                                  const isSelected = selectedAnswers[qId] === opt;
+                                  const isCorrect =
+                                    isSubmitted &&
+                                    opt.trim().toLowerCase() ===
+                                      (testData.questions[currentQuestionIndex].correctAnswer || '')
+                                        .trim()
+                                        .toLowerCase();
+                                  const isWrongSelected = isSubmitted && isSelected && !isCorrect;
+
+                                  return (
+                                    <button
+                                      key={oIdx}
+                                      disabled={isSubmitted}
+                                      onClick={() => handleSelectAnswer(qId, opt)}
+                                      className={`p-3.5 text-left rounded-xl border text-xs sm:text-sm font-medium transition cursor-pointer flex items-center gap-3 ${
+                                        isCorrect
+                                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 font-bold'
+                                          : isWrongSelected
+                                            ? 'bg-rose-500/20 border-rose-500 text-rose-500 font-bold'
+                                            : isSelected
+                                              ? 'bg-amber-500/20 border-amber-500 text-amber-600 font-bold'
+                                              : 'border-slate-500/20 bg-transparent hover:border-indigo-400'
+                                      }`}
+                                    >
+                                      <span
+                                        className={`w-7 h-7 shrink-0 rounded-full border-2 flex items-center justify-center text-xs font-black ${
+                                          isSelected
+                                            ? 'border-current bg-current/10'
+                                            : 'border-slate-500/40'
+                                        }`}
+                                      >
+                                        {String.fromCharCode(65 + oIdx)}
+                                      </span>
+                                      <span className="flex-1">{opt}</span>
+                                      {isCorrect && <span className="text-emerald-500 text-base">✓</span>}
+                                      {isWrongSelected && <span className="text-rose-500 text-base">✕</span>}
+                                    </button>
+                                  );
+                                })}
                               </div>
                             </div>
-                          ))}
+                          )}
 
-                          {!isSubmitted ? (
+                          <div className="flex flex-col sm:flex-row items-center gap-3">
                             <button
-                              onClick={selectedModule === 'listening' ? handleSubmitListening : handleSubmitReading}
-                              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
+                              type="button"
+                              onClick={handlePreviousQuestion}
+                              disabled={currentQuestionIndex === 0}
+                              className={`w-full sm:w-auto px-5 py-3 text-sm font-bold rounded-xl transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${themeClasses.hoverBg}`}
                             >
-                              Submit {selectedModule} Answers
+                              <Icon name="arrow-left" className="w-4 h-4" />
+                              <span>Previous</span>
                             </button>
-                          ) : !showScorePopup && (
+
+                            <div className="flex-1 flex items-center justify-center gap-1.5 flex-wrap order-last sm:order-none w-full sm:w-auto">
+                              {testData.questions.map((q, idx) => {
+                                const answered = !!selectedAnswers[q.id];
+                                const isCurrent = idx === currentQuestionIndex;
+                                return (
+                                  <button
+                                    key={q.id || idx}
+                                    onClick={() => setCurrentQuestionIndex(idx)}
+                                    aria-label={`Go to question ${idx + 1}`}
+                                    className={`w-8 h-8 rounded-full text-[11px] font-bold transition cursor-pointer flex items-center justify-center border-2 ${
+                                      isCurrent
+                                        ? 'bg-indigo-600 border-indigo-600 text-white scale-110'
+                                        : answered
+                                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-600'
+                                          : 'bg-transparent border-slate-500/30 text-slate-400 hover:border-indigo-400'
+                                    }`}
+                                  >
+                                    {idx + 1}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {!isLastQuestion ? (
+                              <button
+                                type="button"
+                                onClick={handleNextQuestion}
+                                className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
+                              >
+                                <span>Next</span>
+                                <span>→</span>
+                              </button>
+                            ) : !isSubmitted ? (
+                              <button
+                                type="button"
+                                onClick={selectedModule === 'listening' ? handleSubmitListening : handleSubmitReading}
+                                disabled={!allQuestionsAnswered}
+                                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
+                              >
+                                <span>
+                                  {allQuestionsAnswered
+                                    ? `Submit ${selectedModule} Answers`
+                                    : `Answer all (${answeredCount}/${totalQuestions})`}
+                                </span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={handleBackToDashboard}
+                                className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer"
+                              >
+                                Back to Dashboard
+                              </button>
+                            )}
+                          </div>
+
+                          {isSubmitted && !showScorePopup && (
                             <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
-                              {selectedModule.toUpperCase()} Module Complete! Score Recorded: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
+                              {selectedModule.toUpperCase()} Module Complete! Score Recorded: {score}%
+                              {appMode === 'full_exam' && ' • Advancing to next exam module...'}
                             </div>
                           )}
                         </div>
@@ -2746,8 +3227,148 @@ export default function Home() {
               )}
             </div>
           )}
+          </div>
         </main>
       </div>
+
+      {/* MOBILE DRAWER (slides in from left) */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50">
+          <button
+            type="button"
+            aria-label="Close navigation menu"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]"
+          />
+
+          <aside className={`absolute top-0 bottom-0 left-0 w-[min(88vw,340px)] ${themeClasses.sidebar} border-r shadow-2xl p-4 pt-5 flex flex-col overflow-y-auto`} style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top))', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+            <div className={`flex items-center justify-between pb-4 mb-4 border-b ${themeClasses.divider}`}>
+              <div className="min-w-0">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>System Navigation</span>
+                <p className="text-sm font-black truncate">Cally Assessment Hub</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close menu"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${themeClasses.hoverBg}`}
+              >
+                <Icon name="x" className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>Workspace</span>
+              <nav className="space-y-1 pt-1">
+                <button
+                  onClick={() => handleSelectSidebarTab('overview')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition cursor-pointer text-left ${
+                    activeTab === 'overview' ? themeClasses.activeBg : `${themeClasses.mobileText} ${themeClasses.hoverBg}`
+                  }`}
+                >
+                  <Icon name="chart" className="w-5 h-5" />
+                  <span>Dashboard Overview</span>
+                </button>
+                <button
+                  onClick={() => handleSelectSidebarTab('logs')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition cursor-pointer text-left ${
+                    activeTab === 'logs' ? themeClasses.activeBg : `${themeClasses.mobileText} ${themeClasses.hoverBg}`
+                  }`}
+                >
+                  <Icon name="trending" className="w-5 h-5" />
+                  <span>Performance Logs</span>
+                </button>
+                <button
+                  onClick={() => handleSelectSidebarTab('support' as any)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition cursor-pointer text-left ${
+                    activeTab === 'support' ? themeClasses.activeBg : `${themeClasses.mobileText} ${themeClasses.hoverBg}`
+                  }`}
+                >
+                  <Icon name="info" className="w-5 h-5" />
+                  <span>Support Tickets</span>
+                </button>
+              </nav>
+            </div>
+
+            <div className="space-y-1 mt-6">
+              <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>Practice Modules</span>
+              <nav className="space-y-1 pt-1">
+                {dashboardFeatures.map((feat) => (
+                  <button
+                    key={feat.id}
+                    onClick={() => handleSelectSidebarTab(feat.id)}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition cursor-pointer text-left ${
+                      activeTab === feat.id ? themeClasses.activeSoftBg : `${themeClasses.mobileText} ${themeClasses.hoverBg}`
+                    }`}
+                  >
+                    <span className="flex items-center gap-3 min-w-0">
+                      <Icon name={feat.icon} className="w-5 h-5 text-indigo-500" />
+                      <span className="truncate">{feat.title}</span>
+                    </span>
+                    <span className={`text-xs ${themeClasses.textMuted}`}>&gt;</span>
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            <div className={`mt-auto pt-6 border-t ${themeClasses.divider}`}>
+              <div className={`px-3 py-3 mb-2 rounded-2xl border ${themeClasses.card}`}>
+                <label htmlFor="mobile-theme" className={`block text-[10px] font-bold uppercase tracking-wider mb-2 ${themeClasses.textMuted}`}>Appearance</label>
+                <div className="relative">
+                  <select
+                    id="mobile-theme"
+                    value={theme}
+                    onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'midnight')}
+                    className={`w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${
+                      theme === 'light'
+                        ? 'bg-white border-slate-200 text-slate-700'
+                        : theme === 'midnight'
+                          ? 'bg-slate-950 border-slate-900 text-white'
+                          : 'bg-slate-800 border-slate-700 text-white'
+                    }`}
+                  >
+                    <option value="light">Light Theme</option>
+                    <option value="dark">Dark Theme</option>
+                    <option value="midnight">Midnight Theme</option>
+                  </select>
+                  <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center ${themeClasses.textMuted}`}>⌄</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  handleStartFullExam();
+                }}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Icon name="academic" className="w-5 h-5" />
+                <span>Take Full Exam</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsLoggedIn(false);
+                  setIsMobileMenuOpen(false);
+                  localStorage.removeItem('cally_user_email');
+                  localStorage.removeItem('cally_user_id');
+                }}
+                className="w-full mt-2 px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl transition cursor-pointer text-sm font-bold"
+              >
+                Sign Out
+              </button>
+
+              <button
+                onClick={() => setShowRatingModal(true)}
+                className="w-full mt-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-xl text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2 justify-center"
+              >
+                <Icon name="star" className="w-4 h-4" />
+                <span>Rate Us</span>
+              </button>
+            </div>
+          </aside>
+        </div>
+      )}
 
       {isTimedEvaluationActive && showIntegrityWarning && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
@@ -2765,14 +3386,14 @@ export default function Home() {
       {showRatingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
           <div className={`border rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
-            <div className="flex items-center justify-between border-b pb-4">
+            <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.divider}`}>
               <div className="space-y-0.5">
                 <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest block">System Feedback</span>
                 <h3 className="text-lg font-black">Rate & Recommend Cally</h3>
               </div>
               <button
                 onClick={() => setShowRatingModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-500/10 hover:bg-slate-500/20 flex items-center justify-center transition cursor-pointer"
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition cursor-pointer ${themeClasses.hoverBg}`}
               >
                 <Icon name="x" className="w-4 h-4" />
               </button>
@@ -2789,7 +3410,7 @@ export default function Home() {
             ) : (
               <form onSubmit={handleSubmitRating} className="space-y-5">
                 <div className="space-y-2 text-center">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Select Star Rating</label>
+                  <label className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>Select Star Rating</label>
                   <div className="flex items-center justify-center gap-2">
                     {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => (
                       <RatingStar
@@ -2804,7 +3425,7 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block">Your Recommendation & Comments</label>
+                  <label className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>Your Recommendation & Comments</label>
                   <textarea
                     rows={4}
                     value={userFeedback}
@@ -2915,7 +3536,7 @@ export default function Home() {
       </div>
     )}
 
-    <footer className={`w-full border-t py-5 px-3 sm:px-8 mt-auto shadow-xs ${themeClasses.header}`}>
+    <footer className={`shrink-0 border-t py-3 px-3 sm:px-8 ${themeClasses.header}`}>
       <div className="max-w-6xl mx-auto flex items-center justify-center text-xs text-center">
         <div className="flex items-center gap-2 justify-center flex-wrap">
           <span className="font-bold">Developed By TephdyTech</span>
