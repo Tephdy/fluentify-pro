@@ -19,33 +19,66 @@ export interface TestData {
 }
 
 export const DEFAULT_TYPING_PASSAGES = [
-  "Customer service excellence is built on active listening, empathy, clear communication, and a prompt resolution mindset. BPO professionals handle inquiries with professionalism and accuracy.",
-  "Effective communication bridges the gap between client expectations and service delivery. Maintaining composure under pressure ensures high Customer Satisfaction scores across global support channels."
+  "Customer service excellence is built on active listening, empathy, clear communication, and a prompt resolution mindset. BPO professionals handle inquiries with professionalism and accuracy while navigating complex enterprise software systems. Delivering top-tier support means prioritizing the customer's needs, resolving their issues on the first contact, and maintaining a calm, reassuring demeanor even during high-stress operational peaks. Every interaction represents an opportunity to strengthen brand loyalty and build lasting customer trust. By focusing on continuous improvement, agents can adapt quickly to changing policies, master new product lines, and consistently exceed performance benchmarks established by global industry leaders.",
+  
+  "Effective communication bridges the gap between client expectations and service delivery. Maintaining composure under pressure ensures high Customer Satisfaction scores across global support channels. Agents must master the art of concise phrasing and professional etiquette to prevent misunderstandings and accelerate problem resolution. Clear writing and articulate speech instill confidence in clients who rely on swift assistance. Furthermore, active engagement during multi-channel interactions allows representatives to capture vital details accurately. Cultivating these communication skills requires dedication, daily practice, and a genuine commitment to helping others navigate technical and account-related challenges successfully every single day.",
+  
+  "Technical support representatives frequently encounter complex software and hardware challenges that require analytical thinking, emotional patience, and precise troubleshooting methodologies. By systematically diagnosing error symptoms, verifying user configurations, and following structured knowledge-base documentation, support agents can resolve technical roadblocks efficiently. Furthermore, conveying technical instructions in clear, jargon-free language empowers customers to understand the solution and prevents recurring issues. Continuous training, resilience, and adaptability remain essential traits for thriving in a fast-paced technical support environment, ensuring that exceptional service standards are consistently maintained across diverse client interactions and global communication systems throughout their professional careers.",
+  
+  "Managing multiple live chat windows simultaneously requires exceptional typing speed, strong cognitive flexibility, and acute attention to detail. Modern BPO professionals must monitor active conversations closely, respond promptly with accurate information, and balance operational speed with a warm professional tone. Multitasking effectively reduces customer waiting times and significantly enhances overall satisfaction performance metrics. Developing this capability takes disciplined typing practice, efficient keyboard navigation, and structural mental organization. Agents who master simultaneous communication excel in high-volume environments, demonstrating remarkable operational competence and ensuring that every client feels valued, heard, and supported throughout their entire digital service interaction experience.",
+  
+  "Professional growth within the corporate and outsourcing sectors relies heavily on dedication, continuous learning, and a commitment to maintaining high quality standards. Employees who take initiative, master complex processes, and support their teammates often transition smoothly into leadership or quality assurance roles. Building a successful career requires embracing constructive feedback, adapting quickly to evolving industry trends, and maintaining a positive attitude through daily challenges. By setting clear personal goals, refining communication skills, and delivering consistent excellence, aspiring professionals can unlock numerous opportunities for advancement, financial stability, and long-term personal fulfillment in today's highly dynamic and competitive global marketplace.",
+  
+  "Information security and data privacy represent core pillars of modern business operations, particularly within outsourced customer management environments. Employees handle sensitive personal data, financial records, and proprietary corporate intelligence daily. Adhering to strict compliance frameworks, security protocols, and confidentiality agreements safeguards both the organization and its clientele from malicious data breaches. Every team member must remain vigilant against phishing attempts, unauthorized access vectors, and accidental data disclosures. Cultivating a culture of security awareness protects brand reputation, ensures regulatory compliance, and fosters an atmosphere of absolute trust and reliability across all global business transactions and client communications.",
+  
+  "Remote work environments demand a unique blend of self-discipline, robust technical infrastructure, and proactive communication strategies. Without traditional office boundaries, professionals must manage their schedules efficiently, minimize domestic distractions, and maintain high productivity levels independently. Virtual collaboration tools facilitate seamless teamwork, but maintaining team cohesion requires conscious effort through digital channels. Setting up an ergonomic workspace and establishing clear boundaries between professional duties and personal life prevents burnout. Ultimately, successful remote employees demonstrate exceptional accountability, strong organizational capabilities, and the capacity to deliver superior performance regardless of their physical geographical location.",
+  
+  "Quality assurance evaluations provide invaluable insights into agent performance, highlighting areas of strength and opportunities for targeted skill enhancement. Reviewing recorded calls and chat transcripts allows supervisors to measure adherence to operational guidelines, accuracy of information provided, and overall service quality. Constructive coaching sessions derived from these evaluations empower agents to refine their conversational tone, reduce average handling times, and elevate customer satisfaction scores. Embracing quality feedback as a tool for professional development rather than criticism fosters a growth mindset, driving continuous improvement and excellence across the entire customer support organization and operational workforce.",
+  
+  "Handling irate customers requires extraordinary emotional intelligence, patience, and a structured de-escalation strategy. When clients express frustration, agents must listen attentively without interrupting, validate their emotional state, and maintain a professional, reassuring tone. Shifting the focus from the problem to collaborative solution-finding diffuses tension and restores confidence in the service provider. Remaining calm under pressure prevents volatile situations from escalating and demonstrates true leadership capability. Masterful de-escalation turns challenging interactions into opportunities to secure customer loyalty, proving that professional grace and empathetic understanding are invaluable assets in any customer-centric business environment.",
+  
+  "Continuous learning and adaptability are vital competencies for navigating the rapidly evolving landscape of modern technology and global business outsourcing. As artificial intelligence, automated routing systems, and advanced analytics transform traditional workflows, professionals must update their skill sets continuously. Embracing innovation rather than resisting change allows workers to leverage new tools effectively, streamlining daily tasks and boosting productivity. Curiosity, willingness to experiment, and a proactive attitude toward professional development ensure long-term career resilience. Individuals who commit to lifelong learning remain indispensable assets, ready to tackle emerging industry challenges with confidence, creativity, and strategic foresight."
 ];
 
 export const MOTIVATIONAL_QUOTES = [
   "Every expert was once a beginner. Keep practicing and refining your skills!",
   "Persistence is the key to mastering language proficiency and technical exams.",
-  "Review your weak points and approach the next attempt with renewed focus!"
+  "Review your weak points and approach the next attempt with renewed focus!",
+  "Mistakes are proof that you are trying. Learn from them and move forward with confidence.",
+  "Consistency outperforms intensity. Practice a little bit every day to achieve true operational mastery.",
+  "Your only limit is the amount of effort and dedication you invest in your own professional growth.",
+  "Small improvements every single day add up to massive results over time.",
+  "Confidence comes from preparation. Keep pushing through your challenges and trust your process.",
+  "Every test is a valuable opportunity to learn something new about your capabilities and problem-solving speed.",
+  "Success is built on resilience, patience, and the courage to try again after every setback."
 ];
 
 export const FALLBACK_SPEAKING_PROMPTS_POOL = [
+  // Professional & Situational Scenarios
   "Please repeat or retell the following idea: 'Effective customer support requires a balance of empathy, active listening, and swift technical verification to ensure client satisfaction.'",
   "Describe a challenging technical problem you solved recently, explaining your troubleshooting steps and the final resolution.",
   "State your views on how remote work environments impact team productivity, collaboration, and work-life balance.",
   "Explain how you handle an irate or upset customer while keeping company policy compliant.",
   "Discuss the importance of data security and privacy when handling confidential client records in a BPO setting.",
   "Describe your strategy for multitasking effectively between chat support windows while maintaining high accuracy.",
-  "Explain how you would handle a situation where a caller uses abusive or inappropriate language."
+  "Explain how you would handle a situation where a caller uses abusive or inappropriate language.",
+
+  // Personal, Hobbies & Open-Ended Explorations
+  "Tell us a little bit about yourself, including your background, everyday passions, and what initially inspired you to pursue this career path.",
+  "Describe a hobby or creative interest you enjoy outside of work, and explain how it helps you unwind or develop useful skills.",
+  "If you could travel anywhere in the world tomorrow for a week-long vacation, where would you go and what would you do?",
+  "Open-ended: Discuss a personal goal, project, or achievement that you are most proud of and why it holds deep value for you.",
+  "What is something new you are currently learning or interested in exploring just for fun, and what sparked your curiosity about it?"
 ];
 
 export const FALLBACK_WRITING_PROMPTS_POOL = [
-  "Write a polite professional email to a client explaining that their billing adjustment of $50 has been credited to their account statement.",
-  "Draft a response message to a customer inquiring about system downtime, reassuring them that TephdyTech engineering teams are resolving the issue.",
-  "Compose a formal follow-up email to a customer requesting missing verification details to complete their account setup.",
-  "Write a short support ticket resolution summary detailing steps taken to troubleshoot a software login failure.",
-  "Compose an email to a long-term client offering an exclusive loyalty discount to prevent account cancellation.",
-  "Write a clear internal escalation summary ticket for a high-priority software outage issue."
+  "Write a reflective response discussing how you approach managing high emotional stress and maintaining composure when dealing with multiple difficult customer interactions in a row.",
+  "Draft an email to a customer who is threatening to cancel their subscription due to rising costs, outlining why the platform's value outweighs the price while inviting them to discuss tailored options.",
+  "Write an open-ended essay analyzing the impact of artificial intelligence and automated chatbots on the future role of human customer service representatives in the BPO industry.",
+  "Compose a detailed response explaining your personal strategy for continuous learning, time management, and adapting to rapidly changing product policies in a fast-paced work environment.",
+  "Write a support message to a client who experienced a critical service outage, detailing the technical resolution steps taken and exploring how transparency and accountability rebuild long-term trust.",
+  "Draft a professional yet empathetic response to a customer complaining about a strict company policy limitation, explaining the operational rationale while offering a creative, compliant workaround.",
+  "Write a personal reflection on what professional excellence means to you, describing a core value, hobby, or personal habit that drives your daily motivation and productivity."
 ];
 
 export const FALLBACK_LISTENING_QUESTIONS: TestData[] = [
