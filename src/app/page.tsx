@@ -13,7 +13,7 @@ import {
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import confetti from 'canvas-confetti';
-import { supabase } from '@/lib/supabase'; // Adjust path if your lib folder is located elsewhere
+import { supabase } from '@/lib/supabase';
 
 interface IconProps {
   name: string;
@@ -183,7 +183,6 @@ function Icon({ name, className = "w-5 h-5" }: IconProps) {
       return null;
   }
 }
-
 
 function RatingStar({ star, value, onPreview, onSelect }: {
   star: number;
@@ -518,6 +517,26 @@ interface TestData {
   questions: Question[];
 }
 
+// ============================================================
+// NEW: Types for the enhanced writing evaluation
+// ============================================================
+type WritingNoteType = 'success' | 'warning' | 'info';
+
+interface WritingNote {
+  type: WritingNoteType;
+  message: string;
+}
+
+interface WritingEvaluationDetails {
+  overallScore: number;
+  grammarScore: number;
+  vocabularyScore: number;
+  coherenceScore: number;
+  taskAchievementScore: number;
+  grammarNotes: WritingNote[];
+  feedbackSummary: string;
+}
+
 export default function Home() {
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -527,7 +546,6 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authError, setAuthError] = useState('');
 
-  // UI Theme State ('light' | 'dark' | 'midnight')
   const [theme, setTheme] = useState<'light' | 'dark' | 'midnight'>('light');
 
   const [appMode, setAppMode] = useState<'dashboard' | 'full_exam'>('dashboard');
@@ -577,6 +595,9 @@ export default function Home() {
   const [isEvaluatingWriting, setIsEvaluatingWriting] = useState<boolean>(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
 
+  // NEW: detailed writing evaluation result
+  const [writingEvaluationDetails, setWritingEvaluationDetails] = useState<WritingEvaluationDetails | null>(null);
+
   const [usedListeningIds, setUsedListeningIds] = useState<string[]>([]);
   const [usedReadingIds, setUsedReadingIds] = useState<string[]>([]);
   const [usedWritingPrompts, setUsedWritingPrompts] = useState<string[]>([]);
@@ -584,11 +605,9 @@ export default function Home() {
   const [userScores, setUserScores] = useState<any[]>([]);
   const [userCertificates, setUserCertificates] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(false);
-  // NEW: surfaces the real Supabase/RLS error instead of silently showing "no logs yet"
   const [statsError, setStatsError] = useState<string | null>(null);
   const [generatedCertificateCode, setGeneratedCertificateCode] = useState<string>('TEPHDYTECH-BPO-2026-9412');
 
-   // Rating System States
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [userRating, setUserRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number>(0);
@@ -596,12 +615,10 @@ export default function Home() {
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
-  // Anti-cheating / exam integrity state
   const [antiCheatViolations, setAntiCheatViolations] = useState(0);
   const [showIntegrityWarning, setShowIntegrityWarning] = useState(false);
   const [integrityWarning, setIntegrityWarning] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
-
 
   const isTimedEvaluationActive =
     (appMode === 'full_exam' && examStepIndex >= 0 && examStepIndex < 5) ||
@@ -626,57 +643,53 @@ export default function Home() {
   };
 
   const handleSubmitRating = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!userId) return;
+    e.preventDefault();
+    if (!userId) return;
 
-  setIsSubmittingRating(true);
-  try {
-    const { error } = await supabase
-      .from('system_ratings')
-      .insert([
-        {
-          user_id: userId,
-          rating: userRating,
-          feedback: userFeedback.trim(),
-        },
-      ]);
+    setIsSubmittingRating(true);
+    try {
+      const { error } = await supabase
+        .from('system_ratings')
+        .insert([
+          {
+            user_id: userId,
+            rating: userRating,
+            feedback: userFeedback.trim(),
+          },
+        ]);
 
-    if (error) throw error;
+      if (error) throw error;
 
-    setRatingSubmitted(true);
-    setTimeout(() => {
-      setShowRatingModal(false);
-      setRatingSubmitted(false);
-      setUserFeedback('');
-      setUserRating(5);
-    }, 2000);
-  } catch (err: any) {
-    console.error('Error submitting rating:', err.message);
-    alert('Failed to submit rating. Please try again.');
-  } finally {
-    setIsSubmittingRating(false);
-  }
-};
+      setRatingSubmitted(true);
+      setTimeout(() => {
+        setShowRatingModal(false);
+        setRatingSubmitted(false);
+        setUserFeedback('');
+        setUserRating(5);
+      }, 2000);
+    } catch (err: any) {
+      console.error('Error submitting rating:', err.message);
+      alert('Failed to submit rating. Please try again.');
+    } finally {
+      setIsSubmittingRating(false);
+    }
+  };
 
-
-  // Auto-popup rating modal when Full Exam finishes
   useEffect(() => {
-  if (appMode === 'full_exam' && examStepIndex === 5) {
-    const timer = setTimeout(() => {
-      setShowRatingModal(true);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }
-    }, [appMode, examStepIndex]);
+    if (appMode === 'full_exam' && examStepIndex === 5) {
+      const timer = setTimeout(() => {
+        setShowRatingModal(true);
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [appMode, examStepIndex]);
 
-
-    // Load saved theme from localStorage on mount
-    useEffect(() => {
-      const savedTheme = localStorage.getItem('cally_ui_theme') as 'light' | 'dark' | 'midnight';
-      if (savedTheme) {
-        setTheme(savedTheme);
-      }
-    }, []);
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('cally_ui_theme') as 'light' | 'dark' | 'midnight';
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+  }, []);
 
   const handleThemeChange = (newTheme: 'light' | 'dark' | 'midnight') => {
     setTheme(newTheme);
@@ -692,7 +705,6 @@ export default function Home() {
     };
   }, [isMobileMenuOpen]);
 
-  // Anti-cheating controls during official timed evaluations.
   useEffect(() => {
     if (!isTimedEvaluationActive) {
       setShowIntegrityWarning(false);
@@ -750,10 +762,6 @@ export default function Home() {
     };
   }, [isTimedEvaluationActive]);
 
-  // UPDATED: now tracks + surfaces errors instead of only console.error'ing them,
-  // and no longer silently overwrites userScores/userCertificates with an empty
-  // array when a query fails (which made an RLS/permissions failure look like
-  // "no logs yet" in the UI).
   const refreshUserStats = async () => {
     if (!userId) return;
     setLoadingStats(true);
@@ -965,6 +973,7 @@ export default function Home() {
       setShowScorePopup(false);
       setShowInstructionsModal(false);
       setSelectedAnswers({});
+      setWritingEvaluationDetails(null);
       resetListeningState();
     } else {
       handleStartDashboardModule(tab);
@@ -980,6 +989,7 @@ export default function Home() {
     setScore(null);
     setShowScorePopup(false);
     setSelectedAnswers({});
+    setWritingEvaluationDetails(null);
     resetListeningState();
     setShowInstructionsModal(true);
 
@@ -1012,6 +1022,7 @@ export default function Home() {
     setScore(null);
     setShowScorePopup(false);
     setSelectedAnswers({});
+    setWritingEvaluationDetails(null);
     resetListeningState();
     setShowInstructionsModal(true);
     generateTest(firstMod);
@@ -1029,6 +1040,7 @@ export default function Home() {
     setShowScorePopup(false);
     setShowInstructionsModal(false);
     setSelectedAnswers({});
+    setWritingEvaluationDetails(null);
     resetListeningState();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -1039,6 +1051,7 @@ export default function Home() {
     setScore(null);
     setShowScorePopup(false);
     setSelectedAnswers({});
+    setWritingEvaluationDetails(null);
     resetListeningState();
 
     if (moduleType === 'typing') {
@@ -1145,6 +1158,7 @@ export default function Home() {
       setScore(null);
       setShowScorePopup(false);
       setSelectedAnswers({});
+      setWritingEvaluationDetails(null);
       resetListeningState();
 
       if (nextMod === 'typing') {
@@ -1268,17 +1282,246 @@ export default function Home() {
     handleScoreFinalized(finalPct);
   };
 
+  // ============================================================
+  // UPDATED: Enhanced writing evaluation with detailed analysis
+  // ============================================================
   const handleSubmitWriting = () => {
     if (!writingText.trim()) return;
     setIsEvaluatingWriting(true);
+    setWritingEvaluationDetails(null);
 
     setTimeout(() => {
       const wordCount = writingText.trim().split(/\s+/).length;
-      let scoreVal = 85;
-      if (wordCount < 15) scoreVal = 60;
+
+      let grammarScore = 88;
+      let vocabularyScore = 90;
+      let coherenceScore = 85;
+      let taskAchievement = 92;
+
+      const grammarNotes: WritingNote[] = [];
+      const sentences = writingText
+        .split(/[.!?]+/)
+        .filter((s) => s.trim().length > 0);
+      const sentenceCount = sentences.length || 1;
+      const avgSentenceLength = wordCount / sentenceCount;
+
+      // --- Grammar scoring ---
+      if (wordCount < 50) {
+        grammarScore -= 15;
+        grammarNotes.push({
+          type: 'warning',
+          message:
+            'Your response is quite short. Aim for at least 150 words for a full task response.',
+        });
+      } else if (wordCount < 150) {
+        grammarScore -= 5;
+        grammarNotes.push({
+          type: 'info',
+          message: `You wrote ${wordCount} words. Try to expand to 150+ words for a complete response.`,
+        });
+      } else if (wordCount >= 150 && wordCount <= 300) {
+        grammarScore += 5;
+        grammarNotes.push({
+          type: 'success',
+          message: `Excellent word count (${wordCount} words) — well within the ideal range.`,
+        });
+      } else {
+        grammarNotes.push({
+          type: 'info',
+          message: `You wrote ${wordCount} words. Consider being more concise if the task has a limit.`,
+        });
+      }
+
+      if (avgSentenceLength > 30) {
+        grammarScore -= 8;
+        grammarNotes.push({
+          type: 'warning',
+          message:
+            'Some sentences are very long. Consider splitting them for better readability.',
+        });
+      } else if (avgSentenceLength >= 12 && avgSentenceLength <= 22) {
+        grammarScore += 4;
+        grammarNotes.push({
+          type: 'success',
+          message: 'Your sentence lengths are varied and readable.',
+        });
+      }
+
+      if (/[,]{2,}|\.{2,}|!{2,}/.test(writingText)) {
+        grammarScore -= 5;
+        grammarNotes.push({
+          type: 'warning',
+          message:
+            'Avoid repeated punctuation (e.g., "!!" or "...") in formal writing.',
+        });
+      }
+
+      const uncapitalized = sentences.filter((s) =>
+        /^[a-z]/.test(s.trim())
+      ).length;
+      if (uncapitalized > 0) {
+        grammarScore -= uncapitalized * 2;
+        grammarNotes.push({
+          type: 'warning',
+          message: `${uncapitalized} sentence(s) don't start with a capital letter.`,
+        });
+      } else if (sentences.length > 0) {
+        grammarNotes.push({
+          type: 'success',
+          message: 'All sentences begin with proper capitalization.',
+        });
+      }
+
+      // --- Vocabulary scoring ---
+      const words = writingText.toLowerCase().match(/\b[a-z']+\b/g) || [];
+      const uniqueWords = new Set(words);
+      const lexicalDiversity = words.length
+        ? uniqueWords.size / words.length
+        : 0;
+
+      if (lexicalDiversity > 0.6) {
+        vocabularyScore += 6;
+        grammarNotes.push({
+          type: 'success',
+          message:
+            'Great lexical variety — you use a rich range of vocabulary.',
+        });
+      } else if (lexicalDiversity < 0.35) {
+        vocabularyScore -= 10;
+        grammarNotes.push({
+          type: 'warning',
+          message:
+            'Vocabulary is repetitive. Try using more synonyms and varied expressions.',
+        });
+      }
+
+      const advancedWords = words.filter((w) => w.length > 7).length;
+      if (advancedWords / Math.max(words.length, 1) > 0.15) {
+        vocabularyScore += 5;
+      } else if (advancedWords / Math.max(words.length, 1) < 0.05) {
+        vocabularyScore -= 5;
+        grammarNotes.push({
+          type: 'info',
+          message:
+            'Consider incorporating more sophisticated or topic-specific vocabulary.',
+        });
+      }
+
+      // --- Coherence scoring ---
+      const linkingWords = [
+        'however',
+        'moreover',
+        'furthermore',
+        'therefore',
+        'thus',
+        'consequently',
+        'in addition',
+        'on the other hand',
+        'for example',
+        'for instance',
+        'in conclusion',
+        'firstly',
+        'secondly',
+        'finally',
+        'meanwhile',
+        'nevertheless',
+      ];
+      const lowerText = writingText.toLowerCase();
+      const linkingCount = linkingWords.reduce(
+        (acc, word) => acc + (lowerText.split(word).length - 1),
+        0
+      );
+
+      if (linkingCount >= 4) {
+        coherenceScore += 8;
+        grammarNotes.push({
+          type: 'success',
+          message: 'Strong use of linking words to connect your ideas.',
+        });
+      } else if (linkingCount >= 1) {
+        coherenceScore += 3;
+        grammarNotes.push({
+          type: 'info',
+          message:
+            'Some cohesive devices used. Add more transitions to improve flow.',
+        });
+      } else {
+        coherenceScore -= 10;
+        grammarNotes.push({
+          type: 'warning',
+          message:
+            'No linking words detected. Use transitions like "however" or "therefore".',
+        });
+      }
+
+      const paragraphs = writingText
+        .split(/\n\s*\n/)
+        .filter((p) => p.trim().length > 0);
+      if (paragraphs.length >= 3) {
+        coherenceScore += 5;
+        grammarNotes.push({
+          type: 'success',
+          message: `Well-structured with ${paragraphs.length} paragraphs.`,
+        });
+      } else if (paragraphs.length === 1 && wordCount > 120) {
+        coherenceScore -= 8;
+        grammarNotes.push({
+          type: 'warning',
+          message:
+            'Consider breaking your text into multiple paragraphs for clarity.',
+        });
+      }
+
+      // --- Task achievement scoring ---
+      if (wordCount < 50) {
+        taskAchievement -= 25;
+      } else if (wordCount < 100) {
+        taskAchievement -= 12;
+      } else if (wordCount >= 150) {
+        taskAchievement += 5;
+      }
+
+      if (linkingCount >= 3 && paragraphs.length >= 2) {
+        taskAchievement += 3;
+      }
+
+      const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
+      grammarScore = clamp(grammarScore);
+      vocabularyScore = clamp(vocabularyScore);
+      coherenceScore = clamp(coherenceScore);
+      taskAchievement = clamp(taskAchievement);
+
+      const overallScore = clamp(
+        (grammarScore + vocabularyScore + coherenceScore + taskAchievement) / 4
+      );
+
+      let feedbackSummary = '';
+      if (overallScore >= 90) {
+        feedbackSummary =
+          'Outstanding work! Your writing demonstrates strong grammar, rich vocabulary, and clear organization.';
+      } else if (overallScore >= 75) {
+        feedbackSummary =
+          'Good job! Your writing is clear and well-structured, with a few areas that could be polished further.';
+      } else if (overallScore >= 60) {
+        feedbackSummary =
+          'Decent effort. Focus on expanding your vocabulary, varying sentence structure, and improving coherence.';
+      } else {
+        feedbackSummary =
+          'Keep practicing! Work on length, grammar, and organizing your ideas into clear paragraphs with linking words.';
+      }
+
+      setWritingEvaluationDetails({
+        overallScore,
+        grammarScore,
+        vocabularyScore,
+        coherenceScore,
+        taskAchievementScore: taskAchievement,
+        grammarNotes,
+        feedbackSummary,
+      });
 
       setIsEvaluatingWriting(false);
-      handleScoreFinalized(scoreVal);
+      handleScoreFinalized(overallScore);
     }, 800);
   };
 
@@ -1333,6 +1576,7 @@ export default function Home() {
     setScore(null);
     setShowScorePopup(false);
     setShowInstructionsModal(false);
+    setWritingEvaluationDetails(null);
     setTypingPassage(DEFAULT_TYPING_PASSAGES[0]);
     setUserInput('');
     setWpm(0);
@@ -1465,6 +1709,43 @@ export default function Home() {
       divider: 'border-blue-950',
     }
   }[theme];
+
+  // Helper functions for writing evaluation UI colors
+  const getWritingScoreColor = (s: number) => {
+    if (s >= 85) return 'text-emerald-500';
+    if (s >= 70) return 'text-amber-500';
+    return 'text-rose-500';
+  };
+
+  const getWritingBarColor = (s: number) => {
+    if (s >= 85) return 'bg-emerald-500';
+    if (s >= 70) return 'bg-amber-500';
+    return 'bg-rose-500';
+  };
+
+  const getWritingNoteStyles = (type: WritingNoteType) => {
+    switch (type) {
+      case 'success':
+        return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600';
+      case 'warning':
+        return 'bg-amber-500/10 border-amber-500/30 text-amber-600';
+      case 'info':
+      default:
+        return 'bg-indigo-500/10 border-indigo-500/30 text-indigo-500';
+    }
+  };
+
+  const getWritingNoteIcon = (type: WritingNoteType) => {
+    switch (type) {
+      case 'success':
+        return '✓';
+      case 'warning':
+        return '⚠';
+      case 'info':
+      default:
+        return 'ℹ';
+    }
+  };
 
   if (!isLoggedIn) {
     return (
@@ -1801,7 +2082,7 @@ export default function Home() {
           <div className="space-y-1">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>System Navigation</span>
             <nav className="space-y-1 pt-1">
-<button
+            <button
                 onClick={() => handleSelectSidebarTab('overview')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer text-left ${
                   activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-50'
@@ -1977,8 +2258,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* NEW: shows the real fetch error (e.g. a Supabase/RLS permissions issue)
-                  instead of letting it masquerade as "no attempts yet". */}
               {statsError && (
                 <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/5 flex items-start gap-3">
                   <Icon name="alert-circle" className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
@@ -2246,6 +2525,11 @@ export default function Home() {
                     placeholder="Type your professional response here..."
                     className="w-full p-4 border border-slate-500/30 bg-transparent rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={themeClasses.textMuted}>
+                      {writingText.trim() ? writingText.trim().split(/\s+/).length : 0} words
+                    </span>
+                  </div>
                   <button
                     onClick={handleSubmitWriting}
                     disabled={isEvaluatingWriting || !writingText.trim()}
@@ -2253,9 +2537,85 @@ export default function Home() {
                   >
                     {isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}
                   </button>
-                  {isSubmitted && !showScorePopup && (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
-                      Writing Submitted! Score: {score}% {appMode === 'full_exam' && '• Advancing to next exam module...'}
+
+                  {isEvaluatingWriting && (
+                    <div className="p-5 text-center space-y-3 bg-slate-500/5 rounded-2xl border border-slate-500/10">
+                      <svg className="animate-spin h-6 w-6 text-indigo-500 mx-auto" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="text-xs font-bold uppercase tracking-wider block">Analyzing your writing...</span>
+                    </div>
+                  )}
+
+                  {/* ============================================================
+                      NEW: Detailed Writing Evaluation Results Panel
+                      ============================================================ */}
+                  {writingEvaluationDetails && !isEvaluatingWriting && (
+                    <div className={`mt-4 pt-6 border-t space-y-6 animate-fadeIn ${themeClasses.divider}`}>
+                      {/* Overall Score */}
+                      <div className="text-center border-b border-slate-500/10 pb-6">
+                        <p className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                          Overall Writing Score
+                        </p>
+                        <p className={`text-5xl font-black mt-2 ${getWritingScoreColor(writingEvaluationDetails.overallScore)}`}>
+                          {writingEvaluationDetails.overallScore}
+                          <span className="text-2xl text-slate-400">/100</span>
+                        </p>
+                        <p className={`mt-3 text-sm max-w-2xl mx-auto leading-relaxed ${themeClasses.textMuted}`}>
+                          {writingEvaluationDetails.feedbackSummary}
+                        </p>
+                      </div>
+
+                      {/* Sub-scores */}
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-bold uppercase tracking-wider">Score Breakdown</h3>
+                        {[
+                          { label: 'Grammar', score: writingEvaluationDetails.grammarScore },
+                          { label: 'Vocabulary', score: writingEvaluationDetails.vocabularyScore },
+                          { label: 'Coherence', score: writingEvaluationDetails.coherenceScore },
+                          { label: 'Task Achievement', score: writingEvaluationDetails.taskAchievementScore },
+                        ].map((cat) => (
+                          <div key={cat.label}>
+                            <div className="flex justify-between text-xs font-bold mb-1">
+                              <span>{cat.label}</span>
+                              <span className={getWritingScoreColor(cat.score)}>
+                                {cat.score}/100
+                              </span>
+                            </div>
+                            <div className="w-full h-2 bg-slate-500/20 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full ${getWritingBarColor(cat.score)} transition-all duration-700`}
+                                style={{ width: `${cat.score}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Feedback Notes */}
+                      <div>
+                        <h3 className="text-sm font-bold uppercase tracking-wider mb-3">Detailed Feedback</h3>
+                        <div className="space-y-2">
+                          {writingEvaluationDetails.grammarNotes.map((note, idx) => (
+                            <div
+                              key={idx}
+                              className={`flex items-start gap-3 border rounded-xl p-3 text-xs font-medium ${getWritingNoteStyles(note.type)}`}
+                            >
+                              <span className="font-bold shrink-0">
+                                {getWritingNoteIcon(note.type)}
+                              </span>
+                              <span>{note.message}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {isSubmitted && !showScorePopup && appMode === 'full_exam' && (
+                        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
+                          Writing Submitted! Advancing to next exam module...
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
