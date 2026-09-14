@@ -594,18 +594,38 @@ export default function Home() {
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
 
+  // Anti-cheating / exam integrity state
+  const [antiCheatViolations, setAntiCheatViolations] = useState(0);
+  const [showIntegrityWarning, setShowIntegrityWarning] = useState(false);
+  const [integrityWarning, setIntegrityWarning] = useState('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+
+  const isTimedEvaluationActive =
+    (appMode === 'full_exam' && examStepIndex >= 0 && examStepIndex < 5) ||
+    (selectedModule === 'listening' && isListeningTimerActive && !isSubmitted) ||
+    (selectedModule === 'typing' && !!startTime && !isTypingCompleted);
+
+  const registerIntegrityViolation = (message: string) => {
+    setAntiCheatViolations((prev) => prev + 1);
+    setIntegrityWarning(message);
+    setShowIntegrityWarning(true);
+  };
+
+  const requestExamFullscreen = async () => {
+    try {
+      if (typeof document !== 'undefined' && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (err) {
+      console.warn('Fullscreen request was denied:', err);
+      registerIntegrityViolation('Fullscreen mode is required for the official timed assessment.');
+    }
+  };
+
   const handleSubmitRating = async (e: React.FormEvent) => {
   e.preventDefault();
-  if (!userId) {
-    alert('Please sign in before submitting a rating.');
-    return;
-  }
-
-  const normalizedRating = Math.round(Number(userRating) * 2) / 2;
-  if (!Number.isFinite(normalizedRating) || normalizedRating < 0.5 || normalizedRating > 5) {
-    alert('Please select a rating between 0.5 and 5 stars.');
-    return;
-  }
+  if (!userId) return;
 
   setIsSubmittingRating(true);
   try {
@@ -614,7 +634,7 @@ export default function Home() {
       .insert([
         {
           user_id: userId,
-          rating: normalizedRating,
+          rating: userRating,
           feedback: userFeedback.trim(),
         },
       ]);
@@ -670,32 +690,81 @@ export default function Home() {
     };
   }, [isMobileMenuOpen]);
 
+  // Anti-cheating controls during official timed evaluations.
   useEffect(() => {
-    if (!userId) return;
+    if (!isTimedEvaluationActive) {
+      setShowIntegrityWarning(false);
+      setIntegrityWarning('');
+      setAntiCheatViolations(0);
+      if (typeof document !== 'undefined' && document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      return;
+    }
 
-    const fetchUserStats = async () => {
-      setLoadingStats(true);
-
-      const { data: scoresData, error: scoresError } = await supabase
-        .from('module_scores')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (scoresError) console.error('Error fetching scores:', scoresError.message);
-      else setUserScores(scoresData || []);
-
-      const { data: certsData, error: certsError } = await supabase
-        .from('certificates')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (certsError) console.error('Error fetching certificates:', certsError.message);
-      else setUserCertificates(certsData || []);
-
-      setLoadingStats(false);
+    const onVisibilityChange = () => {
+      if (document.hidden) registerIntegrityViolation('Tab switching or leaving the assessment window is not allowed during the official exam.');
+    };
+    const onFullscreenChange = () => {
+      const active = !!document.fullscreenElement;
+      setIsFullscreen(active);
+      if (!active) registerIntegrityViolation('Fullscreen mode was exited. Return to fullscreen to continue the timed assessment.');
+    };
+    const blockClipboard = (e: ClipboardEvent) => {
+      e.preventDefault();
+      registerIntegrityViolation('Copy, cut, and paste are disabled during the official assessment.');
+    };
+    const blockContextMenu = (e: MouseEvent) => e.preventDefault();
+    const blockShortcuts = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x', 'a'].includes(key)) {
+        e.preventDefault();
+        registerIntegrityViolation('Clipboard and select-all shortcuts are disabled during the official assessment.');
+      }
+      if (key === 'f11') {
+        e.preventDefault();
+        registerIntegrityViolation('Please remain in fullscreen mode during the official assessment.');
+      }
     };
 
-    fetchUserStats();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('copy', blockClipboard);
+    document.addEventListener('cut', blockClipboard);
+    document.addEventListener('paste', blockClipboard);
+    document.addEventListener('contextmenu', blockContextMenu);
+    document.addEventListener('keydown', blockShortcuts, true);
+
+    requestExamFullscreen();
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+      document.removeEventListener('copy', blockClipboard);
+      document.removeEventListener('cut', blockClipboard);
+      document.removeEventListener('paste', blockClipboard);
+      document.removeEventListener('contextmenu', blockContextMenu);
+      document.removeEventListener('keydown', blockShortcuts, true);
+    };
+  }, [isTimedEvaluationActive]);
+
+  const refreshUserStats = async () => {
+    if (!userId) return;
+    setLoadingStats(true);
+    const { data: scoresData, error: scoresError } = await supabase
+      .from('module_scores').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    if (scoresError) console.error('Error fetching scores:', scoresError.message);
+    else setUserScores(scoresData || []);
+
+    const { data: certsData, error: certsError } = await supabase
+      .from('certificates').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+    if (certsError) console.error('Error fetching certificates:', certsError.message);
+    else setUserCertificates(certsData || []);
+    setLoadingStats(false);
+  };
+
+  useEffect(() => {
+    refreshUserStats();
   }, [userId]);
 
   useEffect(() => {
@@ -902,6 +971,9 @@ export default function Home() {
   };
 
   const handleStartFullExam = () => {
+    setAntiCheatViolations(0);
+    setShowIntegrityWarning(false);
+    setIntegrityWarning('');
     setAppMode('full_exam');
     setExamStepIndex(0);
     const firstMod = examSequence[0];
@@ -1063,6 +1135,7 @@ export default function Home() {
       setExamStepIndex(5);
       try {
         const finalAvg = Math.round(Object.values(updatedScores).reduce((a, b) => a + b, 0) / 5);
+        if (finalAvg >= 80) {
         const res = await fetch('/api/generate/save-exam', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1075,6 +1148,7 @@ export default function Home() {
         const data = await res.json();
         if (data.success && data.certificateCode) {
           setGeneratedCertificateCode(data.certificateCode);
+        }
         }
       } catch (err) {
         console.error('Failed to save exam session via API:', err);
@@ -1099,7 +1173,7 @@ export default function Home() {
     setIsSubmitted(true);
     setShowScorePopup(true);
 
-    if (userId && selectedModule && appMode === 'dashboard') {
+    if (userId && selectedModule) {
       const { data, error } = await supabase
         .from('module_scores')
         .insert([
@@ -1115,8 +1189,9 @@ export default function Home() {
       if (error) {
         console.error('Error saving module score:', error.message);
       } else if (data && data.length > 0) {
-        setUserScores(prev => [data[0], ...prev]);
+        setUserScores(prev => [data[0], ...prev.filter((item) => item.id !== data[0].id)]);
       }
+      await refreshUserStats();
     }
 
     if (finalPct > 70) {
@@ -1213,6 +1288,29 @@ export default function Home() {
   const overallExamAverage = Math.round(
     Object.values(examScores).reduce((a, b) => a + b, 0) / 5
   );
+  const certificateEligible = overallExamAverage >= 80;
+
+  const handleRetakeAssessment = () => {
+    setExamScores({ listening: 0, reading: 0, writing: 0, speaking: 0, typing: 0 });
+    setAntiCheatViolations(0);
+    setShowIntegrityWarning(false);
+    setGeneratedCertificateCode('');
+    setAppMode('dashboard');
+    setExamStepIndex(0);
+    setSelectedModule(null);
+    setActiveTab('overview');
+    setSelectedAnswers({});
+    setTestData(null);
+    setIsSubmitted(false);
+    setScore(null);
+    setShowScorePopup(false);
+    setShowInstructionsModal(false);
+    setTypingPassage(DEFAULT_TYPING_PASSAGES[0]);
+    setUserInput('');
+    setWpm(0);
+    setAccuracy(100);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleDownloadPDF = async () => {
     setIsDownloadingPdf(true);
@@ -1647,14 +1745,6 @@ export default function Home() {
               </button>
 
               <button
-                onClick={() => setShowRatingModal(true)}
-                className="w-full mt-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2 justify-center"
-              >
-                <Icon name="star" className="w-4 h-4" />
-                <span>Rate Us</span>
-              </button>
-
-              <button
                 onClick={() => {
                   setIsLoggedIn(false);
                   setIsMobileMenuOpen(false);
@@ -1664,6 +1754,14 @@ export default function Home() {
                 className="w-full mt-2 sm:hidden px-4 py-3 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition cursor-pointer text-sm font-bold"
               >
                 Sign Out
+              </button>
+
+              <button
+                onClick={() => setShowRatingModal(true)}
+                className="w-full mt-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2 justify-center"
+              >
+                <Icon name="star" className="w-4 h-4" />
+                <span>Rate Us</span>
               </button>
             </div>
           </aside>
@@ -1745,7 +1843,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setShowRatingModal(true)}
-              className="w-full mb-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-xs sm:text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center justify-center gap-2"
+              className="w-full mt-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 rounded-xl text-xs sm:text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center justify-center gap-2"
             >
               <Icon name="star" className="w-4 h-4" />
               <span>Rate Us</span>
@@ -1754,9 +1852,16 @@ export default function Home() {
         </aside>
 
         <main className="flex-1 w-full max-w-[1400px] mx-auto px-3 sm:px-8 pt-20 pb-4 sm:pt-24 sm:pb-6">
+          {isTimedEvaluationActive && (antiCheatViolations > 0 || !isFullscreen) && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs">
+              <div className="flex items-center gap-2 font-semibold text-amber-600"><Icon name="alert-circle" className="w-4 h-4" /><span>Assessment Integrity: {antiCheatViolations} event{antiCheatViolations === 1 ? '' : 's'} detected{!isFullscreen ? ' • Fullscreen required' : ''}</span></div>
+              {!isFullscreen && <button type="button" onClick={requestExamFullscreen} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold">Enter Fullscreen</button>}
+            </div>
+          )}
           {appMode === 'dashboard' && !selectedModule && activeTab === 'overview' && (
             <div className="space-y-8 sm:space-y-10 animate-fadeIn">
-              <div className="p-6 sm:p-10 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl space-y-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-800">
+              <div className="p-6 sm:p-10 lg:p-12 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-[2rem] space-y-8 shadow-xl relative overflow-hidden flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 border border-slate-800">
+                <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,.35),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,.18),transparent_30%)]" />
                 <div className="space-y-3 max-w-2xl relative z-10 text-center md:text-left">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
                     <Icon name="sparkles" className="w-3.5 h-3.5" /> Cally Assessment & Certification Portal
@@ -1765,6 +1870,12 @@ export default function Home() {
                   <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
                     Select a module from the left sidebar to practice your skills, or check your <strong>Performance Logs</strong> and official <strong>Full Exam</strong> pathway.
                   </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-2">
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3"><span className="text-[10px] uppercase tracking-wider text-slate-400">Attempts</span><div className="text-xl font-black">{userScores.length}</div></div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3"><span className="text-[10px] uppercase tracking-wider text-slate-400">Average</span><div className="text-xl font-black">{userScores.length ? Math.round(userScores.reduce((a,c)=>a+(c.score||0),0)/userScores.length) : 0}%</div></div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3"><span className="text-[10px] uppercase tracking-wider text-slate-400">Best</span><div className="text-xl font-black">{userScores.length ? Math.max(...userScores.map(c=>c.score||0)) : 0}%</div></div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3"><span className="text-[10px] uppercase tracking-wider text-slate-400">Certificate</span><div className="text-sm font-black mt-1">{userCertificates.length ? 'Earned' : 'Not yet earned'}</div></div>
+                  </div>
                 </div>
                 <div className="shrink-0 relative z-10 w-full md:w-auto">
                   <button
@@ -1912,6 +2023,7 @@ export default function Home() {
           )}
 
           {appMode === 'full_exam' && examStepIndex === 5 && (
+            certificateEligible ? (
             <div className="space-y-6 sm:space-y-8 max-w-[1300px] mx-auto text-center animate-fadeIn">
               <div className="p-3 sm:p-6 bg-slate-100 rounded-3xl border border-slate-200 shadow-xl flex justify-center items-center overflow-hidden w-full">
                 <div className="w-full overflow-hidden flex justify-center py-2 sm:py-0">
@@ -1957,7 +2069,7 @@ export default function Home() {
                           <div>Listening & Dictation ({examScores.listening}%)</div>
                           <div>Speaking Simulation ({examScores.speaking}%)</div>
                           <div>Reading & Grammar ({examScores.reading}%)</div>
-                          <div>Chat & Typing Accuracy ({examScores.typing}%)</div>
+                          <div>Chat & Typing Accuracy ({examScores.typing}%) &bull; Speed: {wpm} WPM</div>
                           <div>Business Writing Composition ({examScores.writing}%)</div>
                           <div style={{ color: '#b45309', fontWeight: '700' }}>Final Cumulative Rating: ({overallExamAverage}%)</div>
                         </div>
@@ -2010,6 +2122,18 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          ) : (
+            <div className="max-w-2xl mx-auto text-center animate-fadeIn">
+              <div className={`p-8 sm:p-12 rounded-3xl border shadow-xl ${themeClasses.card}`}>
+                <div className="mx-auto w-20 h-20 rounded-3xl bg-rose-500/10 text-rose-500 flex items-center justify-center mb-5"><Icon name="alert-circle" className="w-10 h-10" /></div>
+                <h2 className="text-2xl sm:text-3xl font-black">Certificate Not Available</h2>
+                <p className={`mt-3 text-sm leading-relaxed ${themeClasses.textMuted}`}>Your final cumulative rating is <strong className="text-rose-500">{overallExamAverage}%</strong>. You do not qualify for a certificate of exceptional proficiency across all official Cally assessment modules.
+                </p>
+                <p className={`mt-2 text-xs ${themeClasses.textMuted}`}>A minimum final cumulative rating of 80% is required to receive the certificate.</p>
+                <button onClick={handleRetakeAssessment} className="mt-7 w-full sm:w-auto px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-md transition">Retake Assessment</button>
+              </div>
+            </div>
+          )
           )}
 
           {selectedModule && (appMode === 'dashboard' || (appMode === 'full_exam' && examStepIndex < 5)) && (
@@ -2206,6 +2330,19 @@ export default function Home() {
           )}
         </main>
       </div>
+
+      {isTimedEvaluationActive && showIntegrityWarning && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+          <div className={`w-full max-w-md rounded-3xl border p-6 sm:p-8 shadow-2xl ${themeClasses.card}`}>
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-4"><Icon name="alert-circle" className="w-7 h-7" /></div>
+            <h3 className="text-lg font-black">Assessment Integrity Warning</h3>
+            <p className={`mt-2 text-sm leading-relaxed ${themeClasses.textMuted}`}>{integrityWarning}</p>
+            <div className="mt-4 flex items-center justify-between text-xs"><span className={themeClasses.textMuted}>Integrity events detected</span><strong className="text-amber-500">{antiCheatViolations}</strong></div>
+            {!isFullscreen && <p className="mt-3 text-xs font-bold text-rose-500">Fullscreen is required to continue.</p>}
+            <button onClick={() => { if (document.fullscreenElement || !isTimedEvaluationActive) { setShowIntegrityWarning(false); } else { requestExamFullscreen(); } }} className="mt-6 w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm">Return to Assessment</button>
+          </div>
+        </div>
+      )}
 
       {showRatingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
