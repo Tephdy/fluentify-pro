@@ -542,6 +542,7 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const [theme, setTheme] = useState<'light' | 'dark' | 'midnight'>('light');
 
@@ -1929,8 +1930,42 @@ export default function Home() {
 
   if (!isLoggedIn) {
     return (
-      <div className="h-screen w-screen overflow-hidden grid grid-cols-1 lg:grid-cols-12 bg-slate-50/50 text-slate-800">
-        {/* Left marketing panel — scrolls internally if too tall */}
+      <>
+      {/* Mobile single-column landing page */}
+      <div className="lg:hidden min-h-screen flex flex-col bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+        <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-28 -left-24 w-80 h-80 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
+          <div className="relative w-20 h-20 mb-6 drop-shadow-2xl">
+            <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
+          </div>
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-500/20 text-indigo-200 rounded-full text-xs font-bold border border-indigo-400/30">
+            <Icon name="sparkles" className="w-3.5 h-3.5" /> Official BPO Readiness & Certification Portal
+          </span>
+          <h1 className="mt-5 text-3xl font-black tracking-tight text-white leading-tight">
+            Master Your Skills.<br />
+            <span className="text-indigo-300">Validate Your Career.</span>
+          </h1>
+          <p className="mt-4 max-w-sm text-sm text-slate-300 leading-relaxed">
+            Practice professional BPO simulations, track your progress, and earn a verifiable competency certificate.
+          </p>
+          <div className="mt-8 grid grid-cols-2 gap-3 w-full max-w-sm">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left shadow-lg backdrop-blur-sm"><Icon name="headphones" className="w-5 h-5 text-indigo-300" /><p className="mt-2 text-xs font-bold text-white">Listening</p></div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left shadow-lg backdrop-blur-sm"><Icon name="book" className="w-5 h-5 text-amber-300" /><p className="mt-2 text-xs font-bold text-white">Reading</p></div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left shadow-lg backdrop-blur-sm"><Icon name="mic" className="w-5 h-5 text-emerald-300" /><p className="mt-2 text-xs font-bold text-white">Speaking AI</p></div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left shadow-lg backdrop-blur-sm"><Icon name="keyboard" className="w-5 h-5 text-sky-300" /><p className="mt-2 text-xs font-bold text-white">Typing</p></div>
+          </div>
+          <button type="button" onClick={() => { setAuthError(''); setShowAuthModal(true); }} className="mt-8 w-full max-w-sm py-4 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-base shadow-xl border border-indigo-400/30 transition flex items-center justify-center gap-2">
+            <Icon name="academic" className="w-5 h-5" /> Sign In / Sign Up
+          </button>
+          <p className="mt-4 text-[11px] text-slate-400">Access your dashboard and begin your assessment journey.</p>
+        </div>
+        <div className="relative z-10 px-6 pb-6 text-center text-[11px] text-slate-400">&copy; {new Date().getFullYear()} TephdyTech &bull; All rights reserved.</div>
+      </div>
+
+      {/* Desktop login page */}
+      <div className="hidden lg:grid h-screen w-screen overflow-hidden grid-cols-1 lg:grid-cols-12 bg-slate-50/50 text-slate-800">
         <div className="lg:col-span-6 h-full overflow-y-auto bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-8 lg:p-16 flex flex-col justify-between relative border-r border-slate-800">
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
           
@@ -1988,7 +2023,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right auth panel — scrolls internally if too tall */}
         <div className="lg:col-span-6 h-full overflow-y-auto flex items-center justify-center p-6 sm:p-12">
           <div className="w-full max-w-md rounded-3xl p-8 sm:p-10 shadow-xl border bg-white border-slate-200 text-slate-800 space-y-6">
             <div className="space-y-2 text-center">
@@ -2090,13 +2124,35 @@ export default function Home() {
           </div>
         </div>
       </div>
+               <div className={`fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity ${showAuthModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} aria-hidden={!showAuthModal}>
+        <button type="button" aria-label="Close login dialog" onClick={() => setShowAuthModal(false)} className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" />
+        <div className="relative w-full sm:max-w-md max-h-[92vh] overflow-y-auto bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8">
+          <div className="flex items-center justify-between mb-5">
+            <div><span className="text-[10px] font-bold uppercase tracking-widest text-indigo-500">Account Access</span><h2 className="text-xl font-black text-slate-900">{isSignUpMode ? 'Create Your Account' : 'Welcome Back'}</h2></div>
+            <button type="button" onClick={() => setShowAuthModal(false)} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center"><Icon name="x" className="w-5 h-5" /></button>
+          </div>
+          <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl text-xs font-bold mb-5">
+            <button type="button" onClick={() => { setIsSignUpMode(false); setAuthError(''); }} className={`py-2.5 rounded-xl transition ${!isSignUpMode ? 'bg-indigo-600 text-white shadow' : 'text-slate-500'}`}>Sign In</button>
+            <button type="button" onClick={() => { setIsSignUpMode(true); setAuthError(''); }} className={`py-2.5 rounded-xl transition ${isSignUpMode ? 'bg-indigo-600 text-white shadow' : 'text-slate-500'}`}>Create Account</button>
+          </div>
+          {authError && <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-600 text-center">{authError}</div>}
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
+            {isSignUpMode && <div><label className="text-xs font-bold uppercase tracking-wider text-slate-400">Full Name</label><input type="text" value={userName} onChange={(e)=>setUserName(e.target.value)} placeholder="Enter your full name" className="mt-1.5 w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" /></div>}
+            <div><label className="text-xs font-bold uppercase tracking-wider text-slate-400">Email Address</label><input type="email" required value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="candidate@example.com" className="mt-1.5 w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" /></div>
+            <div><label className="text-xs font-bold uppercase tracking-wider text-slate-400">Password</label><input type="password" required value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="••••••••" className="mt-1.5 w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" /></div>
+            <button type="submit" className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md">{isSignUpMode ? 'Create Account & Start' : 'Sign In to Dashboard'}</button>
+          </form>
+          <div className="flex items-center my-4"><div className="flex-1 border-t border-slate-200"/><span className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Or</span><div className="flex-1 border-t border-slate-200"/></div>
+          <button onClick={handleGoogleLogin} className="w-full py-3.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-sm hover:bg-slate-50 flex items-center justify-center gap-3">Continue with Google</button>
+        </div>
+      </div>
+    </>
     );
   }
 
   return (
     <div className={`h-screen w-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 ${themeClasses.bg}`}>
-      {/* STICKY HEADER - fixed height, never scrolls */}
-      <header className={`shrink-0 z-30 border-b px-4 sm:px-8 ${themeClasses.header}`}>
+      <header className={`fixed top-0 left-0 right-0 shrink-0 z-50 border-b px-4 sm:px-8 ${themeClasses.header}`}>
         <div className="w-full flex items-center justify-between h-16">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" onClick={handleBackToDashboard}>
@@ -2137,9 +2193,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MAIN BODY: sidebar + main content, fills remaining height */}
-      <div className="flex-1 flex flex-row w-full min-h-0">
-        {/* DESKTOP SIDEBAR - fixed width, own scrollbar */}
+      <div className="flex-1 flex flex-row w-full min-h-0 pt-16">
         <aside className={`hidden md:flex md:flex-col md:w-72 shrink-0 border-r p-4 sm:p-6 space-y-6 overflow-y-auto ${themeClasses.sidebar}`}>
           <div className="space-y-1">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>System Navigation</span>
@@ -2244,7 +2298,6 @@ export default function Home() {
           </div>
         </aside>
 
-        {/* MAIN CONTENT - only this scrolls */}
         <main className="flex-1 min-w-0 h-full overflow-y-auto">
           <div className="w-full max-w-[1400px] mx-auto px-3 sm:px-8 py-5 sm:py-6">
           {isTimedEvaluationActive && (antiCheatViolations > 0 || !isFullscreen) && (
@@ -3231,7 +3284,6 @@ export default function Home() {
         </main>
       </div>
 
-      {/* MOBILE DRAWER (slides in from left) */}
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <button
@@ -3257,6 +3309,7 @@ export default function Home() {
               </button>
             </div>
 
+            {/* WORKSPACE NAV — now includes Support Tickets */}
             <div className="space-y-1">
               <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>Workspace</span>
               <nav className="space-y-1 pt-1">
@@ -3290,6 +3343,7 @@ export default function Home() {
               </nav>
             </div>
 
+            {/* PRACTICE MODULES — Take Full Exam button moved here, right under Chat & Typing Speed Test */}
             <div className="space-y-1 mt-6">
               <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>Practice Modules</span>
               <nav className="space-y-1 pt-1">
@@ -3309,6 +3363,18 @@ export default function Home() {
                   </button>
                 ))}
               </nav>
+
+              {/* Take Full Exam — right below Chat & Typing Speed Test */}
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  handleStartFullExam();
+                }}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2 mt-2"
+              >
+                <Icon name="academic" className="w-5 h-5" />
+                <span>Take Full Exam</span>
+              </button>
             </div>
 
             <div className={`mt-auto pt-6 border-t ${themeClasses.divider}`}>
@@ -3334,17 +3400,6 @@ export default function Home() {
                   <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center ${themeClasses.textMuted}`}>⌄</span>
                 </div>
               </div>
-
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  handleStartFullExam();
-                }}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Icon name="academic" className="w-5 h-5" />
-                <span>Take Full Exam</span>
-              </button>
 
               <button
                 onClick={() => {
