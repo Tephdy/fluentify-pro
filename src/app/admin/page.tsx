@@ -225,7 +225,7 @@ export default function AdminDashboardPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // 1. READ: Load Users and Questions from Supabase
+  // 1. READ: Load Users and Questions from Supabase with Debugging
   const loadAdminData = async () => {
     try {
       setErrorMsg('')
@@ -240,21 +240,32 @@ export default function AdminDashboardPage() {
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (usersError) throw usersError
+      if (usersError) {
+        console.error('Supabase users fetch error:', usersError)
+        throw usersError
+      }
       if (usersData) setUsers(usersData)
 
-      // Fetch Questions
+      // Fetch Questions with console debugging
       const { data: questionsData, error: questionsError } = await supabase
         .from('questions')
         .select('*')
         .order('id', { ascending: false })
 
-      if (questionsError) throw questionsError
-      if (questionsData) setQuestions(questionsData)
+      console.log('DEBUG - Questions fetch response:', { questionsData, questionsError })
+
+      if (questionsError) {
+        console.error('Supabase questions fetch error:', questionsError)
+        throw questionsError
+      }
+      
+      if (questionsData) {
+        setQuestions(questionsData)
+      }
 
     } catch (err: any) {
       console.error('Error loading admin dashboard data:', err)
-      setErrorMsg('Failed to fetch registry records: ' + (err.message || 'Unknown error'))
+      setErrorMsg('Failed to fetch data: ' + (err.message || 'Unknown error (Check RLS Policies or Table Name)'))
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -845,7 +856,9 @@ export default function AdminDashboardPage() {
                 <tbody className="divide-y divide-violet-500/10">
                   {filteredQuestions.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="p-12 text-center text-slate-500">No questions found matching criteria. Click "Add New Question" to begin.</td>
+                      <td colSpan={4} className="p-12 text-center text-slate-500">
+                        No questions found matching criteria (or RLS policies blocking read access). Click "Add New Question" to test insert/read.
+                      </td>
                     </tr>
                   ) : (
                     filteredQuestions.map((q) => (
