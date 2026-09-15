@@ -10,64 +10,70 @@ import {
   MOTIVATIONAL_QUOTES 
 } from '../data/assessmentData';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import confetti from 'canvas-confetti';
 import { supabase } from '@/lib/supabase';
 
+// ============================================
+// ENHANCED ICON COMPONENT WITH GLOW EFFECTS
+// ============================================
 interface IconProps {
   name: string;
   className?: string;
+  glow?: boolean;
 }
 
-function Icon({ name, className = "w-5 h-5" }: IconProps) {
+function Icon({ name, className = "w-5 h-5", glow = false }: IconProps) {
+  const glowClass = glow ? 'drop-shadow-[0_0_8px_currentColor]' : '';
+  
   switch (name) {
     case 'audio':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
         </svg>
       );
     case 'mic':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
         </svg>
       );
     case 'stop':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <rect x="6" y="6" width="12" height="12" rx="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case 'headphones':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 18v-6a9 9 0 0118 0v6M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z" />
         </svg>
       );
     case 'book':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
         </svg>
       );
     case 'pencil':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
         </svg>
       );
     case 'keyboard':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <rect x="2" y="6" width="20" height="12" rx="2" strokeLinecap="round" strokeLinejoin="round" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12" />
         </svg>
       );
     case 'academic':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 14v7" />
@@ -75,108 +81,187 @@ function Icon({ name, className = "w-5 h-5" }: IconProps) {
       );
     case 'chart':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       );
     case 'trending':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
         </svg>
       );
     case 'trending-down':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
         </svg>
       );
     case 'scale':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M15 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-9-3h6" />
         </svg>
       );
     case 'sparkles':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
         </svg>
       );
     case 'refresh':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
       );
     case 'clock':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
         </svg>
       );
     case 'trophy':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 3h14a2 2 0 012 2v2a6 6 0 01-6 6H9a6 6 0 01-6-6V5a2 2 0 012-2zm0 10v2a5 5 0 005 5h4a5 5 0 005-5v-2m-9 9v3m-3 0h6" />
         </svg>
       );
     case 'alert-circle':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01" />
         </svg>
       );
     case 'info':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 11v4m0-7h.01" />
         </svg>
       );
     case 'sun':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="4" strokeLinecap="round" strokeLinejoin="round" />
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41m12.02-12.02l-1.41 1.41" />
         </svg>
       );
     case 'moon':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
         </svg>
       );
     case 'download':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
       );
     case 'arrow-left':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
       );
     case 'x':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       );
     case 'menu':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       );
     case 'star':
       return (
-        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.5l2.63 5.33 5.88.85-4.25 4.14 1 5.85L12 16.9l-5.26 2.77 1-5.85L3.5 9.68l5.87-.85L12 3.5z" />
+        </svg>
+      );
+    case 'grid':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+      );
+    case 'settings':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="3" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+        </svg>
+      );
+    case 'zap':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      );
+    case 'shield':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      );
+    case 'activity':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+      );
+    case 'layers':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+        </svg>
+      );
+    case 'cpu':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <rect x="4" y="4" width="16" height="16" rx="2" />
+          <rect x="9" y="9" width="6" height="6" />
+          <path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3" />
+        </svg>
+      );
+    case 'wifi':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01" />
+        </svg>
+      );
+    case 'battery':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <rect x="1" y="6" width="18" height="12" rx="2" />
+          <path d="M23 13v-2" />
+        </svg>
+      );
+    case 'chevron-right':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      );
+    case 'plus':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+      );
+    case 'log-out':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
       );
     default:
@@ -184,6 +269,9 @@ function Icon({ name, className = "w-5 h-5" }: IconProps) {
   }
 }
 
+// ============================================
+// ENHANCED RATING STAR COMPONENT
+// ============================================
 function RatingStar({ star, value, onPreview, onSelect }: {
   star: number;
   value: number;
@@ -205,14 +293,15 @@ function RatingStar({ star, value, onPreview, onSelect }: {
       onPointerMove={(e) => onPreview(getRatingFromPointer(e))}
       onPointerDown={(e) => onSelect(getRatingFromPointer(e))}
       onPointerLeave={() => onPreview(0)}
-      className="relative w-10 h-10 p-1 transition-transform hover:scale-110 cursor-pointer touch-manipulation"
+      className="relative w-12 h-12 p-1 transition-all duration-300 hover:scale-125 cursor-pointer touch-manipulation group"
     >
-      <svg className="absolute inset-1 w-8 h-8 text-slate-300 dark:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-amber-400/0 to-amber-600/0 group-hover:from-amber-400/20 group-hover:to-amber-600/20 transition-all duration-300" />
+      <svg className="absolute inset-1 w-10 h-10 text-slate-300 dark:text-slate-600 transition-colors group-hover:text-amber-400/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
       </svg>
       {fill > 0 && (
-        <div className="absolute inset-1 h-8 overflow-hidden pointer-events-none" style={{ width: `${fill * 100}%` }}>
-          <svg className="w-8 h-8 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
+        <div className="absolute inset-1 h-10 overflow-hidden pointer-events-none transition-all duration-200" style={{ width: `${fill * 100}%` }}>
+          <svg className="w-10 h-10 text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" viewBox="0 0 24 24" fill="currentColor">
             <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
           </svg>
         </div>
@@ -221,6 +310,9 @@ function RatingStar({ star, value, onPreview, onSelect }: {
   );
 }
 
+// ============================================
+// ENHANCED AUDIO PLAYER WITH VISUALIZER
+// ============================================
 interface AudioPlayerProps {
   script: string;
   onPlay?: () => void;
@@ -229,6 +321,28 @@ interface AudioPlayerProps {
 
 function AudioPlayer({ script, onPlay, onEnded }: AudioPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [audioLevels, setAudioLevels] = useState<number[]>(Array(24).fill(0));
+  const animationRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isPlaying) {
+      const animate = () => {
+        setAudioLevels(prev => prev.map(() => Math.random() * 100));
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      animationRef.current = requestAnimationFrame(animate);
+    } else {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      setAudioLevels(Array(24).fill(0));
+    }
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isPlaying]);
 
   const handlePlayAudio = () => {
     const sanitizedScript = script.replace(/Maya/g, 'Cally');
@@ -266,25 +380,57 @@ function AudioPlayer({ script, onPlay, onEnded }: AudioPlayerProps) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
-      <div className="flex items-center gap-2">
-        <span className={`w-2.5 h-2.5 rounded-full ${isPlaying ? 'bg-emerald-400 animate-ping' : 'bg-indigo-400'}`} />
-        <span className="text-xs font-mono text-slate-300">
-          {isPlaying ? 'Playing Audio Stream...' : 'Audio Stream Ready'}
-        </span>
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-3">
+      {/* Audio Visualizer */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-end gap-[2px] h-10">
+          {audioLevels.map((level, i) => (
+            <div
+              key={i}
+              className={`w-1 rounded-full transition-all duration-75 ${
+                isPlaying 
+                  ? 'bg-gradient-to-t from-violet-600 via-violet-400 to-cyan-400' 
+                  : 'bg-slate-600'
+              }`}
+              style={{ 
+                height: isPlaying ? `${Math.max(8, level)}%` : '8%',
+                boxShadow: isPlaying ? '0 0 8px rgba(139, 92, 246, 0.6)' : 'none'
+              }}
+            />
+          ))}
+        </div>
+        <div className="flex flex-col">
+          <span className={`text-xs font-mono font-bold ${isPlaying ? 'text-violet-400' : 'text-slate-400'}`}>
+            {isPlaying ? '● LIVE' : '○ READY'}
+          </span>
+          <span className="text-[10px] text-slate-500 font-mono">
+            {isPlaying ? 'Audio Stream Active' : 'Awaiting Playback'}
+          </span>
+        </div>
       </div>
+
       <button
         onClick={handlePlayAudio}
         disabled={isPlaying}
-        className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition shadow-xs cursor-pointer flex items-center justify-center gap-2"
+        className={`group relative w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 cursor-pointer flex items-center justify-center gap-3 overflow-hidden ${
+          isPlaying 
+            ? 'bg-slate-700 text-slate-400 cursor-not-allowed' 
+            : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-lg shadow-violet-500/30 hover:shadow-violet-500/50'
+        }`}
       >
-        <Icon name="audio" className="w-4 h-4" />
+        {!isPlaying && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+        )}
+        <Icon name="audio" className="w-4 h-4" glow={!isPlaying} />
         <span>{isPlaying ? 'Speaking...' : 'Play Audio'}</span>
       </button>
     </div>
   );
 }
 
+// ============================================
+// ENHANCED SPEAKING RECORDER
+// ============================================
 function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComplete?: (score: number) => void }) {
   const promptList = prompts.length > 0 ? prompts : FALLBACK_SPEAKING_PROMPTS_POOL;
   const [currentPrompt, setCurrentPrompt] = useState(promptList[0]);
@@ -292,6 +438,7 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [waveformData, setWaveformData] = useState<number[]>(Array(32).fill(0));
   
   const [speakingEvaluation, setSpeakingEvaluation] = useState<{
     cefrLevel?: string;
@@ -308,6 +455,9 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
     const nextPrompt = prompts[0] || FALLBACK_SPEAKING_PROMPTS_POOL[0];
@@ -328,9 +478,38 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
   }, [isRecording]);
 
   useEffect(() => {
+    if (isRecording && analyserRef.current) {
+      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+      
+      const animate = () => {
+        if (analyserRef.current) {
+          analyserRef.current.getByteFrequencyData(dataArray);
+          const normalized = Array.from(dataArray.slice(0, 32)).map(v => (v / 255) * 100);
+          setWaveformData(normalized);
+        }
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      animationRef.current = requestAnimationFrame(animate);
+    } else {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      setWaveformData(Array(32).fill(0));
+    }
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isRecording]);
+
+  useEffect(() => {
     return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
       }
     };
   }, []);
@@ -348,6 +527,14 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 64;
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
 
       const supportedMimeTypes = [
         'audio/webm;codecs=opus',
@@ -397,6 +584,10 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
       setIsRecording(false);
       setIsAnalyzing(true);
     }
@@ -439,68 +630,145 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
     }
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="space-y-6">
-      <div className="p-4 sm:p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-2">
-        <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">Speaking Prompt / Task:</span>
-        <p className="text-slate-800 text-sm sm:text-base leading-relaxed font-medium">{currentPrompt}</p>
+      <div className="relative overflow-hidden p-5 sm:p-6 bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-cyan-500/10 border border-emerald-500/20 rounded-2xl space-y-3">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+            <Icon name="mic" className="w-4 h-4 text-emerald-400" glow />
+          </div>
+          <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Speaking Task</span>
+        </div>
+        <p className="text-slate-100 text-sm sm:text-base leading-relaxed font-medium relative z-10">{currentPrompt}</p>
       </div>
 
-      <div className="p-5 sm:p-6 bg-slate-900 text-white rounded-2xl flex flex-col items-center justify-center space-y-4 shadow-inner">
-        <div className="flex items-center gap-3">
-          <span className={`w-3.5 h-3.5 rounded-full ${isRecording ? 'bg-rose-500 animate-ping' : 'bg-slate-500'}`} />
-          <span className="font-mono text-sm tracking-wide text-center">
-            {isRecording ? `Recording Audio... (${recordingSeconds}s)` : 'Microphone Standby'}
-          </span>
-        </div>
+      <div className="relative overflow-hidden p-6 sm:p-8 bg-gradient-to-b from-slate-900 to-slate-950 rounded-3xl border border-slate-800 shadow-2xl">
+        <div className="absolute inset-0 opacity-5" style={{
+          backgroundImage: `linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px)`,
+          backgroundSize: '20px 20px'
+        }} />
+        
+        <div className="relative z-10 flex flex-col items-center space-y-6">
+          <div className="flex items-center gap-3">
+            <span className={`w-3 h-3 rounded-full ${isRecording ? 'bg-rose-500 animate-pulse' : 'bg-slate-600'}`} style={{ boxShadow: isRecording ? '0 0 12px rgba(244, 63, 94, 0.8)' : 'none' }} />
+            <span className="font-mono text-lg font-bold text-white">
+              {isRecording ? formatTime(recordingSeconds) : '00:00'}
+            </span>
+          </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-          {!isRecording ? (
-            <button
-              onClick={handleStartRecording}
-              disabled={isAnalyzing}
-              className="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2"
-            >
-              <Icon name="mic" className="w-4 h-4" />
-              <span>Start Recording</span>
-            </button>
-          ) : (
-            <button
-              onClick={handleStopRecording}
-              className="w-full sm:w-auto px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2 animate-pulse"
-            >
-              <Icon name="stop" className="w-4 h-4" />
-              <span>Stop Recording & Analyze</span>
-            </button>
-          )}
+          <div className="flex items-center justify-center gap-[3px] h-20 w-full max-w-md">
+            {waveformData.map((level, i) => (
+              <div
+                key={i}
+                className={`flex-1 max-w-[8px] rounded-full transition-all duration-75 ${
+                  isRecording 
+                    ? 'bg-gradient-to-t from-emerald-600 via-emerald-400 to-cyan-400' 
+                    : 'bg-slate-700'
+                }`}
+                style={{ 
+                  height: isRecording ? `${Math.max(4, level)}%` : '4%',
+                  boxShadow: isRecording ? `0 0 ${level/5}px rgba(52, 211, 153, 0.6)` : 'none'
+                }}
+              />
+            ))}
+          </div>
+
+          <div className="flex items-center gap-4">
+            {!isRecording ? (
+              <button
+                onClick={handleStartRecording}
+                disabled={isAnalyzing}
+                className="group relative px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-bold text-sm rounded-2xl transition-all duration-300 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 cursor-pointer flex items-center gap-3 overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <Icon name="mic" className="w-5 h-5" glow />
+                <span>Start Recording</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleStopRecording}
+                className="group relative px-8 py-4 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-sm rounded-2xl transition-all duration-300 shadow-lg shadow-rose-500/30 hover:shadow-rose-500/50 cursor-pointer flex items-center gap-3 animate-pulse"
+              >
+                <Icon name="stop" className="w-5 h-5" />
+                <span>Stop & Analyze</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {isAnalyzing && (
-        <div className="p-5 text-center space-y-3 bg-slate-50 rounded-2xl border border-slate-200">
-          <svg className="animate-spin h-6 w-6 text-emerald-600 mx-auto" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Whisper Transcribing & AI Evaluating Speech...</span>
+        <div className="relative overflow-hidden p-6 bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-2xl border border-violet-500/20">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <svg className="animate-spin h-8 w-8 text-violet-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <div className="absolute inset-0 animate-ping rounded-full bg-violet-500/20" />
+            </div>
+            <div>
+              <span className="text-sm font-bold text-violet-400 block">Whisper Transcribing...</span>
+              <span className="text-xs text-slate-400">AI is evaluating your speech patterns, fluency, and pronunciation</span>
+            </div>
+          </div>
         </div>
       )}
 
       {speakingEvaluation && !isAnalyzing && (
-        <div className="mt-8 pt-6 border-t border-slate-200 space-y-6 animate-fadeIn">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <h4 className="text-base sm:text-lg font-bold text-slate-900">Speaking Assessment Report</h4>
-            <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold border border-emerald-200 self-start sm:self-auto">
-              Score: {speakingEvaluation.overallScore}%
-            </span>
+        <div className="mt-6 pt-6 border-t border-slate-700/50 space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
+                <Icon name="activity" className="w-6 h-6 text-emerald-400" glow />
+              </div>
+              <div>
+                <h4 className="text-lg font-bold text-white">Speaking Assessment Report</h4>
+                <span className="text-xs text-slate-400">CEFR Level: {speakingEvaluation.cefrLevel}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-xl border border-emerald-500/30">
+              <span className="text-xs font-bold text-emerald-400">Overall</span>
+              <span className="text-2xl font-black text-white">{speakingEvaluation.overallScore}%</span>
+            </div>
           </div>
-          <p className="text-sm text-slate-600">{speakingEvaluation.feedback}</p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Task', score: speakingEvaluation.taskAchievement, color: 'from-violet-500 to-purple-500' },
+              { label: 'Logic', score: speakingEvaluation.logicalConnectivity, color: 'from-cyan-500 to-blue-500' },
+              { label: 'Lexical', score: speakingEvaluation.lexicalDepth, color: 'from-emerald-500 to-teal-500' },
+              { label: 'Grammar', score: speakingEvaluation.grammaticalVersatility, color: 'from-amber-500 to-orange-500' },
+            ].map((item) => (
+              <div key={item.label} className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{item.label}</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                    <div className={`h-full bg-gradient-to-r ${item.color} rounded-full transition-all duration-1000`} style={{ width: `${item.score}%` }} />
+                  </div>
+                  <span className="text-xs font-bold text-white">{item.score}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-sm text-slate-300 leading-relaxed">{speakingEvaluation.feedback}</p>
         </div>
       )}
     </div>
   );
 }
 
+// ============================================
+// INTERFACES
+// ============================================
 interface Question {
   id: string;
   type?: string;
@@ -534,6 +802,118 @@ interface WritingEvaluationDetails {
   feedbackSummary: string;
 }
 
+// ============================================
+// THEME CONFIGURATION
+// ============================================
+type ThemeMode = 'light' | 'dark' | 'midnight' | 'cyber' | 'emerald';
+
+const themeConfigs: Record<ThemeMode, {
+  name: string;
+  bg: string;
+  bgPattern: string;
+  header: string;
+  sidebar: string;
+  card: string;
+  cardHover: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  border: string;
+  accent: string;
+  accentGlow: string;
+  accentSoft: string;
+  gradient: string;
+}> = {
+  light: {
+    name: 'Clinical Light',
+    bg: 'bg-gradient-to-br from-slate-50 via-white to-slate-100',
+    bgPattern: 'bg-[radial-gradient(rgba(99,102,241,0.06)_1px,transparent_1px)] [background-size:24px_24px]',
+    header: 'bg-white/80 backdrop-blur-xl border-slate-200/80',
+    sidebar: 'bg-white/90 backdrop-blur-xl border-slate-200/80',
+    card: 'bg-white/80 backdrop-blur-xl border-slate-200/80',
+    cardHover: 'hover:bg-white/95 hover:border-indigo-300/50',
+    textPrimary: 'text-slate-900',
+    textSecondary: 'text-slate-700',
+    textMuted: 'text-slate-500',
+    border: 'border-slate-200/80',
+    accent: 'text-indigo-600',
+    accentGlow: 'shadow-indigo-500/20',
+    accentSoft: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    gradient: 'from-indigo-600 via-violet-600 to-purple-600',
+  },
+  dark: {
+    name: 'Cyber Neon',
+    bg: 'bg-[#0B0B0D]',
+    bgPattern: 'bg-[radial-gradient(rgba(139,92,246,0.08)_1px,transparent_1px)] [background-size:24px_24px]',
+    header: 'bg-[#121218]/90 backdrop-blur-xl border-violet-500/20',
+    sidebar: 'bg-[#121218]/95 backdrop-blur-xl border-violet-500/20',
+    card: 'bg-[#151520]/80 backdrop-blur-xl border-violet-500/20',
+    cardHover: 'hover:bg-[#1a1a2e]/90 hover:border-violet-400/40',
+    textPrimary: 'text-white',
+    textSecondary: 'text-slate-200',
+    textMuted: 'text-slate-400',
+    border: 'border-violet-500/20',
+    accent: 'text-violet-400',
+    accentGlow: 'shadow-violet-500/30',
+    accentSoft: 'bg-violet-500/10 text-violet-300 border-violet-500/30',
+    gradient: 'from-violet-600 via-purple-600 to-fuchsia-600',
+  },
+  midnight: {
+    name: 'Deep Ocean',
+    bg: 'bg-[#090d16]',
+    bgPattern: 'bg-[radial-gradient(rgba(56,189,248,0.08)_1px,transparent_1px)] [background-size:24px_24px]',
+    header: 'bg-[#0f172a]/90 backdrop-blur-xl border-blue-500/20',
+    sidebar: 'bg-[#0f172a]/95 backdrop-blur-xl border-blue-500/20',
+    card: 'bg-[#111c33]/80 backdrop-blur-xl border-blue-500/20',
+    cardHover: 'hover:bg-[#162240]/90 hover:border-blue-400/40',
+    textPrimary: 'text-blue-50',
+    textSecondary: 'text-blue-100',
+    textMuted: 'text-blue-300/70',
+    border: 'border-blue-500/20',
+    accent: 'text-cyan-400',
+    accentGlow: 'shadow-cyan-500/30',
+    accentSoft: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30',
+    gradient: 'from-blue-600 via-cyan-600 to-teal-600',
+  },
+  cyber: {
+    name: 'Matrix Emerald',
+    bg: 'bg-[#05100a]',
+    bgPattern: 'bg-[radial-gradient(rgba(52,211,153,0.08)_1px,transparent_1px)] [background-size:24px_24px]',
+    header: 'bg-[#0a1a10]/90 backdrop-blur-xl border-emerald-500/20',
+    sidebar: 'bg-[#0a1a10]/95 backdrop-blur-xl border-emerald-500/20',
+    card: 'bg-[#0d1f14]/80 backdrop-blur-xl border-emerald-500/20',
+    cardHover: 'hover:bg-[#122a1a]/90 hover:border-emerald-400/40',
+    textPrimary: 'text-emerald-50',
+    textSecondary: 'text-emerald-100',
+    textMuted: 'text-emerald-300/70',
+    border: 'border-emerald-500/20',
+    accent: 'text-emerald-400',
+    accentGlow: 'shadow-emerald-500/30',
+    accentSoft: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+    gradient: 'from-emerald-600 via-teal-600 to-cyan-600',
+  },
+  emerald: {
+    name: 'Matrix Emerald',
+    bg: 'bg-[#05100a]',
+    bgPattern: 'bg-[radial-gradient(rgba(52,211,153,0.08)_1px,transparent_1px)] [background-size:24px_24px]',
+    header: 'bg-[#0a1a10]/90 backdrop-blur-xl border-emerald-500/20',
+    sidebar: 'bg-[#0a1a10]/95 backdrop-blur-xl border-emerald-500/20',
+    card: 'bg-[#0d1f14]/80 backdrop-blur-xl border-emerald-500/20',
+    cardHover: 'hover:bg-[#122a1a]/90 hover:border-emerald-400/40',
+    textPrimary: 'text-emerald-50',
+    textSecondary: 'text-emerald-100',
+    textMuted: 'text-emerald-300/70',
+    border: 'border-emerald-500/20',
+    accent: 'text-emerald-400',
+    accentGlow: 'shadow-emerald-500/30',
+    accentSoft: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+    gradient: 'from-emerald-600 via-teal-600 to-cyan-600',
+  },
+};
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
 export default function Home() {
   const [isSignUpMode, setIsSignUpMode] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -543,8 +923,11 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authError, setAuthError] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const [theme, setTheme] = useState<'light' | 'dark' | 'midnight'>('light');
+  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
 
   const [appMode, setAppMode] = useState<'dashboard' | 'full_exam'>('dashboard');
   const [selectedModule, setSelectedModule] = useState<ModuleType | null>(null);
@@ -623,6 +1006,8 @@ export default function Home() {
   const [integrityWarning, setIntegrityWarning] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const themeClasses = themeConfigs[theme];
+
   const isTimedEvaluationActive =
     (appMode === 'full_exam' && examStepIndex >= 0 && examStepIndex < 5) ||
     (selectedModule === 'listening' && isListeningTimerActive && !isSubmitted) ||
@@ -632,6 +1017,26 @@ export default function Home() {
     setAntiCheatViolations((prev) => prev + 1);
     setIntegrityWarning(message);
     setShowIntegrityWarning(true);
+  };
+
+  // ============================================
+  // LOGOUT HANDLER
+  // ============================================
+  const handleLogout = () => {
+    setIsLoggingOut(true);
+    setTimeout(() => {
+      setIsLoggedIn(false);
+      setIsMobileMenuOpen(false);
+      setShowLogoutModal(false);
+      setIsLoggingOut(false);
+      localStorage.removeItem('cally_user_email');
+      localStorage.removeItem('cally_user_name');
+      localStorage.removeItem('cally_user_id');
+      setUserId(null);
+      setUserName('');
+      setEmail('');
+      setPassword('');
+    }, 600);
   };
 
   const [userTickets, setUserTickets] = useState<any[]>([]);
@@ -799,15 +1204,16 @@ export default function Home() {
   }, [appMode, examStepIndex]);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('cally_ui_theme') as 'light' | 'dark' | 'midnight';
-    if (savedTheme) {
+    const savedTheme = localStorage.getItem('cally_ui_theme') as ThemeMode;
+    if (savedTheme && themeConfigs[savedTheme]) {
       setTheme(savedTheme);
     }
   }, []);
 
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'midnight') => {
+  const handleThemeChange = (newTheme: ThemeMode) => {
     setTheme(newTheme);
     localStorage.setItem('cally_ui_theme', newTheme);
+    setShowThemeMenu(false);
   };
 
   useEffect(() => {
@@ -1374,9 +1780,10 @@ export default function Home() {
   const triggerConfetti = () => {
     try {
       (window as any).confetti?.({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B'],
       });
     } catch (e) {
       console.error('Confetti error:', e);
@@ -1479,8 +1886,7 @@ export default function Home() {
         grammarScore -= 15;
         grammarNotes.push({
           type: 'warning',
-          message:
-            'Your response is quite short. Aim for at least 150 words for a full task response.',
+          message: 'Your response is quite short. Aim for at least 150 words for a full task response.',
         });
       } else if (wordCount < 150) {
         grammarScore -= 5;
@@ -1505,8 +1911,7 @@ export default function Home() {
         grammarScore -= 8;
         grammarNotes.push({
           type: 'warning',
-          message:
-            'Some sentences are very long. Consider splitting them for better readability.',
+          message: 'Some sentences are very long. Consider splitting them for better readability.',
         });
       } else if (avgSentenceLength >= 12 && avgSentenceLength <= 22) {
         grammarScore += 4;
@@ -1520,8 +1925,7 @@ export default function Home() {
         grammarScore -= 5;
         grammarNotes.push({
           type: 'warning',
-          message:
-            'Avoid repeated punctuation (e.g., "!!" or "...") in formal writing.',
+          message: 'Avoid repeated punctuation (e.g., "!!" or "...") in formal writing.',
         });
       }
 
@@ -1551,15 +1955,13 @@ export default function Home() {
         vocabularyScore += 6;
         grammarNotes.push({
           type: 'success',
-          message:
-            'Great lexical variety — you use a rich range of vocabulary.',
+          message: 'Great lexical variety — you use a rich range of vocabulary.',
         });
       } else if (lexicalDiversity < 0.35) {
         vocabularyScore -= 10;
         grammarNotes.push({
           type: 'warning',
-          message:
-            'Vocabulary is repetitive. Try using more synonyms and varied expressions.',
+          message: 'Vocabulary is repetitive. Try using more synonyms and varied expressions.',
         });
       }
 
@@ -1570,28 +1972,15 @@ export default function Home() {
         vocabularyScore -= 5;
         grammarNotes.push({
           type: 'info',
-          message:
-            'Consider incorporating more sophisticated or topic-specific vocabulary.',
+          message: 'Consider incorporating more sophisticated or topic-specific vocabulary.',
         });
       }
 
       const linkingWords = [
-        'however',
-        'moreover',
-        'furthermore',
-        'therefore',
-        'thus',
-        'consequently',
-        'in addition',
-        'on the other hand',
-        'for example',
-        'for instance',
-        'in conclusion',
-        'firstly',
-        'secondly',
-        'finally',
-        'meanwhile',
-        'nevertheless',
+        'however', 'moreover', 'furthermore', 'therefore', 'thus',
+        'consequently', 'in addition', 'on the other hand', 'for example',
+        'for instance', 'in conclusion', 'firstly', 'secondly', 'finally',
+        'meanwhile', 'nevertheless',
       ];
       const lowerText = writingText.toLowerCase();
       const linkingCount = linkingWords.reduce(
@@ -1609,15 +1998,13 @@ export default function Home() {
         coherenceScore += 3;
         grammarNotes.push({
           type: 'info',
-          message:
-            'Some cohesive devices used. Add more transitions to improve flow.',
+          message: 'Some cohesive devices used. Add more transitions to improve flow.',
         });
       } else {
         coherenceScore -= 10;
         grammarNotes.push({
           type: 'warning',
-          message:
-            'No linking words detected. Use transitions like "however" or "therefore".',
+          message: 'No linking words detected. Use transitions like "however" or "therefore".',
         });
       }
 
@@ -1634,8 +2021,7 @@ export default function Home() {
         coherenceScore -= 8;
         grammarNotes.push({
           type: 'warning',
-          message:
-            'Consider breaking your text into multiple paragraphs for clarity.',
+          message: 'Consider breaking your text into multiple paragraphs for clarity.',
         });
       }
 
@@ -1663,17 +2049,13 @@ export default function Home() {
 
       let feedbackSummary = '';
       if (overallScore >= 90) {
-        feedbackSummary =
-          'Outstanding work! Your writing demonstrates strong grammar, rich vocabulary, and clear organization.';
+        feedbackSummary = 'Outstanding work! Your writing demonstrates strong grammar, rich vocabulary, and clear organization.';
       } else if (overallScore >= 75) {
-        feedbackSummary =
-          'Good job! Your writing is clear and well-structured, with a few areas that could be polished further.';
+        feedbackSummary = 'Good job! Your writing is clear and well-structured, with a few areas that could be polished further.';
       } else if (overallScore >= 60) {
-        feedbackSummary =
-          'Decent effort. Focus on expanding your vocabulary, varying sentence structure, and improving coherence.';
+        feedbackSummary = 'Decent effort. Focus on expanding your vocabulary, varying sentence structure, and improving coherence.';
       } else {
-        feedbackSummary =
-          'Keep practicing! Work on length, grammar, and organizing your ideas into clear paragraphs with linking words.';
+        feedbackSummary = 'Keep practicing! Work on length, grammar, and organizing your ideas into clear paragraphs with linking words.';
       }
 
       setWritingEvaluationDetails({
@@ -1798,121 +2180,76 @@ export default function Home() {
       title: 'Listening & Dictation',
       description: 'Single-play audio drills with dictation inputs and auto-evaluations.',
       tag: 'Listening',
-      color: 'border-rose-200 bg-rose-50/40 text-rose-700',
-      btnColor: 'bg-rose-600 hover:bg-rose-700',
-      instructions: "1. Click 'Play Audio' (plays ONCE).\n2. Answer each question one by one before the 1-minute timer expires.",
       icon: 'headphones',
+      gradient: 'from-rose-500 to-pink-500',
+      glow: 'shadow-rose-500/30',
+      instructions: "1. Click 'Play Audio' (plays ONCE).\n2. Answer each question one by one before the 1-minute timer expires.",
     },
     {
       id: 'reading' as ModuleType,
       title: 'Sentence Completion & Grammar',
       description: 'Practice SVAR vocabulary fill-in-the-blanks and grammar rules.',
       tag: 'Reading',
-      color: 'border-amber-200 bg-amber-50/40 text-amber-700',
-      btnColor: 'bg-amber-600 hover:bg-amber-700',
-      instructions: "1. Review reading passage.\n2. Answer each multiple-choice question one at a time.",
       icon: 'book',
+      gradient: 'from-amber-500 to-orange-500',
+      glow: 'shadow-amber-500/30',
+      instructions: "1. Review reading passage.\n2. Answer each multiple-choice question one at a time.",
     },
     {
       id: 'writing' as ModuleType,
       title: 'Customer Email & Chat Writing',
       description: 'Draft professional customer responses and emails.',
       tag: 'Writing',
-      color: 'border-indigo-200 bg-indigo-50/40 text-indigo-700',
-      btnColor: 'bg-indigo-600 hover:bg-indigo-700',
-      instructions: "1. Read scenario prompt.\n2. Draft your response in 3 guided steps (Opening → Body → Closing).",
       icon: 'pencil',
+      gradient: 'from-violet-500 to-purple-500',
+      glow: 'shadow-violet-500/30',
+      instructions: "1. Read scenario prompt.\n2. Draft your response in 3 guided steps (Opening → Body → Closing).",
     },
     {
       id: 'speaking' as ModuleType,
       title: 'Repeat & Retell AI',
       description: 'Record verbatim sentence repetition & prompt replies.',
       tag: 'Speaking',
-      color: 'border-emerald-200 bg-emerald-50/40 text-emerald-700',
-      btnColor: 'bg-emerald-600 hover:bg-emerald-700',
-      instructions: "1. Read prompt.\n2. Record audio via microphone and analyze.",
       icon: 'mic',
+      gradient: 'from-emerald-500 to-teal-500',
+      glow: 'shadow-emerald-500/30',
+      instructions: "1. Read prompt.\n2. Record audio via microphone and analyze.",
     },
     {
       id: 'typing' as ModuleType,
       title: 'Chat & Typing Speed Test',
       description: 'Train net WPM and accuracy for BPO candidate screening.',
       tag: 'Typing',
-      color: 'border-sky-200 bg-sky-50/40 text-sky-700',
-      btnColor: 'bg-sky-600 hover:bg-sky-700',
-      instructions: "1. Type the displayed passage accurately to complete the module.",
       icon: 'keyboard',
+      gradient: 'from-sky-500 to-blue-500',
+      glow: 'shadow-sky-500/30',
+      instructions: "1. Type the displayed passage accurately to complete the module.",
     },
   ];
 
   const activeFeature = dashboardFeatures.find((f) => f.id === selectedModule);
 
-  const themeClasses = {
-    light: {
-      bg: 'bg-slate-50/50 text-slate-800',
-      header: 'bg-white/95 border-slate-200 text-slate-900',
-      sidebar: 'bg-white border-slate-200 text-slate-800',
-      card: 'bg-white border-slate-200 text-slate-800 shadow-sm',
-      tableHeader: 'bg-slate-50 text-slate-500 border-slate-200',
-      tableRowHover: 'hover:bg-slate-50',
-      textMuted: 'text-slate-500',
-      divider: 'border-slate-200',
-      hoverBg: 'hover:bg-slate-100',
-      activeBg: 'bg-indigo-600 text-white shadow-md',
-      activeSoftBg: 'bg-indigo-500/20 text-indigo-600 border border-indigo-500/30 font-bold shadow-xs',
-      mobileText: 'text-slate-700',
-    },
-    dark: {
-      bg: 'bg-slate-950 text-slate-100',
-      header: 'bg-slate-900/95 border-slate-800 text-white',
-      sidebar: 'bg-slate-900 border-slate-800 text-slate-100',
-      card: 'bg-slate-900 border-slate-800 text-slate-100 shadow-xl',
-      tableHeader: 'bg-slate-800/50 text-slate-400 border-slate-800',
-      tableRowHover: 'hover:bg-slate-800/60',
-      textMuted: 'text-slate-400',
-      divider: 'border-slate-800',
-      hoverBg: 'hover:bg-slate-800',
-      activeBg: 'bg-indigo-600 text-white shadow-md',
-      activeSoftBg: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold shadow-xs',
-      mobileText: 'text-slate-300',
-    },
-    midnight: {
-      bg: 'bg-[#090d16] text-blue-50',
-      header: 'bg-[#0f172a]/95 border-blue-950 text-blue-100',
-      sidebar: 'bg-[#0f172a] border-blue-950 text-blue-200',
-      card: 'bg-[#111c33] border-blue-900/60 text-blue-50 shadow-2xl',
-      tableHeader: 'bg-[#0f172a] text-blue-400 border-blue-950',
-      tableRowHover: 'hover:bg-blue-950/40',
-      textMuted: 'text-blue-300/70',
-      divider: 'border-blue-950',
-      hoverBg: 'hover:bg-blue-950/50',
-      activeBg: 'bg-indigo-600 text-white shadow-md',
-      activeSoftBg: 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 font-bold shadow-xs',
-      mobileText: 'text-blue-200',
-    },
-  }[theme];
-
   const getWritingScoreColor = (s: number) => {
-    if (s >= 85) return 'text-emerald-500';
-    if (s >= 70) return 'text-amber-500';
-    return 'text-rose-500';
+    if (s >= 85) return 'text-emerald-400';
+    if (s >= 70) return 'text-amber-400';
+    return 'text-rose-400';
   };
 
   const getWritingBarColor = (s: number) => {
-    if (s >= 85) return 'bg-emerald-500';
-    if (s >= 70) return 'bg-amber-500';
-    return 'bg-rose-500';
+    if (s >= 85) return 'bg-gradient-to-r from-emerald-500 to-teal-500';
+    if (s >= 70) return 'bg-gradient-to-r from-amber-500 to-orange-500';
+    return 'bg-gradient-to-r from-rose-500 to-red-500';
   };
 
   const getWritingNoteStyles = (type: WritingNoteType) => {
     switch (type) {
       case 'success':
-        return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600';
+        return 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
       case 'warning':
-        return 'bg-amber-500/10 border-amber-500/30 text-amber-600';
+        return 'bg-amber-500/10 border-amber-500/30 text-amber-400';
       case 'info':
       default:
-        return 'bg-indigo-500/10 border-indigo-500/30 text-indigo-500';
+        return 'bg-violet-500/10 border-violet-500/30 text-violet-400';
     }
   };
 
@@ -1928,256 +2265,372 @@ export default function Home() {
     }
   };
 
+  // ============================================
+  // RENDER: LOGIN PAGE (FIXED)
+  // ============================================
   if (!isLoggedIn) {
     return (
       <>
-      {/* Mobile single-column landing page */}
-      <div className="lg:hidden min-h-screen flex flex-col bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
-        <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-28 -left-24 w-80 h-80 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
-          <div className="relative w-20 h-20 mb-6 drop-shadow-2xl">
-            <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
-          </div>
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-500/20 text-indigo-200 rounded-full text-xs font-bold border border-indigo-400/30">
-            <Icon name="sparkles" className="w-3.5 h-3.5" /> Official BPO Readiness & Certification Portal
-          </span>
-          <h1 className="mt-5 text-3xl font-black tracking-tight text-white leading-tight">
-            Master Your Skills.<br />
-            <span className="text-indigo-300">Validate Your Career.</span>
-          </h1>
-          <p className="mt-4 max-w-sm text-sm text-slate-300 leading-relaxed">
-            Practice professional BPO simulations, track your progress, and earn a verifiable competency certificate.
-          </p>
-          <div className="mt-8 grid grid-cols-2 gap-3 w-full max-w-sm">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left shadow-lg backdrop-blur-sm"><Icon name="headphones" className="w-5 h-5 text-indigo-300" /><p className="mt-2 text-xs font-bold text-white">Listening</p></div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left shadow-lg backdrop-blur-sm"><Icon name="book" className="w-5 h-5 text-amber-300" /><p className="mt-2 text-xs font-bold text-white">Reading</p></div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left shadow-lg backdrop-blur-sm"><Icon name="mic" className="w-5 h-5 text-emerald-300" /><p className="mt-2 text-xs font-bold text-white">Speaking AI</p></div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left shadow-lg backdrop-blur-sm"><Icon name="keyboard" className="w-5 h-5 text-sky-300" /><p className="mt-2 text-xs font-bold text-white">Typing</p></div>
-          </div>
-          <button type="button" onClick={() => { setAuthError(''); setShowAuthModal(true); }} className="mt-8 w-full max-w-sm py-4 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-base shadow-xl border border-indigo-400/30 transition flex items-center justify-center gap-2">
-            <Icon name="academic" className="w-5 h-5" /> Sign In / Sign Up
-          </button>
-          <p className="mt-4 text-[11px] text-slate-400">Access your dashboard and begin your assessment journey.</p>
-        </div>
-        <div className="relative z-10 px-6 pb-6 text-center text-[11px] text-slate-400">&copy; {new Date().getFullYear()} TephdyTech &bull; All rights reserved.</div>
-      </div>
-
-      {/* Desktop login page */}
-      <div className="hidden lg:grid h-screen w-screen overflow-hidden grid-cols-1 lg:grid-cols-12 bg-slate-50/50 text-slate-800">
-        <div className="lg:col-span-6 h-full overflow-y-auto bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white p-8 lg:p-16 flex flex-col justify-between relative border-r border-slate-800">
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
+        {/* Mobile Login */}
+        <div className="lg:hidden min-h-screen flex flex-col bg-[#0B0B0D] text-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#8B5CF6_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-violet-500/20 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-28 -left-24 w-80 h-80 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
           
-          <div className="relative z-10 space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="relative w-10 h-10 shrink-0">
-                <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
-              </div>
-              <span className="font-black text-xl tracking-tight text-white">Cally Assessment Hub</span>
+          <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
+            <div className="relative w-20 h-20 mb-6 drop-shadow-2xl">
+              <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
             </div>
             
-            <div className="space-y-4 max-w-lg pt-8">
-              <span className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
-                <Icon name="sparkles" className="w-3.5 h-3.5" /> Official BPO Readiness & Certification Portal
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border bg-violet-500/20 text-violet-300 border-violet-400/30">
+              <Icon name="sparkles" className="w-3.5 h-3.5" glow />
+              Official BPO Readiness & Certification Portal
+            </span>
+            
+            <h1 className="mt-6 text-3xl font-black tracking-tight leading-tight">
+              Master Your Skills.<br />
+              <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                Validate Your Career.
               </span>
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-                Master Your Skills. <br />
-                <span className="text-indigo-400">Validate Your Career.</span>
-              </h1>
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-                Take professional simulation exams, track your historical improvement logs, and earn verifiable BPO competency certificates instantly.
-              </p>
+            </h1>
+            
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-400">
+              Practice professional BPO simulations, track your progress, and earn a verifiable competency certificate.
+            </p>
+            
+            <div className="mt-8 grid grid-cols-2 gap-3 w-full max-w-sm">
+              {dashboardFeatures.slice(0, 4).map((feat) => (
+                <div key={feat.id} className="rounded-2xl border border-violet-500/20 bg-[#151520]/80 backdrop-blur-xl p-4 text-left shadow-lg">
+                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${feat.gradient} flex items-center justify-center`}>
+                    <Icon name={feat.icon} className="w-4 h-4 text-white" />
+                  </div>
+                  <p className="mt-2 text-xs font-bold text-white">{feat.tag}</p>
+                </div>
+              ))}
             </div>
+            
+            <button
+              type="button"
+              onClick={() => { setAuthError(''); setShowAuthModal(true); }}
+              className="mt-8 w-full max-w-sm py-4 px-5 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-black text-base shadow-xl shadow-violet-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              <Icon name="academic" className="w-5 h-5" glow />
+              Sign In / Sign Up
+            </button>
+            
+            <p className="mt-4 text-[11px] text-slate-500">
+              Access your dashboard and begin your assessment journey.
+            </p>
           </div>
-
-          <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-3 pt-10">
-            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
-              <Icon name="headphones" className="w-6 h-6 text-indigo-400" />
-              <h4 className="text-xs font-bold">Listening Drills</h4>
-            </div>
-            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
-              <Icon name="book" className="w-6 h-6 text-amber-400" />
-              <h4 className="text-xs font-bold">SVAR Reading</h4>
-            </div>
-            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
-              <Icon name="pencil" className="w-6 h-6 text-indigo-400" />
-              <h4 className="text-xs font-bold">Business Writing</h4>
-            </div>
-            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
-              <Icon name="mic" className="w-6 h-6 text-emerald-400" />
-              <h4 className="text-xs font-bold">AI Speaking</h4>
-            </div>
-            <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-xl space-y-1">
-              <Icon name="keyboard" className="w-6 h-6 text-sky-400" />
-              <h4 className="text-xs font-bold">WPM Typing</h4>
-            </div>
-            <div className="p-3 bg-indigo-950/50 border border-indigo-500/30 rounded-xl space-y-1 flex flex-col justify-center items-center text-center">
-              <Icon name="academic" className="w-6 h-6 text-indigo-300" />
-              <span className="text-xs font-bold text-indigo-300">Certified PDF</span>
-            </div>
-          </div>
-
-          <div className="relative z-10 pt-8 text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} Developed by TephdyTech &bull; All rights reserved.
+          
+          <div className="relative z-10 px-6 pb-6 text-center text-[11px] text-slate-500">
+            &copy; {new Date().getFullYear()} TephdyTech &bull; All rights reserved.
           </div>
         </div>
 
-        <div className="lg:col-span-6 h-full overflow-y-auto flex items-center justify-center p-6 sm:p-12">
-          <div className="w-full max-w-md rounded-3xl p-8 sm:p-10 shadow-xl border bg-white border-slate-200 text-slate-800 space-y-6">
-            <div className="space-y-2 text-center">
-              <h2 className="text-2xl font-black tracking-tight">
-                {isSignUpMode ? 'Create Your Account' : 'Welcome Back'}
-              </h2>
-              <p className="text-xs text-slate-500">
-                {isSignUpMode ? 'Sign up to begin your assessment journey' : 'Sign in to track your scores and certificates'}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 p-1 bg-slate-500/10 rounded-2xl text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => { setIsSignUpMode(false); setAuthError(''); }}
-                className={`py-2.5 rounded-xl transition cursor-pointer ${!isSignUpMode ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={() => { setIsSignUpMode(true); setAuthError(''); }}
-                className={`py-2.5 rounded-xl transition cursor-pointer ${isSignUpMode ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                Create Account
-              </button>
-            </div>
-
-            {authError && (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs font-semibold text-rose-500 text-center">
-                {authError}
+        {/* Desktop Login */}
+        <div className="hidden lg:grid h-screen w-screen overflow-hidden grid-cols-12 bg-[#0B0B0D]">
+          {/* Left Panel - Hero */}
+          <div className="col-span-6 h-full overflow-y-auto bg-gradient-to-br from-slate-950 via-violet-950 to-slate-900 text-white p-16 flex flex-col justify-between relative border-r border-violet-500/20">
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#8B5CF6_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
+            <div className="absolute top-0 right-0 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="relative z-10 space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="relative w-12 h-12 shrink-0">
+                  <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
+                </div>
+                <span className="font-black text-2xl tracking-tight">Cally Assessment Hub</span>
               </div>
-            )}
+              
+              <div className="space-y-5 max-w-lg pt-8">
+                <span className="inline-flex items-center gap-2 px-4 py-2 bg-violet-500/20 text-violet-300 rounded-full text-xs font-bold border border-violet-400/30">
+                  <Icon name="sparkles" className="w-3.5 h-3.5" glow />
+                  Official BPO Readiness & Certification Portal
+                </span>
+                <h1 className="text-5xl font-black tracking-tight leading-tight">
+                  Master Your Skills. <br />
+                  <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                    Validate Your Career.
+                  </span>
+                </h1>
+                <p className="text-slate-300 text-base leading-relaxed">
+                  Take professional simulation exams, track your historical improvement logs, and earn verifiable BPO competency certificates instantly.
+                </p>
+              </div>
+            </div>
 
-            <form onSubmit={handleAuthSubmit} className="space-y-4">
-              {isSignUpMode && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Full Name</label>
-                  <input
-                    type="text"
-                    value={userName}
-                    onChange={(e) => setUserName(e.target.value)}
-                    placeholder="Enter your full name"
-                    className="w-full px-4 py-3 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+            <div className="relative z-10 grid grid-cols-3 gap-4 pt-10">
+              {dashboardFeatures.map((feat) => (
+                <div key={feat.id} className="p-4 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-2 backdrop-blur-sm hover:border-violet-500/50 transition-colors">
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${feat.gradient} flex items-center justify-center`}>
+                    <Icon name={feat.icon} className="w-5 h-5 text-white" />
+                  </div>
+                  <h4 className="text-xs font-bold">{feat.title}</h4>
+                </div>
+              ))}
+              <div className="p-4 bg-violet-950/50 border border-violet-500/30 rounded-2xl space-y-2 flex flex-col justify-center items-center text-center backdrop-blur-sm">
+                <Icon name="academic" className="w-8 h-8 text-violet-300" glow />
+                <span className="text-xs font-bold text-violet-300">Certified PDF</span>
+              </div>
+            </div>
+
+            <div className="relative z-10 pt-8 text-xs text-slate-400">
+              &copy; {new Date().getFullYear()} Developed by TephdyTech &bull; All rights reserved.
+            </div>
+          </div>
+
+          {/* Right Panel - Auth Form (FIXED - light card with proper contrast) */}
+          <div className="col-span-6 h-full overflow-y-auto flex items-center justify-center p-12 bg-[#0B0B0D] relative">
+            <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
+            
+            <div className="relative w-full max-w-md rounded-3xl p-10 shadow-2xl border border-violet-500/20 bg-[#151520]/90 backdrop-blur-xl space-y-6">
+              <div className="space-y-2 text-center">
+                <h2 className="text-3xl font-black tracking-tight text-white">
+                  {isSignUpMode ? 'Create Your Account' : 'Welcome Back'}
+                </h2>
+                <p className="text-sm text-slate-400">
+                  {isSignUpMode ? 'Sign up to begin your assessment journey' : 'Sign in to track your scores and certificates'}
+                </p>
+              </div>
+
+              {/* Tab Switcher */}
+              <div className="grid grid-cols-2 p-1.5 bg-slate-800/50 rounded-2xl text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => { setIsSignUpMode(false); setAuthError(''); }}
+                  className={`py-3 rounded-xl transition-all duration-300 cursor-pointer ${
+                    !isSignUpMode 
+                      ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/30' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsSignUpMode(true); setAuthError(''); }}
+                  className={`py-3 rounded-xl transition-all duration-300 cursor-pointer ${
+                    isSignUpMode 
+                      ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/30' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Create Account
+                </button>
+              </div>
+
+              {authError && (
+                <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs font-semibold text-rose-400 text-center">
+                  {authError}
                 </div>
               )}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="candidate@example.com"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
+              <form onSubmit={handleAuthSubmit} className="space-y-5">
+                {isSignUpMode && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Full Name</label>
+                    <input
+                      type="text"
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      placeholder="Enter your full name"
+                      className="w-full px-4 py-3.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+                    />
+                  </div>
+                )}
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="candidate@example.com"
+                    className="w-full px-4 py-3.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-4 px-4 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-sm rounded-xl transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/50 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                >
+                  {isSignUpMode ? 'Create Account & Start' : 'Sign In to Dashboard'}
+                </button>
+              </form>
+
+              <div className="flex items-center my-4">
+                <div className="flex-grow border-t border-violet-500/20"></div>
+                <span className="px-3 text-xs font-bold uppercase tracking-widest text-slate-500">Or</span>
+                <div className="flex-grow border-t border-violet-500/20"></div>
               </div>
 
               <button
-                type="submit"
-                className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer"
+                onClick={handleGoogleLogin}
+                className="w-full flex items-center justify-center gap-3 rounded-xl border border-violet-500/20 bg-slate-900/50 py-4 font-bold text-sm text-white transition-all duration-300 hover:bg-slate-800/50 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-8.87z"/>
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.2v3.14C3.18 21.38 7.26 24 12 24z"/>
+                  <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.62H1.2C.43 8.19 0 9.95 0 12s.43 3.81 1.2 5.38l4.07-3.14z"/>
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.26 0 3.18 2.62 1.2 6.62l4.07 3.14c.95-2.85 3.6-4.96 6.73-4.96z"/>
+                </svg>
+                Continue with Google
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Auth Modal (FIXED) */}
+        <div className={`fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity ${showAuthModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} aria-hidden={!showAuthModal}>
+          <button type="button" aria-label="Close login dialog" onClick={() => setShowAuthModal(false)} className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" />
+          <div className="relative w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl border border-violet-500/20 shadow-2xl p-6 sm:p-8 bg-[#151520]/95 backdrop-blur-xl">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400">Account Access</span>
+                <h2 className="text-2xl font-black text-white">{isSignUpMode ? 'Create Your Account' : 'Welcome Back'}</h2>
+              </div>
+              <button type="button" onClick={() => setShowAuthModal(false)} className="w-10 h-10 rounded-xl flex items-center justify-center transition text-slate-400 hover:text-white hover:bg-slate-800/50">
+                <Icon name="x" className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 p-1.5 bg-slate-800/50 rounded-2xl text-xs font-bold mb-6">
+              <button type="button" onClick={() => { setIsSignUpMode(false); setAuthError(''); }} className={`py-3 rounded-xl transition ${!isSignUpMode ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg' : 'text-slate-400'}`}>Sign In</button>
+              <button type="button" onClick={() => { setIsSignUpMode(true); setAuthError(''); }} className={`py-3 rounded-xl transition ${isSignUpMode ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg' : 'text-slate-400'}`}>Create Account</button>
+            </div>
+            
+            {authError && <div className="mb-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs font-semibold text-rose-400 text-center">{authError}</div>}
+            
+            <form onSubmit={handleAuthSubmit} className="space-y-4">
+              {isSignUpMode && (
+                <div>
+                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Full Name</label>
+                  <input type="text" value={userName} onChange={(e)=>setUserName(e.target.value)} placeholder="Enter your full name" className="mt-1.5 w-full px-4 py-3.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                </div>
+              )}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Email Address</label>
+                <input type="email" required value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="candidate@example.com" className="mt-1.5 w-full px-4 py-3.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Password</label>
+                <input type="password" required value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="••••••••" className="mt-1.5 w-full px-4 py-3.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              </div>
+              <button type="submit" className="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-sm shadow-lg shadow-violet-500/30">
                 {isSignUpMode ? 'Create Account & Start' : 'Sign In to Dashboard'}
               </button>
             </form>
-
+            
             <div className="flex items-center my-4">
-              <div className="flex-grow border-t border-slate-500/20"></div>
-              <span className="px-3 text-xs font-bold text-slate-400 uppercase tracking-widest">Or</span>
-              <div className="flex-grow border-t border-slate-500/20"></div>
+              <div className="flex-1 border-t border-violet-500/20"/>
+              <span className="px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Or</span>
+              <div className="flex-1 border-t border-violet-500/20"/>
             </div>
-
-            <button
-              onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center gap-3 rounded-xl border border-slate-500/30 bg-white dark:bg-slate-900 py-3.5 text-slate-700 dark:text-slate-200 font-bold text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition duration-200 shadow-xs cursor-pointer"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-8.87z"/>
-                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.2v3.14C3.18 21.38 7.26 24 12 24z"/>
-                <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.62H1.2C.43 8.19 0 9.95 0 12s.43 3.81 1.2 5.38l4.07-3.14z"/>
-                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.26 0 3.18 2.62 1.2 6.62l4.07 3.14c.95-2.85 3.6-4.96 6.73-4.96z"/>
-              </svg>
+            
+            <button onClick={handleGoogleLogin} className="w-full py-4 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white font-bold text-sm transition hover:bg-slate-800/50">
               Continue with Google
             </button>
           </div>
         </div>
-      </div>
-               <div className={`fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity ${showAuthModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} aria-hidden={!showAuthModal}>
-        <button type="button" aria-label="Close login dialog" onClick={() => setShowAuthModal(false)} className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" />
-        <div className="relative w-full sm:max-w-md max-h-[92vh] overflow-y-auto bg-white rounded-t-3xl sm:rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8">
-          <div className="flex items-center justify-between mb-5">
-            <div><span className="text-[10px] font-bold uppercase tracking-widest text-indigo-500">Account Access</span><h2 className="text-xl font-black text-slate-900">{isSignUpMode ? 'Create Your Account' : 'Welcome Back'}</h2></div>
-            <button type="button" onClick={() => setShowAuthModal(false)} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center"><Icon name="x" className="w-5 h-5" /></button>
-          </div>
-          <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl text-xs font-bold mb-5">
-            <button type="button" onClick={() => { setIsSignUpMode(false); setAuthError(''); }} className={`py-2.5 rounded-xl transition ${!isSignUpMode ? 'bg-indigo-600 text-white shadow' : 'text-slate-500'}`}>Sign In</button>
-            <button type="button" onClick={() => { setIsSignUpMode(true); setAuthError(''); }} className={`py-2.5 rounded-xl transition ${isSignUpMode ? 'bg-indigo-600 text-white shadow' : 'text-slate-500'}`}>Create Account</button>
-          </div>
-          {authError && <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-600 text-center">{authError}</div>}
-          <form onSubmit={handleAuthSubmit} className="space-y-4">
-            {isSignUpMode && <div><label className="text-xs font-bold uppercase tracking-wider text-slate-400">Full Name</label><input type="text" value={userName} onChange={(e)=>setUserName(e.target.value)} placeholder="Enter your full name" className="mt-1.5 w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" /></div>}
-            <div><label className="text-xs font-bold uppercase tracking-wider text-slate-400">Email Address</label><input type="email" required value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="candidate@example.com" className="mt-1.5 w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" /></div>
-            <div><label className="text-xs font-bold uppercase tracking-wider text-slate-400">Password</label><input type="password" required value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="••••••••" className="mt-1.5 w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" /></div>
-            <button type="submit" className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md">{isSignUpMode ? 'Create Account & Start' : 'Sign In to Dashboard'}</button>
-          </form>
-          <div className="flex items-center my-4"><div className="flex-1 border-t border-slate-200"/><span className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Or</span><div className="flex-1 border-t border-slate-200"/></div>
-          <button onClick={handleGoogleLogin} className="w-full py-3.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-sm hover:bg-slate-50 flex items-center justify-center gap-3">Continue with Google</button>
-        </div>
-      </div>
-    </>
+      </>
     );
   }
 
+  // ============================================
+  // RENDER: MAIN APP
+  // ============================================
   return (
-    <div className={`h-screen w-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 ${themeClasses.bg}`}>
-      <header className={`fixed top-0 left-0 right-0 shrink-0 z-50 border-b px-4 sm:px-8 ${themeClasses.header}`}>
+    <div className={`h-screen w-screen overflow-hidden flex flex-col font-sans transition-colors duration-500 ${themeClasses.bg} ${themeClasses.textPrimary}`}>
+      <div className={`fixed inset-0 ${themeClasses.bgPattern} opacity-40 pointer-events-none`} />
+      
+      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-violet-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <header className={`relative z-50 shrink-0 border-b px-4 sm:px-8 ${themeClasses.header}`}>
         <div className="w-full flex items-center justify-between h-16">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" onClick={handleBackToDashboard}>
-              <div className="relative w-8 h-8 sm:w-9 sm:h-9 shrink-0">
+              <div className="relative w-9 h-9 sm:w-10 sm:h-10 shrink-0">
                 <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
               </div>
-              <span className="font-bold tracking-tight text-sm sm:text-lg truncate">Cally Assessment Hub</span>
+              <div className="min-w-0">
+                <span className="font-bold tracking-tight text-sm sm:text-lg truncate block">Cally Assessment Hub</span>
+                <span className={`text-[10px] font-mono ${themeClasses.textMuted} hidden sm:block`}>
+                  {themeClasses.name} Mode
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            <div className="hidden sm:flex items-center gap-2 text-xs font-semibold min-w-0">
-              <span className="truncate max-w-[150px]">Candidate: <strong className="text-indigo-500">{userName || 'Candidate'}</strong></span>
+            <div className="relative">
+              <button
+                onClick={() => setShowThemeMenu(!showThemeMenu)}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all border ${themeClasses.border} ${themeClasses.cardHover}`}
+                aria-label="Change theme"
+              >
+                <Icon name="layers" className="w-5 h-5" glow />
+              </button>
+              
+              {showThemeMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowThemeMenu(false)} />
+                  <div className={`absolute right-0 top-12 z-50 w-64 rounded-2xl border shadow-2xl p-2 ${themeClasses.card} backdrop-blur-xl`}>
+                    <div className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 ${themeClasses.textMuted}`}>
+                      Interface Theme
+                    </div>
+                    {(Object.keys(themeConfigs) as ThemeMode[]).filter(t => t !== 'emerald').map((themeKey) => (
+                      <button
+                        key={themeKey}
+                        onClick={() => handleThemeChange(themeKey)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                          theme === themeKey 
+                            ? `bg-gradient-to-r ${themeConfigs[themeKey].gradient} text-white` 
+                            : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+                        }`}
+                      >
+                        <div className={`w-6 h-6 rounded-lg bg-gradient-to-br ${themeConfigs[themeKey].gradient}`} />
+                        <span>{themeConfigs[themeKey].name}</span>
+                        {theme === themeKey && <span className="ml-auto">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="hidden sm:flex items-center gap-3 text-xs font-semibold">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-black text-sm">
+                {(userName || 'C').charAt(0).toUpperCase()}
+              </div>
+              <div className="flex flex-col">
+                <span className="truncate max-w-[120px] font-bold">{userName || 'Candidate'}</span>
+                <span className={`text-[10px] ${themeClasses.textMuted}`}>Candidate</span>
+              </div>
             </div>
 
             <button
-              onClick={() => {
-                setIsLoggedIn(false);
-                setIsMobileMenuOpen(false);
-                localStorage.removeItem('cally_user_email');
-                localStorage.removeItem('cally_user_id');
-              }}
-              className="hidden sm:inline-flex px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-lg transition cursor-pointer text-xs font-semibold"
+              onClick={() => setShowLogoutModal(true)}
+              className="hidden sm:inline-flex px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl transition cursor-pointer text-xs font-bold border border-rose-500/20 items-center gap-1.5"
             >
-              Sign Out
+              <Icon name="log-out" className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
             </button>
 
             <button
@@ -2185,7 +2638,7 @@ export default function Home() {
               aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
               aria-expanded={isMobileMenuOpen}
               onClick={() => setIsMobileMenuOpen((open) => !open)}
-              className={`md:hidden w-11 h-11 shrink-0 rounded-xl border flex items-center justify-center transition shadow-sm ${themeClasses.sidebar} ${themeClasses.hoverBg}`}
+              className={`md:hidden w-11 h-11 shrink-0 rounded-xl border flex items-center justify-center transition shadow-sm ${themeClasses.border} ${themeClasses.cardHover}`}
             >
               <Icon name={isMobileMenuOpen ? 'x' : 'menu'} className="w-5 h-5" />
             </button>
@@ -2193,1130 +2646,1181 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="flex-1 flex flex-row w-full min-h-0 pt-16">
-        <aside className={`hidden md:flex md:flex-col md:w-72 shrink-0 border-r p-4 sm:p-6 space-y-6 overflow-y-auto ${themeClasses.sidebar}`}>
+      <div className="relative z-10 flex-1 flex flex-row w-full min-h-0">
+        <aside className={`hidden md:flex md:flex-col md:w-72 shrink-0 border-r p-5 space-y-6 overflow-y-auto ${themeClasses.sidebar}`}>
           <div className="space-y-1">
-            <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>System Navigation</span>
-            <nav className="space-y-1 pt-1">
+            <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
+              System Navigation
+            </span>
+            <nav className="space-y-1.5 pt-2">
               <button
                 onClick={() => handleSelectSidebarTab('overview')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer text-left ${
-                  activeTab === 'overview' ? themeClasses.activeBg : themeClasses.hoverBg
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer text-left ${
+                  activeTab === 'overview' 
+                    ? `bg-gradient-to-r ${themeClasses.gradient} text-white shadow-lg ${themeClasses.accentGlow}` 
+                    : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
                 }`}
               >
-                <Icon name="chart" className="w-4 h-4" />
+                <Icon name="chart" className="w-4 h-4" glow={activeTab === 'overview'} />
                 <span>Dashboard Overview</span>
               </button>
               <button
                 onClick={() => handleSelectSidebarTab('logs')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer text-left ${
-                  activeTab === 'logs' ? themeClasses.activeBg : themeClasses.hoverBg
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer text-left ${
+                  activeTab === 'logs' 
+                    ? `bg-gradient-to-r ${themeClasses.gradient} text-white shadow-lg ${themeClasses.accentGlow}` 
+                    : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
                 }`}
               >
-                <Icon name="trending" className="w-4 h-4" />
+                <Icon name="trending" className="w-4 h-4" glow={activeTab === 'logs'} />
                 <span>Performance Logs</span>
+              </button>
+              <button
+                onClick={() => handleSelectSidebarTab('support' as any)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer text-left ${
+                  activeTab === 'support' 
+                    ? `bg-gradient-to-r ${themeClasses.gradient} text-white shadow-lg ${themeClasses.accentGlow}` 
+                    : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+                }`}
+              >
+                <Icon name="info" className="w-4 h-4" glow={activeTab === 'support'} />
+                <span>Support Tickets</span>
               </button>
             </nav>
           </div>
 
           <div className="space-y-1">
-            <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>Practice Modules</span>
-            <nav className="space-y-1 pt-1">
+            <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
+              Practice Modules
+            </span>
+            <nav className="space-y-1.5 pt-2">
               {dashboardFeatures.map((feat) => (
                 <button
                   key={feat.id}
                   onClick={() => handleSelectSidebarTab(feat.id)}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer text-left ${
-                    activeTab === feat.id ? themeClasses.activeSoftBg : themeClasses.hoverBg
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
+                    activeTab === feat.id 
+                      ? `${themeClasses.accentSoft} border shadow-sm` 
+                      : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <Icon name={feat.icon} className="w-4 h-4 text-indigo-500" />
+                  <div className="flex items-center gap-3 truncate">
+                    <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${feat.gradient} flex items-center justify-center shrink-0`}>
+                      <Icon name={feat.icon} className="w-3.5 h-3.5 text-white" />
+                    </div>
                     <span className="truncate">{feat.title}</span>
                   </div>
+                  <Icon name="chevron-right" className="w-3.5 h-3.5 shrink-0 opacity-50" />
                 </button>
               ))}
             </nav>
-            <button
-              onClick={handleStartFullExam}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2 mt-2"
-            >
-              <Icon name="academic" className="w-4 h-4" />
-              <span>Take Full Exam</span>
-            </button>
           </div>
 
-          <div className={`mt-auto pt-4 border-t ${themeClasses.divider} space-y-4`}>
-            <div className="space-y-2">
-              <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>Preferences & Support</span>
-              
-              <div className={`p-3 rounded-2xl border ${themeClasses.card} space-y-2 shadow-xs`}>
-                <div className={`flex items-center gap-2 text-xs font-bold ${themeClasses.textMuted}`}>
-                  <Icon name="sun" className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Appearance</span>
-                </div>
-                <div className="relative">
-                  <select
-                    id="desktop-theme"
-                    value={theme}
-                    onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'midnight')}
-                    className={`w-full appearance-none rounded-xl border px-3 py-2 pr-8 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${
-                      theme === 'light'
-                        ? 'bg-white border-slate-200 text-slate-700'
-                        : theme === 'midnight'
-                          ? 'bg-slate-950 border-slate-900 text-white'
-                          : 'bg-slate-800 border-slate-700 text-white'
-                    }`}
-                  >
-                    <option value="light">Light Theme</option>
-                    <option value="dark">Dark Theme</option>
-                    <option value="midnight">Midnight Theme</option>
-                  </select>
-                  <span className={`pointer-events-none absolute inset-y-0 right-2.5 flex items-center ${themeClasses.textMuted}`}>⌄</span>
-                </div>
+          <button
+            onClick={handleStartFullExam}
+            className={`w-full bg-gradient-to-r ${themeClasses.gradient} text-white font-black text-sm px-4 py-4 rounded-2xl shadow-lg ${themeClasses.accentGlow} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2`}
+          >
+            <Icon name="academic" className="w-5 h-5" glow />
+            <span>Take Full Exam</span>
+          </button>
+
+          <div className={`mt-auto pt-5 border-t ${themeClasses.border} space-y-3`}>
+            <button
+              type="button"
+              onClick={() => setShowRatingModal(true)}
+              className="w-full px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-xl text-xs font-bold border border-amber-500/20 transition-all cursor-pointer flex items-center gap-3 text-left"
+            >
+              <Icon name="star" className="w-4 h-4" glow />
+              <span>Rate Us</span>
+            </button>
+
+            <div className={`p-3 rounded-2xl border ${themeClasses.card} space-y-2`}>
+              <div className="flex items-center justify-between">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                  System Status
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-emerald-400">Online</span>
+                </span>
               </div>
-
-              <button
-                onClick={() => handleSelectSidebarTab('support' as any)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer text-left ${
-                  activeTab === 'support' ? themeClasses.activeBg : themeClasses.hoverBg
-                }`}
-              >
-                <Icon name="info" className="w-4 h-4 text-indigo-400" />
-                <span>Support Tickets</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowRatingModal(true)}
-                className="w-full px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-xl text-xs font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-3 text-left shadow-xs"
-              >
-                <Icon name="star" className="w-4 h-4 text-amber-400" />
-                <span>Rate Us</span>
-              </button>
+              <div className="flex items-center gap-2 text-[10px] font-mono">
+                <Icon name="wifi" className="w-3 h-3 text-emerald-400" />
+                <span className={themeClasses.textMuted}>All systems operational</span>
+              </div>
             </div>
           </div>
         </aside>
 
         <main className="flex-1 min-w-0 h-full overflow-y-auto">
-          <div className="w-full max-w-[1400px] mx-auto px-3 sm:px-8 py-5 sm:py-6">
-          {isTimedEvaluationActive && (antiCheatViolations > 0 || !isFullscreen) && (
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs">
-              <div className="flex items-center gap-2 font-semibold text-amber-600"><Icon name="alert-circle" className="w-4 h-4" /><span>Assessment Integrity: {antiCheatViolations} event{antiCheatViolations === 1 ? '' : 's'} detected{!isFullscreen ? ' • Fullscreen required' : ''}</span></div>
-              {!isFullscreen && <button type="button" onClick={requestExamFullscreen} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold">Enter Fullscreen</button>}
-            </div>
-          )}
-          {appMode === 'dashboard' && !selectedModule && activeTab === 'overview' && (
-            <div className="space-y-8 sm:space-y-10 animate-fadeIn">
-              <div className="p-6 sm:p-10 lg:p-12 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-[2rem] space-y-8 shadow-xl relative overflow-hidden flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 border border-slate-800">
-                <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,.35),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,.18),transparent_30%)]" />
-                <div className="space-y-3 max-w-2xl relative z-10 text-center md:text-left">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
-                    <Icon name="sparkles" className="w-3.5 h-3.5" /> Cally Assessment & Certification Portal
+          <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-6">
+            {isTimedEvaluationActive && (antiCheatViolations > 0 || !isFullscreen) && (
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4">
+                <div className="flex items-center gap-3 font-semibold text-amber-400">
+                  <Icon name="alert-circle" className="w-5 h-5" glow />
+                  <span className="text-sm">
+                    Assessment Integrity: {antiCheatViolations} event{antiCheatViolations === 1 ? '' : 's'} detected
+                    {!isFullscreen ? ' • Fullscreen required' : ''}
                   </span>
-                  <h1 className="text-2xl sm:text-4xl font-black">Welcome Back, {userName || 'Candidate'}!</h1>
-                  <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                    Select a module from the left sidebar to practice your skills, or check your <strong>Performance Logs</strong> and official <strong>Full Exam</strong> pathway.
-                  </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-2">
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3"><span className="text-[10px] uppercase tracking-wider text-slate-400">Attempts</span><div className="text-xl font-black">{userScores.length}</div></div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3"><span className="text-[10px] uppercase tracking-wider text-slate-400">Average</span><div className="text-xl font-black">{userScores.length ? Math.round(userScores.reduce((a,c)=>a+(c.score||0),0)/userScores.length) : 0}%</div></div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3"><span className="text-[10px] uppercase tracking-wider text-slate-400">Best</span><div className="text-xl font-black">{userScores.length ? Math.max(...userScores.map(c=>c.score||0)) : 0}%</div></div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3"><span className="text-[10px] uppercase tracking-wider text-slate-400">Certificate</span><div className="text-sm font-black mt-1">{userCertificates.length ? 'Earned' : 'Not yet earned'}</div></div>
-                  </div>
                 </div>
-                <div className="shrink-0 relative z-10 w-full md:w-auto">
+                {!isFullscreen && (
                   <button
-                    onClick={handleStartFullExam}
-                    className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-base px-6 sm:px-8 py-4 rounded-2xl shadow-lg transition cursor-pointer flex items-center justify-center gap-3"
+                    type="button"
+                    onClick={requestExamFullscreen}
+                    className={`px-4 py-2 rounded-xl bg-gradient-to-r ${themeClasses.gradient} text-white font-bold text-xs`}
                   >
-                    <Icon name="academic" className="w-5 h-5" />
-                    <span>Take Full Exam & Download Certificate</span>
+                    Enter Fullscreen
                   </button>
-                </div>
+                )}
               </div>
+            )}
 
-              <div className="space-y-6">
-                <div className={`border-b pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 ${themeClasses.divider}`}>
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-bold">Individual Practice Modules</h2>
-                    <p className={`text-xs ${themeClasses.textMuted}`}>Practice freely module-by-module (No certificate generated)</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
-                  {dashboardFeatures.map((feat) => (
-                    <div
-                      key={feat.id}
-                      className={`border rounded-2xl p-5 sm:p-6 flex flex-col justify-between hover:border-indigo-400 hover:shadow-md transition ${themeClasses.card}`}
+            {appMode === 'dashboard' && !selectedModule && activeTab === 'overview' && (
+              <div className="space-y-8 animate-fadeIn">
+                <div className={`relative overflow-hidden rounded-3xl border p-8 sm:p-12 ${themeClasses.card}`}>
+                  <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 via-transparent to-cyan-500/10" />
+                  <div className="absolute top-0 right-0 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl" />
+                  <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+                  
+                  <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+                    <div className="space-y-4 max-w-2xl">
+                      <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border ${themeClasses.accentSoft}`}>
+                        <Icon name="sparkles" className="w-3.5 h-3.5" glow />
+                        Cally Assessment & Certification Portal
+                      </span>
+                      <h1 className="text-3xl sm:text-4xl font-black">
+                        Welcome Back, <span className={`bg-gradient-to-r ${themeClasses.gradient} bg-clip-text text-transparent`}>{userName || 'Candidate'}</span>!
+                      </h1>
+                      <p className={`text-sm sm:text-base leading-relaxed ${themeClasses.textMuted}`}>
+                        Select a module from the sidebar to practice your skills, or check your <strong className={themeClasses.textPrimary}>Performance Logs</strong> and official <strong className={themeClasses.textPrimary}>Full Exam</strong> pathway.
+                      </p>
+                    </div>
+                    
+                    <button
+                      onClick={handleStartFullExam}
+                      className={`shrink-0 w-full lg:w-auto bg-gradient-to-r ${themeClasses.gradient} text-white font-black text-sm px-8 py-5 rounded-2xl shadow-xl ${themeClasses.accentGlow} transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-3`}
                     >
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-500">
-                            <Icon name={feat.icon} className="w-6 h-6" />
-                          </div>
-                          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${feat.color}`}>
-                            {feat.tag}
+                      <Icon name="academic" className="w-6 h-6" glow />
+                      <span>Take Full Exam</span>
+                    </button>
+                  </div>
+
+                  <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+                    {[
+                      { label: 'Attempts', value: userScores.length, icon: 'activity', color: 'text-violet-400' },
+                      { label: 'Average', value: `${userScores.length ? Math.round(userScores.reduce((a,c)=>a+(c.score||0),0)/userScores.length) : 0}%`, icon: 'chart', color: 'text-cyan-400' },
+                      { label: 'Best Score', value: `${userScores.length ? Math.max(...userScores.map(c=>c.score||0)) : 0}%`, icon: 'trophy', color: 'text-amber-400' },
+                      { label: 'Certificate', value: userCertificates.length ? 'Earned' : 'Not Yet', icon: 'academic', color: 'text-emerald-400' },
+                    ].map((stat) => (
+                      <div key={stat.label} className={`rounded-2xl border p-4 ${themeClasses.card} backdrop-blur-sm`}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Icon name={stat.icon} className={`w-4 h-4 ${stat.color}`} />
+                          <span className={`text-[10px] uppercase tracking-wider font-bold ${themeClasses.textMuted}`}>
+                            {stat.label}
                           </span>
                         </div>
-                        <div className="space-y-1">
-                          <h3 className="text-base font-bold">{feat.title}</h3>
-                          <p className={`text-xs leading-relaxed ${themeClasses.textMuted}`}>{feat.description}</p>
+                        <div className="text-2xl font-black">{stat.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className={`border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 ${themeClasses.border}`}>
+                    <div>
+                      <h2 className="text-xl font-bold">Individual Practice Modules</h2>
+                      <p className={`text-sm ${themeClasses.textMuted}`}>Practice freely module-by-module (No certificate generated)</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+                    {dashboardFeatures.map((feat, idx) => (
+                      <div
+                        key={feat.id}
+                        className={`group relative overflow-hidden rounded-2xl border p-6 flex flex-col justify-between transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${themeClasses.card} ${themeClasses.cardHover}`}
+                        style={{ animationDelay: `${idx * 100}ms` }}
+                      >
+                        <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${feat.gradient} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`} />
+                        
+                        <div className="relative z-10 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className={`p-3 rounded-xl bg-gradient-to-br ${feat.gradient} shadow-lg ${feat.glow}`}>
+                              <Icon name={feat.icon} className="w-6 h-6 text-white" glow />
+                            </div>
+                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${themeClasses.accentSoft}`}>
+                              {feat.tag}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            <h3 className="text-base font-bold">{feat.title}</h3>
+                            <p className={`text-xs leading-relaxed ${themeClasses.textMuted}`}>{feat.description}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="relative z-10 pt-6">
+                          <button
+                            onClick={() => handleStartDashboardModule(feat.id)}
+                            className={`w-full py-3 px-4 rounded-xl text-xs font-bold text-white transition-all duration-300 cursor-pointer bg-gradient-to-r ${feat.gradient} shadow-lg ${feat.glow} hover:shadow-xl`}
+                          >
+                            Practice Module
+                          </button>
                         </div>
                       </div>
-                      <div className="pt-6">
-                        <button
-                          onClick={() => handleStartDashboardModule(feat.id)}
-                          className={`w-full min-h-11 py-2.5 px-4 rounded-xl text-xs font-bold text-white transition cursor-pointer touch-manipulation ${feat.btnColor}`}
-                        >
-                          Practice Module
-                        </button>
-                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          </div>
-          )}
+            )}
 
-          {appMode === 'dashboard' && !selectedModule && activeTab === 'support' && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className={`border-b pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${themeClasses.divider}`}>
-              <div>
-                <h2 className="text-lg sm:text-xl font-bold">Helpdesk & Support Tickets</h2>
-                <p className={`text-xs ${themeClasses.textMuted}`}>Submit inquiries, report technical glitches, or request score reviews</p>
-              </div>
-              <button
-                onClick={() => setShowNewTicketModal(true)}
-                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2"
-              >
-                <Icon name="pencil" className="w-4 h-4" />
-                <span>Create New Ticket</span>
-              </button>
-            </div>
-
-    {selectedTicket ? (
-      <div className={`rounded-2xl border p-6 space-y-6 ${themeClasses.card}`}>
-        <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.divider}`}>
-          <div>
-            <button
-              onClick={() => setSelectedTicket(null)}
-              className="text-xs font-bold text-indigo-400 hover:underline mb-2 flex items-center gap-1 cursor-pointer"
-            >
-              <Icon name="arrow-left" className="w-3.5 h-3.5" /> Back to Tickets List
-            </button>
-            <h3 className="text-lg font-bold">{selectedTicket.subject}</h3>
-            <span className={`text-xs ${themeClasses.textMuted} capitalize`}>Category: {selectedTicket.category} &bull; Status: {selectedTicket.status}</span>
-          </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-            selectedTicket.status === 'open' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
-          }`}>
-            {selectedTicket.status}
-          </span>
-        </div>
-
-        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-          {ticketMessages.map((msg, idx) => (
-            <div key={idx} className={`p-4 rounded-2xl space-y-1 ${msg.is_admin ? 'bg-indigo-500/10 border border-indigo-500/20 ml-6' : 'bg-slate-500/5 border border-slate-500/10 mr-6'}`}>
-              <div className={`flex items-center justify-between text-[11px] font-bold ${themeClasses.textMuted}`}>
-                <span>{msg.is_admin ? 'Support Agent' : 'You'}</span>
-                <span>{new Date(msg.created_at).toLocaleString()}</span>
-              </div>
-              <p className="text-sm font-medium leading-relaxed">{msg.message}</p>
-            </div>
-          ))}
-        </div>
-
-        <form onSubmit={handleSendReply} className={`flex gap-3 pt-2 border-t ${themeClasses.divider}`}>
-          <input
-            type="text"
-            required
-            value={replyMessage}
-            onChange={(e) => setReplyMessage(e.target.value)}
-            placeholder="Type your reply message..."
-            className="flex-1 p-3 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-          <button
-            type="submit"
-            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl transition cursor-pointer shrink-0"
-          >
-            Send Reply
-          </button>
-        </form>
-      </div>
-    ) : (
-      <div className={`rounded-2xl border p-6 shadow-xs ${themeClasses.card}`}>
-        {userTickets.length === 0 ? (
-          <div className="text-center py-12 space-y-3">
-            <div className="w-12 h-12 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center mx-auto">
-              <Icon name="info" className="w-6 h-6" />
-            </div>
-            <h4 className="text-base font-bold">No support tickets found</h4>
-            <p className={`text-xs ${themeClasses.textMuted}`}>Have a question or issue? Create a new ticket to get assistance.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${themeClasses.tableHeader}`}>
-                  <th className="pb-3 px-3">Subject</th>
-                  <th className="pb-3 px-3">Category</th>
-                  <th className="pb-3 px-3">Priority</th>
-                  <th className="pb-3 px-3">Status</th>
-                  <th className="pb-3 px-3">Date</th>
-                  <th className="pb-3 px-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-500/10 text-xs sm:text-sm">
-                {userTickets.map((ticket) => (
-                  <tr key={ticket.id} className={`transition ${themeClasses.tableRowHover}`}>
-                    <td className="py-3.5 px-3 font-bold">{ticket.subject}</td>
-                    <td className="py-3.5 px-3 capitalize">{ticket.category}</td>
-                    <td className="py-3.5 px-3 capitalize font-semibold">{ticket.priority}</td>
-                    <td className="py-3.5 px-3">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        ticket.status === 'open' ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
-                      }`}>
-                        {ticket.status}
-                      </span>
-                    </td>
-                    <td className={`py-3.5 px-3 ${themeClasses.textMuted}`}>{new Date(ticket.created_at).toLocaleDateString()}</td>
-                    <td className="py-3.5 px-3 text-right">
-                      <button
-                        onClick={() => handleOpenTicketDetails(ticket)}
-                        className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 font-bold text-xs rounded-lg transition cursor-pointer"
-                      >
-                        View Thread
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    )}
-
-    {showNewTicketModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className={`border rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
-            <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.divider}`}>
-              <h3 className="text-lg font-black">Create Support Ticket</h3>
-              <button
-                onClick={() => setShowNewTicketModal(false)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition cursor-pointer ${themeClasses.hoverBg}`}
-              >
-                <Icon name="x" className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateTicket} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Subject / Issue Summary</label>
-                <input
-                  type="text"
-                  required
-                  value={newTicketSubject}
-                  onChange={(e) => setNewTicketSubject(e.target.value)}
-                  placeholder="e.g., Audio playback error in listening module"
-                  className="w-full p-3.5 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-
-             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Category</label>
-                <div className="relative">
-                  <select
-                    value={newTicketCategory}
-                    onChange={(e) => setNewTicketCategory(e.target.value)}
-                    className={`w-full appearance-none p-3.5 pr-8 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${
-                      theme === 'light' 
-                        ? 'bg-white text-slate-800 border-slate-300' 
-                        : theme === 'midnight' 
-                          ? 'bg-slate-950 text-white border-slate-800' 
-                          : 'bg-slate-900 text-white border-slate-700'
-                    }`}
+            {appMode === 'dashboard' && !selectedModule && activeTab === 'support' && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className={`border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${themeClasses.border}`}>
+                  <div>
+                    <h2 className="text-xl font-bold">Helpdesk & Support Tickets</h2>
+                    <p className={`text-sm ${themeClasses.textMuted}`}>Submit inquiries, report technical glitches, or request score reviews</p>
+                  </div>
+                  <button
+                    onClick={() => setShowNewTicketModal(true)}
+                    className={`px-5 py-3 bg-gradient-to-r ${themeClasses.gradient} text-white font-bold text-xs rounded-xl transition-all duration-300 shadow-lg ${themeClasses.accentGlow} cursor-pointer flex items-center gap-2`}
                   >
-                    <option value="technical">Technical Bug</option>
-                    <option value="scoring">Score Dispute</option>
-                    <option value="account">Account Issue</option>
-                    <option value="general">General Inquiry</option>
-                  </select>
-                  <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center ${themeClasses.textMuted}`}>⌄</span>
-                </div>
-              </div>
-
-                <div className="space-y-1.5">
-                  <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Priority</label>
-                 <select
-                  value={newTicketPriority}
-                  onChange={(e) => setNewTicketPriority(e.target.value)}
-                  className={`w-full appearance-none p-3.5 pr-8 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${
-                    theme === 'light' 
-                      ? 'bg-white text-slate-800 border-slate-300' 
-                      : theme === 'midnight' 
-                        ? 'bg-slate-950 text-white border-slate-800' 
-                        : 'bg-slate-900 text-white border-slate-700'
-                  }`}
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Description / Details</label>
-                <textarea
-                  rows={4}
-                  required
-                  value={newTicketMessage}
-                  onChange={(e) => setNewTicketMessage(e.target.value)}
-                  placeholder="Describe your issue in detail..."
-                  className="w-full p-3.5 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isCreatingTicket}
-                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer"
-              >
-                {isCreatingTicket ? 'Submitting Ticket...' : 'Submit Support Ticket'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  )}
-
-          {appMode === 'dashboard' && !selectedModule && activeTab === 'logs' && (
-            <div className="space-y-6 animate-fadeIn">
-              <div className={`border-b pb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1 ${themeClasses.divider}`}>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-bold">Performance & Historical Improvement Logs</h2>
-                  <p className={`text-xs ${themeClasses.textMuted}`}>Chronological tracking of every test attempt, score evolution, and exam dates</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={refreshUserStats}
-                  disabled={loadingStats}
-                  className="px-3.5 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-50 text-indigo-500 text-xs font-bold rounded-xl transition cursor-pointer border border-indigo-500/20 flex items-center gap-1.5 shrink-0"
-                >
-                  <Icon name="refresh" className="w-3.5 h-3.5" />
-                  <span>{loadingStats ? 'Refreshing...' : 'Refresh Logs'}</span>
-                </button>
-              </div>
-
-              {statsError && (
-                <div className="p-4 rounded-2xl border border-rose-500/20 bg-rose-500/5 flex items-start gap-3">
-                  <Icon name="alert-circle" className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-rose-500">Couldn't load your performance logs</p>
-                    <p className={`text-xs ${themeClasses.textMuted}`}>{statsError}</p>
-                    <p className={`text-[11px] ${themeClasses.textMuted}`}>
-                      This is usually a database permissions (Row Level Security) issue on the
-                      <code className="mx-1 px-1 py-0.5 rounded bg-slate-500/10">module_scores</code>
-                      or
-                      <code className="mx-1 px-1 py-0.5 rounded bg-slate-500/10">certificates</code>
-                      table rather than something wrong with this page.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className={`p-6 rounded-2xl border shadow-xs space-y-2 ${themeClasses.card}`}>
-                  <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Total Test Attempts</span>
-                  <h3 className="text-3xl font-black">{userScores.length}</h3>
-                  <p className={`text-[11px] ${themeClasses.textMuted}`}>Logged practice and exam sessions</p>
+                    <Icon name="plus" className="w-4 h-4" />
+                    <span>Create New Ticket</span>
+                  </button>
                 </div>
 
-                <div className={`p-6 rounded-2xl border shadow-xs space-y-2 ${themeClasses.card}`}>
-                  <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Historical Average Score</span>
-                  <h3 className="text-3xl font-black text-indigo-500">
-                    {userScores.length > 0 
-                      ? Math.round(userScores.reduce((acc, curr) => acc + (curr.score || 0), 0) / userScores.length) 
-                      : 0}%
-                  </h3>
-                  <p className={`text-[11px] ${themeClasses.textMuted}`}>Average across all recorded attempts</p>
-                </div>
+                {selectedTicket ? (
+                  <div className={`rounded-2xl border p-6 space-y-6 ${themeClasses.card}`}>
+                    <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.border}`}>
+                      <div>
+                        <button
+                          onClick={() => setSelectedTicket(null)}
+                          className={`text-xs font-bold ${themeClasses.accent} hover:underline mb-2 flex items-center gap-1 cursor-pointer`}
+                        >
+                          <Icon name="arrow-left" className="w-3.5 h-3.5" /> Back to Tickets List
+                        </button>
+                        <h3 className="text-lg font-bold">{selectedTicket.subject}</h3>
+                        <span className={`text-xs ${themeClasses.textMuted} capitalize`}>
+                          Category: {selectedTicket.category} &bull; Status: {selectedTicket.status}
+                        </span>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                        selectedTicket.status === 'open' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
+                      }`}>
+                        {selectedTicket.status}
+                      </span>
+                    </div>
 
-                <div className={`p-6 rounded-2xl border shadow-xs space-y-2 ${themeClasses.card}`}>
-                  <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Best Performance</span>
-                  <h3 className="text-3xl font-black text-emerald-500">
-                    {userScores.length > 0 ? Math.max(...userScores.map(item => item.score || 0)) : 0}%
-                  </h3>
-                  <p className={`text-[11px] ${themeClasses.textMuted}`}>Highest score achieved in a single log</p>
-                </div>
-              </div>
+                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                      {ticketMessages.map((msg, idx) => (
+                        <div key={idx} className={`p-4 rounded-2xl space-y-2 ${
+                          msg.is_admin 
+                            ? `${themeClasses.accentSoft} ml-6` 
+                            : `bg-slate-500/5 border ${themeClasses.border} mr-6`
+                        }`}>
+                          <div className={`flex items-center justify-between text-[11px] font-bold ${themeClasses.textMuted}`}>
+                            <span>{msg.is_admin ? 'Support Agent' : 'You'}</span>
+                            <span>{new Date(msg.created_at).toLocaleString()}</span>
+                          </div>
+                          <p className="text-sm font-medium leading-relaxed">{msg.message}</p>
+                        </div>
+                      ))}
+                    </div>
 
-              <div className={`rounded-2xl border p-6 sm:p-8 shadow-xs space-y-4 ${themeClasses.card}`}>
-                <h3 className="text-base font-bold">Attempt Progress Timeline & Dates</h3>
-                
-                {loadingStats ? (
-                  <div className={`text-center py-8 font-bold text-xs sm:text-sm ${themeClasses.textMuted}`}>
-                    Loading historical progress logs...
-                  </div>
-                ) : userScores.length === 0 ? (
-                  <div className={`text-center py-8 text-xs sm:text-sm ${themeClasses.textMuted}`}>
-                    {statsError
-                      ? 'Logs could not be loaded due to the error above.'
-                      : 'No test attempts logged yet. Complete a practice module or full exam to start tracking your progress!'}
+                    <form onSubmit={handleSendReply} className={`flex gap-3 pt-4 border-t ${themeClasses.border}`}>
+                      <input
+                        type="text"
+                        required
+                        value={replyMessage}
+                        onChange={(e) => setReplyMessage(e.target.value)}
+                        placeholder="Type your reply message..."
+                        className={`flex-1 p-4 rounded-xl border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 ${themeClasses.border}`}
+                      />
+                      <button
+                        type="submit"
+                        className={`px-6 py-4 bg-gradient-to-r ${themeClasses.gradient} text-white font-bold text-sm rounded-xl transition cursor-pointer shrink-0`}
+                      >
+                        Send
+                      </button>
+                    </form>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${themeClasses.tableHeader}`}>
-                          <th className="pb-3 px-3">Date Taken</th>
-                          <th className="pb-3 px-3">Module</th>
-                          <th className="pb-3 px-3">Score</th>
-                          <th className="pb-3 px-3">Status / Improvement</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-500/10 text-xs sm:text-sm">
-                        {userScores.map((log, index) => {
-                          const formattedDate = log.created_at ? new Date(log.created_at).toLocaleString() : new Date().toLocaleString();
-                          const previousAttempt = userScores.slice(index + 1).find(item => item.module_name === log.module_name);
-                          const diff = previousAttempt ? log.score - previousAttempt.score : null;
-
-                          return (
-                            <tr key={log.id || index} className={`transition ${themeClasses.tableRowHover}`}>
-                              <td className={`py-3 px-3 font-medium ${themeClasses.textMuted}`}>{formattedDate}</td>
-                              <td className="py-3 px-3 font-bold capitalize">{log.module_name}</td>
-                              <td className="py-3 px-3 font-black text-indigo-500">{log.score}%</td>
-                              <td className="py-3 px-3">
-                                {diff !== null ? (
-                                  <span className={`inline-flex items-center gap-1.5 font-bold px-2.5 py-1 rounded-full text-[11px] ${
-                                    diff > 0 ? 'bg-emerald-500/10 text-emerald-500' : diff < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-slate-500/10 text-slate-400'
-                                  }`}>
-                                    {diff > 0 ? <Icon name="trending" className="w-3.5 h-3.5" /> : diff < 0 ? <Icon name="trending-down" className="w-3.5 h-3.5" /> : <Icon name="scale" className="w-3.5 h-3.5" />}
-                                    {diff > 0 ? `+${diff}% improvement` : diff < 0 ? `${diff}% drop` : 'No change'}
-                                  </span>
-                                ) : (
-                                  <span className={`italic text-[11px] ${themeClasses.textMuted}`}>First recorded attempt</span>
-                                )}
-                              </td>
+                  <div className={`rounded-2xl border p-8 ${themeClasses.card}`}>
+                    {userTickets.length === 0 ? (
+                      <div className="text-center py-16 space-y-4">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto ${themeClasses.accentSoft}`}>
+                          <Icon name="info" className="w-8 h-8" glow />
+                        </div>
+                        <h4 className="text-lg font-bold">No support tickets found</h4>
+                        <p className={`text-sm ${themeClasses.textMuted}`}>
+                          Have a question or issue? Create a new ticket to get assistance.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${themeClasses.border} ${themeClasses.textMuted}`}>
+                              <th className="pb-4 px-4">Subject</th>
+                              <th className="pb-4 px-4">Category</th>
+                              <th className="pb-4 px-4">Priority</th>
+                              <th className="pb-4 px-4">Status</th>
+                              <th className="pb-4 px-4">Date</th>
+                              <th className="pb-4 px-4 text-right">Action</th>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                          </thead>
+                          <tbody className="divide-y divide-slate-500/10 text-sm">
+                            {userTickets.map((ticket) => (
+                              <tr key={ticket.id} className={`transition ${themeClasses.cardHover}`}>
+                                <td className="py-4 px-4 font-bold">{ticket.subject}</td>
+                                <td className="py-4 px-4 capitalize">{ticket.category}</td>
+                                <td className="py-4 px-4 capitalize font-semibold">{ticket.priority}</td>
+                                <td className="py-4 px-4">
+                                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                    ticket.status === 'open' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
+                                  }`}>
+                                    {ticket.status}
+                                  </span>
+                                </td>
+                                <td className={`py-4 px-4 ${themeClasses.textMuted}`}>
+                                  {new Date(ticket.created_at).toLocaleDateString()}
+                                </td>
+                                <td className="py-4 px-4 text-right">
+                                  <button
+                                    onClick={() => handleOpenTicketDetails(ticket)}
+                                    className={`px-4 py-2 rounded-lg font-bold text-xs transition cursor-pointer ${themeClasses.accentSoft}`}
+                                  >
+                                    View Thread
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {showNewTicketModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fadeIn">
+                    <div className={`border rounded-3xl max-w-lg w-full p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
+                      <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.border}`}>
+                        <h3 className="text-xl font-black">Create Support Ticket</h3>
+                        <button
+                          onClick={() => setShowNewTicketModal(false)}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer ${themeClasses.cardHover}`}
+                        >
+                          <Icon name="x" className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <form onSubmit={handleCreateTicket} className="space-y-5">
+                        <div className="space-y-2">
+                          <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                            Subject / Issue Summary
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={newTicketSubject}
+                            onChange={(e) => setNewTicketSubject(e.target.value)}
+                            placeholder="e.g., Audio playback error in listening module"
+                            className={`w-full p-4 rounded-xl border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 ${themeClasses.border}`}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Category</label>
+                            <select
+                              value={newTicketCategory}
+                              onChange={(e) => setNewTicketCategory(e.target.value)}
+                              className={`w-full p-4 rounded-xl border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer ${themeClasses.border}`}
+                            >
+                              <option value="technical">Technical Bug</option>
+                              <option value="scoring">Score Dispute</option>
+                              <option value="account">Account Issue</option>
+                              <option value="general">General Inquiry</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Priority</label>
+                            <select
+                              value={newTicketPriority}
+                              onChange={(e) => setNewTicketPriority(e.target.value)}
+                              className={`w-full p-4 rounded-xl border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 cursor-pointer ${themeClasses.border}`}
+                            >
+                              <option value="low">Low</option>
+                              <option value="medium">Medium</option>
+                              <option value="high">High</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                            Description / Details
+                          </label>
+                          <textarea
+                            rows={5}
+                            required
+                            value={newTicketMessage}
+                            onChange={(e) => setNewTicketMessage(e.target.value)}
+                            placeholder="Describe your issue in detail..."
+                            className={`w-full p-4 rounded-xl border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 leading-relaxed ${themeClasses.border}`}
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          disabled={isCreatingTicket}
+                          className={`w-full py-4 bg-gradient-to-r ${themeClasses.gradient} disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-lg cursor-pointer`}
+                        >
+                          {isCreatingTicket ? 'Submitting Ticket...' : 'Submit Support Ticket'}
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
 
-          {appMode === 'full_exam' && examStepIndex === 5 && (
-            certificateEligible ? (
-            <div className="space-y-6 sm:space-y-8 max-w-[1300px] mx-auto text-center animate-fadeIn">
-              <div className="p-3 sm:p-6 bg-slate-100 rounded-3xl border border-slate-200 shadow-xl flex justify-center items-center overflow-hidden w-full">
-                <div className="w-full overflow-hidden flex justify-center py-2 sm:py-0">
-                  <div className="w-[1100px] h-[778px] sm:h-auto shrink-0 origin-top transform scale-[0.38] min-[360px]:scale-[0.42] min-[400px]:scale-[0.47] min-[500px]:scale-[0.58] min-[640px]:scale-[0.75] md:scale-[0.88] lg:scale-100 transition-transform">
-                    <div
-                      id="certificate-to-download"
-                      style={{
-                        width: '1100px',
-                        backgroundColor: '#fbf9f4',
-                        border: '16px solid #1e293b',
-                        padding: '40px 60px',
-                        boxSizing: 'border-box',
-                        position: 'relative',
-                        margin: '0 auto',
-                        textAlign: 'left',
-                      }}
-                    >
-                      <div style={{ border: '2px solid #b45309', padding: '30px 40px', position: 'relative' }}>
-                        <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                          <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '3px', color: '#1e293b', fontWeight: '700' }}>
-                            Cally Assessment Systems
+            {appMode === 'dashboard' && !selectedModule && activeTab === 'logs' && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className={`border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${themeClasses.border}`}>
+                  <div>
+                    <h2 className="text-xl font-bold">Performance & Historical Improvement Logs</h2>
+                    <p className={`text-sm ${themeClasses.textMuted}`}>
+                      Chronological tracking of every test attempt, score evolution, and exam dates
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={refreshUserStats}
+                    disabled={loadingStats}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center gap-2 shrink-0 ${themeClasses.accentSoft} disabled:opacity-50`}
+                  >
+                    <Icon name="refresh" className={`w-3.5 h-3.5 ${loadingStats ? 'animate-spin' : ''}`} />
+                    <span>{loadingStats ? 'Refreshing...' : 'Refresh Logs'}</span>
+                  </button>
+                </div>
+
+                {statsError && (
+                  <div className="p-5 rounded-2xl border border-rose-500/20 bg-rose-500/5 flex items-start gap-4">
+                    <Icon name="alert-circle" className="w-6 h-6 text-rose-400 shrink-0 mt-0.5" glow />
+                    <div className="space-y-1">
+                      <p className="text-sm font-bold text-rose-400">Couldn't load your performance logs</p>
+                      <p className={`text-xs ${themeClasses.textMuted}`}>{statsError}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  {[
+                    { label: 'Total Test Attempts', value: userScores.length, sub: 'Logged practice and exam sessions', color: 'text-violet-400' },
+                    { label: 'Historical Average Score', value: `${userScores.length > 0 ? Math.round(userScores.reduce((acc, curr) => acc + (curr.score || 0), 0) / userScores.length) : 0}%`, sub: 'Average across all recorded attempts', color: 'text-cyan-400' },
+                    { label: 'Best Performance', value: `${userScores.length > 0 ? Math.max(...userScores.map(item => item.score || 0)) : 0}%`, sub: 'Highest score achieved in a single log', color: 'text-emerald-400' },
+                  ].map((stat) => (
+                    <div key={stat.label} className={`p-6 rounded-2xl border shadow-lg ${themeClasses.card}`}>
+                      <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                        {stat.label}
+                      </span>
+                      <h3 className={`text-3xl font-black mt-2 ${stat.color}`}>{stat.value}</h3>
+                      <p className={`text-[11px] mt-1 ${themeClasses.textMuted}`}>{stat.sub}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className={`rounded-2xl border p-6 sm:p-8 shadow-lg space-y-5 ${themeClasses.card}`}>
+                  <h3 className="text-lg font-bold">Attempt Progress Timeline & Dates</h3>
+                  
+                  {loadingStats ? (
+                    <div className={`text-center py-12 font-bold text-sm ${themeClasses.textMuted}`}>
+                      Loading historical progress logs...
+                    </div>
+                  ) : userScores.length === 0 ? (
+                    <div className={`text-center py-12 text-sm ${themeClasses.textMuted}`}>
+                      {statsError
+                        ? 'Logs could not be loaded due to the error above.'
+                        : 'No test attempts logged yet. Complete a practice module or full exam to start tracking your progress!'}
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${themeClasses.border} ${themeClasses.textMuted}`}>
+                            <th className="pb-4 px-4">Date Taken</th>
+                            <th className="pb-4 px-4">Module</th>
+                            <th className="pb-4 px-4">Score</th>
+                            <th className="pb-4 px-4">Status / Improvement</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-500/10 text-sm">
+                          {userScores.map((log, index) => {
+                            const formattedDate = log.created_at ? new Date(log.created_at).toLocaleString() : new Date().toLocaleString();
+                            const previousAttempt = userScores.slice(index + 1).find(item => item.module_name === log.module_name);
+                            const diff = previousAttempt ? log.score - previousAttempt.score : null;
+
+                            return (
+                              <tr key={log.id || index} className={`transition ${themeClasses.cardHover}`}>
+                                <td className={`py-4 px-4 font-medium ${themeClasses.textMuted}`}>{formattedDate}</td>
+                                <td className="py-4 px-4 font-bold capitalize">{log.module_name}</td>
+                                <td className={`py-4 px-4 font-black ${themeClasses.accent}`}>{log.score}%</td>
+                                <td className="py-4 px-4">
+                                  {diff !== null ? (
+                                    <span className={`inline-flex items-center gap-2 font-bold px-3 py-1.5 rounded-full text-[11px] ${
+                                      diff > 0 ? 'bg-emerald-500/10 text-emerald-400' : diff < 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-500/10 text-slate-400'
+                                    }`}>
+                                      {diff > 0 ? <Icon name="trending" className="w-3.5 h-3.5" /> : diff < 0 ? <Icon name="trending-down" className="w-3.5 h-3.5" /> : <Icon name="scale" className="w-3.5 h-3.5" />}
+                                      {diff > 0 ? `+${diff}% improvement` : diff < 0 ? `${diff}% drop` : 'No change'}
+                                    </span>
+                                  ) : (
+                                    <span className={`italic text-[11px] ${themeClasses.textMuted}`}>First recorded attempt</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {appMode === 'full_exam' && examStepIndex === 5 && (
+              certificateEligible ? (
+                <div className="space-y-8 max-w-[1300px] mx-auto text-center animate-fadeIn">
+                  <div className={`p-6 rounded-3xl border shadow-2xl flex justify-center items-center overflow-hidden w-full ${themeClasses.card}`}>
+                    <div className="w-full overflow-hidden flex justify-center py-4">
+                      <div className="w-[1100px] h-[778px] sm:h-auto shrink-0 origin-top transform scale-[0.38] min-[360px]:scale-[0.42] min-[400px]:scale-[0.47] min-[500px]:scale-[0.58] min-[640px]:scale-[0.75] md:scale-[0.88] lg:scale-100 transition-transform">
+                        <div
+                          id="certificate-to-download"
+                          style={{
+                            width: '1100px',
+                            backgroundColor: '#fbf9f4',
+                            border: '16px solid #1e293b',
+                            padding: '40px 60px',
+                            boxSizing: 'border-box',
+                            position: 'relative',
+                            margin: '0 auto',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <div style={{ border: '2px solid #b45309', padding: '30px 40px', position: 'relative' }}>
+                            <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                              <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '3px', color: '#1e293b', fontWeight: '700' }}>
+                                Cally Assessment Systems
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#78350f', marginTop: '3px', fontWeight: '600' }}>EST. 2026</div>
+                            </div>
+
+                            <h1 style={{ fontSize: '38px', fontWeight: '800', color: '#78350f', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '2px', margin: '10px 0 5px 0', fontFamily: 'serif' }}>
+                              Certificate of Achievement
+                            </h1>
+                            <div style={{ fontSize: '13px', color: '#1e293b', textAlign: 'center', marginBottom: '20px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px' }}>
+                              Official Verification of Professional BPO Competency
+                            </div>
+
+                            <div style={{ fontSize: '14px', color: '#475569', textAlign: 'center', fontStyle: 'italic', marginBottom: '5px' }}>This is to certify that</div>
+                            <div style={{ fontSize: '36px', fontWeight: '700', color: '#1e293b', textAlign: 'center', margin: '0 auto 15px auto', paddingBottom: '4px', borderBottom: '2px solid #cbd5e1', display: 'table', fontFamily: 'serif' }}>
+                              {userName || 'Candidate'}
+                            </div>
+
+                            <p style={{ fontSize: '13px', color: '#334155', textAlign: 'center', maxWidth: '800px', margin: '0 auto 20px auto', lineHeight: '1.5' }}>
+                              has successfully demonstrated exceptional proficiency across all official Cally assessment modules, showcasing linguistic mastery, professional communication skills, and technical competency required for the Business Process Outsourcing (BPO) industry.
+                            </p>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 30px', maxWidth: '850px', margin: '0 auto 25px auto', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                              <div>Listening & Dictation ({examScores.listening}%)</div>
+                              <div>Speaking Simulation ({examScores.speaking}%)</div>
+                              <div>Reading & Grammar ({examScores.reading}%)</div>
+                              <div>Chat & Typing Accuracy ({examScores.typing}%) &bull; Speed: {wpm} WPM</div>
+                              <div>Business Writing Composition ({examScores.writing}%)</div>
+                              <div style={{ color: '#b45309', fontWeight: '700' }}>Final Cumulative Rating: ({overallExamAverage}%)</div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: '20px', marginTop: '10px' }}>
+                              <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
+                                Authorized Electronic Validation
+                              </div>
+
+                              <div style={{ width: '70px', height: '70px', background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)', color: '#ffffff', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '3px double #fef3c7', textAlign: 'center', fontSize: '8px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                <span>Official</span>
+                                <span>Verified</span>
+                              </div>
+
+                              <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
+                                Cally Authority
+                              </div>
+                            </div>
+
+                            <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#64748b', fontWeight: '600', letterSpacing: '1px' }}>
+                              DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [{generatedCertificateCode}]
+                            </div>
                           </div>
-                          <div style={{ fontSize: '11px', color: '#78350f', marginTop: '3px', fontWeight: '600' }}>EST. 2026</div>
-                        </div>
-
-                        <h1 style={{ fontSize: '38px', fontWeight: '800', color: '#78350f', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '2px', margin: '10px 0 5px 0', fontFamily: 'serif' }}>
-                          Certificate of Achievement
-                        </h1>
-                        <div style={{ fontSize: '13px', color: '#1e293b', textAlign: 'center', marginBottom: '20px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px' }}>
-                          Official Verification of Professional BPO Competency
-                        </div>
-
-                        <div style={{ fontSize: '14px', color: '#475569', textAlign: 'center', fontStyle: 'italic', marginBottom: '5px' }}>This is to certify that</div>
-                        <div style={{ fontSize: '36px', fontWeight: '700', color: '#1e293b', textAlign: 'center', margin: '0 auto 15px auto', paddingBottom: '4px', borderBottom: '2px solid #cbd5e1', display: 'table', fontFamily: 'serif' }}>
-                          {userName || 'Candidate'}
-                        </div>
-
-                        <p style={{ fontSize: '13px', color: '#334155', textAlign: 'center', maxWidth: '800px', margin: '0 auto 20px auto', lineHeight: '1.5' }}>
-                          has successfully demonstrated exceptional proficiency across all official Cally assessment modules, showcasing linguistic mastery, professional communication skills, and technical competency required for the Business Process Outsourcing (BPO) industry.
-                        </p>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 30px', maxWidth: '850px', margin: '0 auto 25px auto', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
-                          <div>Listening & Dictation ({examScores.listening}%)</div>
-                          <div>Speaking Simulation ({examScores.speaking}%)</div>
-                          <div>Reading & Grammar ({examScores.reading}%)</div>
-                          <div>Chat & Typing Accuracy ({examScores.typing}%) &bull; Speed: {wpm} WPM</div>
-                          <div>Business Writing Composition ({examScores.writing}%)</div>
-                          <div style={{ color: '#b45309', fontWeight: '700' }}>Final Cumulative Rating: ({overallExamAverage}%)</div>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: '20px', marginTop: '10px' }}>
-                          <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
-                            Authorized Electronic Validation
-                          </div>
-
-                          <div style={{ width: '70px', height: '70px', background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)', color: '#ffffff', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '3px double #fef3c7', textAlign: 'center', fontSize: '8px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            <span>Official</span>
-                            <span>Verified</span>
-                          </div>
-
-                          <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
-                            Cally Authority
-                          </div>
-                        </div>
-
-                        <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#64748b', fontWeight: '600', letterSpacing: '1px' }}>
-                          DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [{generatedCertificateCode}]
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              <div className={`p-6 sm:p-8 border rounded-3xl space-y-6 shadow-xl ${themeClasses.card}`}>
-                <div className="space-y-2">
-                  <h2 className="text-xl sm:text-2xl font-black">Exam Finished Successfully!</h2>
-                  <p className={`text-xs sm:text-sm ${themeClasses.textMuted}`}>Your verified Cally certificate file (.pdf) is ready for download.</p>
-                </div>
-
-                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <button
-                    disabled={isDownloadingPdf}
-                    onClick={handleDownloadPDF}
-                    className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-8 py-3.5 rounded-xl transition shadow-md cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <Icon name="download" className="w-4 h-4" />
-                    <span>{isDownloadingPdf ? 'Generating .pdf file...' : 'Download Certificate (.pdf)'}</span>
-                  </button>
-                  <button
-                    onClick={handleBackToDashboard}
-                    className={`w-full sm:w-auto font-bold text-sm px-6 py-3.5 rounded-xl transition cursor-pointer ${themeClasses.hoverBg}`}
-                  >
-                    Return to Dashboard
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="max-w-2xl mx-auto text-center animate-fadeIn">
-              <div className={`p-8 sm:p-12 rounded-3xl border shadow-xl ${themeClasses.card}`}>
-                <div className="mx-auto w-20 h-20 rounded-3xl bg-rose-500/10 text-rose-500 flex items-center justify-center mb-5"><Icon name="alert-circle" className="w-10 h-10" /></div>
-                <h2 className="text-2xl sm:text-3xl font-black">Certificate Not Available</h2>
-                <p className={`mt-3 text-sm leading-relaxed ${themeClasses.textMuted}`}>Your final cumulative rating is <strong className="text-rose-500">{overallExamAverage}%</strong>. You do not qualify for a certificate of exceptional proficiency across all official Cally assessment modules.
-                </p>
-                <p className={`mt-2 text-xs ${themeClasses.textMuted}`}>A minimum final cumulative rating of 80% is required to receive the certificate.</p>
-                <button onClick={handleRetakeAssessment} className="mt-7 w-full sm:w-auto px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-md transition">Retake Assessment</button>
-              </div>
-            </div>
-          )
-          )}
-
-          {selectedModule && (appMode === 'dashboard' || (appMode === 'full_exam' && examStepIndex < 5)) && (
-            <div className="space-y-4 sm:space-y-6 max-w-[1400px] mx-auto">
-              <div className={`rounded-2xl border p-3.5 sm:p-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-xs ${themeClasses.card}`}>
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
-                  <button
-                    onClick={handleBackToDashboard}
-                    className={`flex-1 sm:flex-none px-3.5 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2 ${themeClasses.hoverBg}`}
-                  >
-                    <Icon name="arrow-left" className="w-4 h-4" />
-                    <span>Back to Dashboard</span>
-                  </button>
-                  {appMode === 'dashboard' && selectedModule && (
-                    <button
-                      onClick={() => generateTest(selectedModule)}
-                      className="flex-1 sm:flex-none px-3.5 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold rounded-xl transition cursor-pointer border border-indigo-500/30 flex items-center justify-center gap-1.5"
-                    >
-                      <Icon name="refresh" className="w-4 h-4" />
-                      <span>Generate New Test</span>
-                    </button>
-                  )}
-                </div>
-                <div className="text-left sm:text-right w-full sm:w-auto px-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-indigo-500 block">
-                    {appMode === 'full_exam' ? `Full Exam Step ${examStepIndex + 1} of 5` : 'Individual Practice Mode'}
-                  </span>
-                  <h2 className="text-base sm:text-lg font-bold capitalize">{selectedModule} Module</h2>
-                </div>
-              </div>
-
-              {selectedModule === 'speaking' && (
-                <div className={`rounded-2xl border p-3 sm:p-8 shadow-xs ${themeClasses.card}`}>
-                  <SpeakingRecorder
-                    key={speakingPrompts[0] || 'speaking-default'}
-                    prompts={speakingPrompts}
-                    onComplete={handleSpeakingComplete}
-                  />
-                </div>
-              )}
-
-              {selectedModule === 'writing' && (
-                <div className={`rounded-2xl border p-5 sm:p-8 shadow-xs space-y-6 ${themeClasses.card}`}>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-bold">
-                      <span className={themeClasses.textMuted}>
-                        Writing Step {writingSubIndex + 1} of {writingSubPrompts.length || 1}
-                      </span>
-                      <span className="text-indigo-500">
-                        {writingDrafts.filter(d => d.trim().length > 0).length} / {writingSubPrompts.length || 1} completed
-                      </span>
+                  <div className={`p-8 border rounded-3xl space-y-6 shadow-2xl ${themeClasses.card}`}>
+                    <div className="space-y-2">
+                      <h2 className="text-2xl font-black">Exam Finished Successfully!</h2>
+                      <p className={`text-sm ${themeClasses.textMuted}`}>
+                        Your verified Cally certificate file (.pdf) is ready for download.
+                      </p>
                     </div>
-                    <div className="w-full h-2 bg-slate-500/20 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-500 transition-all duration-500"
-                        style={{
-                          width: `${((writingSubIndex + 1) / Math.max(writingSubPrompts.length, 1)) * 100}%`,
-                        }}
-                      />
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                      <button
+                        disabled={isDownloadingPdf}
+                        onClick={handleDownloadPDF}
+                        className={`w-full sm:w-auto bg-gradient-to-r ${themeClasses.gradient} disabled:opacity-50 text-white font-bold text-sm px-8 py-4 rounded-xl transition-all duration-300 shadow-xl ${themeClasses.accentGlow} cursor-pointer flex items-center justify-center gap-2`}
+                      >
+                        <Icon name="download" className="w-5 h-5" glow />
+                        <span>{isDownloadingPdf ? 'Generating .pdf file...' : 'Download Certificate (.pdf)'}</span>
+                      </button>
+                      <button
+                        onClick={handleBackToDashboard}
+                        className={`w-full sm:w-auto font-bold text-sm px-6 py-4 rounded-xl transition cursor-pointer border ${themeClasses.border} ${themeClasses.cardHover}`}
+                      >
+                        Return to Dashboard
+                      </button>
                     </div>
                   </div>
-
-                  <div className="p-4 sm:p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl space-y-2">
-                    <span className="text-xs font-bold text-indigo-400 uppercase block">
-                      Step {writingSubIndex + 1} Prompt:
-                    </span>
-                    <p className="text-sm sm:text-base font-medium whitespace-pre-line">
-                      {writingSubPrompts[writingSubIndex] || writingPrompt}
+                </div>
+              ) : (
+                <div className="max-w-2xl mx-auto text-center animate-fadeIn">
+                  <div className={`p-12 rounded-3xl border shadow-2xl ${themeClasses.card}`}>
+                    <div className="mx-auto w-20 h-20 rounded-3xl bg-rose-500/10 text-rose-400 flex items-center justify-center mb-6">
+                      <Icon name="alert-circle" className="w-10 h-10" glow />
+                    </div>
+                    <h2 className="text-3xl font-black">Certificate Not Available</h2>
+                    <p className={`mt-4 text-sm leading-relaxed ${themeClasses.textMuted}`}>
+                      Your final cumulative rating is <strong className="text-rose-400">{overallExamAverage}%</strong>. 
+                      You do not qualify for a certificate of exceptional proficiency across all official Cally assessment modules.
                     </p>
-                  </div>
-
-                  <textarea
-                    rows={8}
-                    value={writingDrafts[writingSubIndex] ?? ''}
-                    onChange={(e) => {
-                      const updated = [...writingDrafts];
-                      updated[writingSubIndex] = e.target.value;
-                      setWritingDrafts(updated);
-                      setWritingText(updated.filter(Boolean).join('\n\n'));
-                    }}
-                    placeholder="Type your response for this step..."
-                    className="w-full p-4 border border-slate-500/30 bg-transparent rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
-
-                  <div className="flex items-center justify-between text-xs">
-                    <span className={themeClasses.textMuted}>
-                      {(writingDrafts[writingSubIndex] ?? '').trim()
-                        ? (writingDrafts[writingSubIndex] ?? '').trim().split(/\s+/).length
-                        : 0}{' '}
-                      words this step
-                    </span>
-                    <span className={themeClasses.textMuted}>
-                      Total: {writingText.trim() ? writingText.trim().split(/\s+/).length : 0} words
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <p className={`mt-2 text-xs ${themeClasses.textMuted}`}>
+                      A minimum final cumulative rating of 80% is required to receive the certificate.
+                    </p>
                     <button
-                      type="button"
-                      onClick={() => setWritingSubIndex((i) => Math.max(0, i - 1))}
-                      disabled={writingSubIndex === 0}
-                      className={`w-full sm:w-auto px-5 py-3 text-sm font-bold rounded-xl transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${themeClasses.hoverBg}`}
+                      onClick={handleRetakeAssessment}
+                      className={`mt-8 w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r ${themeClasses.gradient} text-white font-bold text-sm shadow-xl transition-all duration-300 hover:scale-[1.02]`}
+                    >
+                      Retake Assessment
+                    </button>
+                  </div>
+                </div>
+              )
+            )}
+
+            {selectedModule && (appMode === 'dashboard' || (appMode === 'full_exam' && examStepIndex < 5)) && (
+              <div className="space-y-6 max-w-[1400px] mx-auto">
+                <div className={`rounded-2xl border p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 shadow-lg ${themeClasses.card}`}>
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                    <button
+                      onClick={handleBackToDashboard}
+                      className={`flex-1 sm:flex-none px-4 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
                     >
                       <Icon name="arrow-left" className="w-4 h-4" />
-                      <span>Previous Step</span>
+                      <span>Back to Dashboard</span>
                     </button>
-
-                    {writingSubIndex < writingSubPrompts.length - 1 ? (
+                    {appMode === 'dashboard' && selectedModule && (
                       <button
-                        type="button"
-                        onClick={() => setWritingSubIndex((i) => Math.min(writingSubPrompts.length - 1, i + 1))}
-                        disabled={!(writingDrafts[writingSubIndex] ?? '').trim()}
-                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
+                        onClick={() => generateTest(selectedModule)}
+                        className={`flex-1 sm:flex-none px-4 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${themeClasses.accentSoft}`}
                       >
-                        <span>Next Step</span>
-                        <span>→</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleSubmitWriting}
-                        disabled={isEvaluatingWriting || !writingText.trim()}
-                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        <span>{isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}</span>
+                        <Icon name="refresh" className="w-4 h-4" />
+                        <span>New Test</span>
                       </button>
                     )}
                   </div>
+                  <div className="text-left sm:text-right w-full sm:w-auto">
+                    <span className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.accent}`}>
+                      {appMode === 'full_exam' ? `Full Exam Step ${examStepIndex + 1} of 5` : 'Individual Practice Mode'}
+                    </span>
+                    <h2 className="text-lg font-bold capitalize">{selectedModule} Module</h2>
+                  </div>
+                </div>
 
-                  {isEvaluatingWriting && (
-                    <div className="p-5 text-center space-y-3 bg-slate-500/5 rounded-2xl border border-slate-500/10">
-                      <svg className="animate-spin h-6 w-6 text-indigo-500 mx-auto" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span className="text-xs font-bold uppercase tracking-wider block">Analyzing your writing...</span>
+                {selectedModule === 'speaking' && (
+                  <div className={`rounded-3xl border p-6 sm:p-8 shadow-xl ${themeClasses.card}`}>
+                    <SpeakingRecorder
+                      key={speakingPrompts[0] || 'speaking-default'}
+                      prompts={speakingPrompts}
+                      onComplete={handleSpeakingComplete}
+                    />
+                  </div>
+                )}
+
+                {selectedModule === 'writing' && (
+                  <div className={`rounded-3xl border p-6 sm:p-8 shadow-xl space-y-6 ${themeClasses.card}`}>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-xs font-bold">
+                        <span className={themeClasses.textMuted}>
+                          Writing Step {writingSubIndex + 1} of {writingSubPrompts.length || 1}
+                        </span>
+                        <span className={themeClasses.accent}>
+                          {writingDrafts.filter(d => d.trim().length > 0).length} / {writingSubPrompts.length || 1} completed
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-500/20 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full bg-gradient-to-r ${themeClasses.gradient} transition-all duration-500`}
+                          style={{
+                            width: `${((writingSubIndex + 1) / Math.max(writingSubPrompts.length, 1)) * 100}%`,
+                          }}
+                        />
+                      </div>
                     </div>
-                  )}
 
-                  {writingEvaluationDetails && !isEvaluatingWriting && (
-                    <div className={`mt-4 pt-6 border-t space-y-6 animate-fadeIn ${themeClasses.divider}`}>
-                      <div className="text-center border-b border-slate-500/10 pb-6">
-                        <p className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
-                          Overall Writing Score
-                        </p>
-                        <p className={`text-5xl font-black mt-2 ${getWritingScoreColor(writingEvaluationDetails.overallScore)}`}>
-                          {writingEvaluationDetails.overallScore}
-                          <span className="text-2xl text-slate-400">/100</span>
-                        </p>
-                        <p className={`mt-3 text-sm max-w-2xl mx-auto leading-relaxed ${themeClasses.textMuted}`}>
-                          {writingEvaluationDetails.feedbackSummary}
-                        </p>
+                    <div className={`p-5 rounded-2xl border ${themeClasses.accentSoft} space-y-2`}>
+                      <span className={`text-xs font-bold uppercase block ${themeClasses.accent}`}>
+                        Step {writingSubIndex + 1} Prompt:
+                      </span>
+                      <p className="text-sm sm:text-base font-medium whitespace-pre-line">
+                        {writingSubPrompts[writingSubIndex] || writingPrompt}
+                      </p>
+                    </div>
+
+                    <textarea
+                      rows={8}
+                      value={writingDrafts[writingSubIndex] ?? ''}
+                      onChange={(e) => {
+                        const updated = [...writingDrafts];
+                        updated[writingSubIndex] = e.target.value;
+                        setWritingDrafts(updated);
+                        setWritingText(updated.filter(Boolean).join('\n\n'));
+                      }}
+                      placeholder="Type your response for this step..."
+                      className={`w-full p-5 border rounded-2xl bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 leading-relaxed ${themeClasses.border}`}
+                    />
+
+                    <div className="flex items-center justify-between text-xs">
+                      <span className={themeClasses.textMuted}>
+                        {(writingDrafts[writingSubIndex] ?? '').trim()
+                          ? (writingDrafts[writingSubIndex] ?? '').trim().split(/\s+/).length
+                          : 0}{' '}
+                        words this step
+                      </span>
+                      <span className={themeClasses.textMuted}>
+                        Total: {writingText.trim() ? writingText.trim().split(/\s+/).length : 0} words
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setWritingSubIndex((i) => Math.max(0, i - 1))}
+                        disabled={writingSubIndex === 0}
+                        className={`w-full sm:w-auto px-6 py-3 text-sm font-bold rounded-xl transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
+                      >
+                        <Icon name="arrow-left" className="w-4 h-4" />
+                        <span>Previous Step</span>
+                      </button>
+
+                      {writingSubIndex < writingSubPrompts.length - 1 ? (
+                        <button
+                          type="button"
+                          onClick={() => setWritingSubIndex((i) => Math.min(writingSubPrompts.length - 1, i + 1))}
+                          disabled={!(writingDrafts[writingSubIndex] ?? '').trim()}
+                          className={`w-full sm:w-auto bg-gradient-to-r ${themeClasses.gradient} disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2`}
+                        >
+                          <span>Next Step</span>
+                          <Icon name="chevron-right" className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleSubmitWriting}
+                          disabled={isEvaluatingWriting || !writingText.trim()}
+                          className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30"
+                        >
+                          <span>{isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {isEvaluatingWriting && (
+                      <div className="p-6 text-center space-y-4 bg-slate-500/5 rounded-2xl border border-slate-500/10">
+                        <svg className="animate-spin h-8 w-8 text-violet-500 mx-auto" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className={`text-sm font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>
+                          Analyzing your writing...
+                        </span>
                       </div>
+                    )}
 
-                      <div className="space-y-4">
-                        <h3 className="text-sm font-bold uppercase tracking-wider">Score Breakdown</h3>
-                        {[
-                          { label: 'Grammar', score: writingEvaluationDetails.grammarScore },
-                          { label: 'Vocabulary', score: writingEvaluationDetails.vocabularyScore },
-                          { label: 'Coherence', score: writingEvaluationDetails.coherenceScore },
-                          { label: 'Task Achievement', score: writingEvaluationDetails.taskAchievementScore },
-                        ].map((cat) => (
-                          <div key={cat.label}>
-                            <div className="flex justify-between text-xs font-bold mb-1">
-                              <span>{cat.label}</span>
-                              <span className={getWritingScoreColor(cat.score)}>
-                                {cat.score}/100
-                              </span>
-                            </div>
-                            <div className="w-full h-2 bg-slate-500/20 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full ${getWritingBarColor(cat.score)} transition-all duration-700`}
-                                style={{ width: `${cat.score}%` }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    {writingEvaluationDetails && !isEvaluatingWriting && (
+                      <div className={`mt-6 pt-6 border-t space-y-8 animate-fadeIn ${themeClasses.border}`}>
+                        <div className="text-center border-b border-slate-500/10 pb-8">
+                          <p className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                            Overall Writing Score
+                          </p>
+                          <p className={`text-6xl font-black mt-3 ${getWritingScoreColor(writingEvaluationDetails.overallScore)}`}>
+                            {writingEvaluationDetails.overallScore}
+                            <span className="text-2xl text-slate-500">/100</span>
+                          </p>
+                          <p className={`mt-4 text-sm max-w-2xl mx-auto leading-relaxed ${themeClasses.textMuted}`}>
+                            {writingEvaluationDetails.feedbackSummary}
+                          </p>
+                        </div>
 
-                      <div>
-                        <h3 className="text-sm font-bold uppercase tracking-wider mb-3">Detailed Feedback</h3>
-                        <div className="space-y-2">
-                          {writingEvaluationDetails.grammarNotes.map((note, idx) => (
-                            <div
-                              key={idx}
-                              className={`flex items-start gap-3 border rounded-xl p-3 text-xs font-medium ${getWritingNoteStyles(note.type)}`}
-                            >
-                              <span className="font-bold shrink-0">
-                                {getWritingNoteIcon(note.type)}
-                              </span>
-                              <span>{note.message}</span>
+                        <div className="space-y-5">
+                          <h3 className="text-sm font-bold uppercase tracking-wider">Score Breakdown</h3>
+                          {[
+                            { label: 'Grammar', score: writingEvaluationDetails.grammarScore },
+                            { label: 'Vocabulary', score: writingEvaluationDetails.vocabularyScore },
+                            { label: 'Coherence', score: writingEvaluationDetails.coherenceScore },
+                            { label: 'Task Achievement', score: writingEvaluationDetails.taskAchievementScore },
+                          ].map((cat) => (
+                            <div key={cat.label}>
+                              <div className="flex justify-between text-xs font-bold mb-2">
+                                <span>{cat.label}</span>
+                                <span className={getWritingScoreColor(cat.score)}>
+                                  {cat.score}/100
+                                </span>
+                              </div>
+                              <div className="w-full h-2.5 bg-slate-500/20 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full ${getWritingBarColor(cat.score)} transition-all duration-700`}
+                                  style={{ width: `${cat.score}%` }}
+                                />
+                              </div>
                             </div>
                           ))}
                         </div>
-                      </div>
 
-                      {isSubmitted && !showScorePopup && appMode === 'full_exam' && (
-                        <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
-                          Writing Submitted! Advancing to next exam module...
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {selectedModule === 'typing' && (
-                <div className={`rounded-2xl border p-5 sm:p-8 shadow-xs space-y-6 ${themeClasses.card}`}>
-                  <div className="grid grid-cols-2 gap-4 text-center">
-                    <div className="p-4 bg-sky-500/10 rounded-xl border border-sky-500/20">
-                      <span className="text-xs text-sky-400 block font-bold uppercase">WPM</span>
-                      <span className="text-2xl font-black">{wpm}</span>
-                    </div>
-                    <div className="p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
-                      <span className="text-xs text-indigo-400 block font-bold uppercase">Accuracy</span>
-                      <span className="text-2xl font-black">{accuracy}%</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 sm:p-6 bg-slate-950 text-slate-300 rounded-2xl font-mono text-xs sm:text-base leading-relaxed overflow-x-auto border border-slate-800">
-                    {typingPassage.split('').map((char, index) => {
-                      let color = 'text-slate-500';
-                      if (index < userInput.length) {
-                        color = userInput[index] === char ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold underline';
-                      }
-                      return <span key={index} className={color}>{char}</span>;
-                    })}
-                  </div>
-
-                  <textarea
-                    ref={typingInputRef}
-                    rows={4}
-                    disabled={isTypingCompleted}
-                    value={userInput}
-                    onChange={handleTypingChange}
-                    placeholder="Type passage here..."
-                    className="w-full p-4 border border-slate-500/30 bg-transparent rounded-xl font-mono text-sm outline-none focus:ring-2 focus:ring-sky-500 shadow-xs"
-                  />
-                  {isTypingCompleted && !showScorePopup && (
-                    <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
-                      Typing Completed! Score Recorded: {score}% {appMode === 'full_exam' && '• Finalizing exam score...'}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {(selectedModule === 'listening' || selectedModule === 'reading') && (
-                <div className={`rounded-2xl border p-5 sm:p-8 shadow-xs space-y-6 ${themeClasses.card}`}>
-                  {loading && (
-                    <div className={`text-center py-12 font-bold ${themeClasses.textMuted}`}>
-                      Generating test questions...
-                    </div>
-                  )}
-
-                  {!loading && !testData && (
-                    <button
-                      onClick={() => generateTest(selectedModule)}
-                      className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer shadow-xs"
-                    >
-                      Load {selectedModule.toUpperCase()} Test
-                    </button>
-                  )}
-
-                  {testData && (
-                    <div className="space-y-6">
-                      <h3 className="text-lg sm:text-xl font-bold">{testData.title}</h3>
-
-                      {selectedModule === 'reading' && testData.passage && (
-                        <details
-                          open
-                          className="p-5 sm:p-6 bg-amber-500/10 border border-amber-500/20 rounded-2xl font-serif leading-relaxed shadow-xs text-xs sm:text-sm"
-                        >
-                          <summary className="cursor-pointer font-sans font-bold text-xs uppercase tracking-wider text-amber-600 mb-3">
-                            Reading Passage (click to collapse)
-                          </summary>
-                          <div className="whitespace-pre-line">{testData.passage}</div>
-                        </details>
-                      )}
-
-                      {selectedModule === 'listening' && testData.audioScript && !hasAudioEnded && (
-                        <div className="p-4 bg-slate-950 text-white rounded-xl space-y-3 shadow-inner border border-slate-800">
-                          <AudioPlayer
-                            script={testData.audioScript}
-                            onPlay={() => setHasAudioStarted(true)}
-                            onEnded={() => {
-                              setHasAudioEnded(true);
-                              setIsListeningTimerActive(true);
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {(selectedModule === 'reading' || hasAudioEnded) && (
-                        <div className="space-y-6">
-                          {selectedModule === 'listening' && isListeningTimerActive && !isSubmitted && (
-                            <div className="p-3 bg-rose-600 text-white text-xs font-mono rounded-xl flex items-center justify-between animate-bounce shadow-xs">
-                              <span className="flex items-center gap-1.5">
-                                <Icon name="clock" className="w-4 h-4" /> Time Remaining:
-                              </span>
-                              <span>{listeningTimer}s</span>
-                            </div>
-                          )}
-
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-xs font-bold">
-                              <span className={themeClasses.textMuted}>
-                                Question {currentQuestionIndex + 1} of {totalQuestions}
-                              </span>
-                              <span className="text-indigo-500">
-                                {answeredCount} / {totalQuestions} answered
-                              </span>
-                            </div>
-                            <div className="w-full h-2 bg-slate-500/20 rounded-full overflow-hidden">
+                        <div>
+                          <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Detailed Feedback</h3>
+                          <div className="space-y-3">
+                            {writingEvaluationDetails.grammarNotes.map((note, idx) => (
                               <div
-                                className="h-full bg-indigo-500 transition-all duration-500"
-                                style={{
-                                  width: `${((currentQuestionIndex + 1) / Math.max(totalQuestions, 1)) * 100}%`,
-                                }}
-                              />
-                            </div>
+                                key={idx}
+                                className={`flex items-start gap-3 border rounded-xl p-4 text-xs font-medium ${getWritingNoteStyles(note.type)}`}
+                              >
+                                <span className="font-bold shrink-0">
+                                  {getWritingNoteIcon(note.type)}
+                                </span>
+                                <span>{note.message}</span>
+                              </div>
+                            ))}
                           </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-                          {testData.questions[currentQuestionIndex] && (
-                            <div className="p-5 sm:p-6 bg-slate-500/5 border border-slate-500/10 rounded-2xl space-y-4">
-                              <p className="font-semibold text-sm sm:text-base">
-                                {testData.questions[currentQuestionIndex].question}
-                              </p>
+                {selectedModule === 'typing' && (
+                  <div className={`rounded-3xl border p-6 sm:p-8 shadow-xl space-y-6 ${themeClasses.card}`}>
+                    <div className="grid grid-cols-2 gap-5">
+                      <div className={`p-5 rounded-2xl border ${themeClasses.accentSoft}`}>
+                        <span className={`text-xs font-bold uppercase block ${themeClasses.accent}`}>WPM</span>
+                        <span className="text-4xl font-black">{wpm}</span>
+                      </div>
+                      <div className={`p-5 rounded-2xl border ${themeClasses.accentSoft}`}>
+                        <span className={`text-xs font-bold uppercase block ${themeClasses.accent}`}>Accuracy</span>
+                        <span className="text-4xl font-black">{accuracy}%</span>
+                      </div>
+                    </div>
 
-                              <div className="grid grid-cols-1 gap-2">
-                                {testData.questions[currentQuestionIndex].options?.map((opt, oIdx) => {
-                                  const qId = testData.questions[currentQuestionIndex].id;
-                                  const isSelected = selectedAnswers[qId] === opt;
-                                  const isCorrect =
-                                    isSubmitted &&
-                                    opt.trim().toLowerCase() ===
-                                      (testData.questions[currentQuestionIndex].correctAnswer || '')
-                                        .trim()
-                                        .toLowerCase();
-                                  const isWrongSelected = isSubmitted && isSelected && !isCorrect;
+                    <div className="p-6 bg-slate-950 text-slate-300 rounded-2xl font-mono text-sm sm:text-base leading-relaxed overflow-x-auto border border-slate-800">
+                      {typingPassage.split('').map((char, index) => {
+                        let color = 'text-slate-500';
+                        if (index < userInput.length) {
+                          color = userInput[index] === char ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold underline';
+                        }
+                        return <span key={index} className={color}>{char}</span>;
+                      })}
+                    </div>
 
-                                  return (
-                                    <button
-                                      key={oIdx}
-                                      disabled={isSubmitted}
-                                      onClick={() => handleSelectAnswer(qId, opt)}
-                                      className={`p-3.5 text-left rounded-xl border text-xs sm:text-sm font-medium transition cursor-pointer flex items-center gap-3 ${
-                                        isCorrect
-                                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-600 font-bold'
-                                          : isWrongSelected
-                                            ? 'bg-rose-500/20 border-rose-500 text-rose-500 font-bold'
-                                            : isSelected
-                                              ? 'bg-amber-500/20 border-amber-500 text-amber-600 font-bold'
-                                              : 'border-slate-500/20 bg-transparent hover:border-indigo-400'
-                                      }`}
-                                    >
-                                      <span
-                                        className={`w-7 h-7 shrink-0 rounded-full border-2 flex items-center justify-center text-xs font-black ${
-                                          isSelected
-                                            ? 'border-current bg-current/10'
-                                            : 'border-slate-500/40'
+                    <textarea
+                      ref={typingInputRef}
+                      rows={4}
+                      disabled={isTypingCompleted}
+                      value={userInput}
+                      onChange={handleTypingChange}
+                      placeholder="Type passage here..."
+                      className={`w-full p-5 border rounded-2xl bg-transparent font-mono text-sm outline-none focus:ring-2 focus:ring-violet-500 shadow-lg ${themeClasses.border}`}
+                    />
+
+                    {isTypingCompleted && !showScorePopup && (
+                      <div className={`p-4 rounded-xl font-bold text-sm ${themeClasses.accentSoft}`}>
+                        Typing Completed! Score Recorded: {score}% {appMode === 'full_exam' && '• Finalizing exam score...'}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(selectedModule === 'listening' || selectedModule === 'reading') && (
+                  <div className={`rounded-3xl border p-6 sm:p-8 shadow-xl space-y-6 ${themeClasses.card}`}>
+                    {loading && (
+                      <div className={`text-center py-16 font-bold ${themeClasses.textMuted}`}>
+                        Generating test questions...
+                      </div>
+                    )}
+
+                    {!loading && !testData && (
+                      <button
+                        onClick={() => generateTest(selectedModule)}
+                        className={`w-full sm:w-auto bg-gradient-to-r ${themeClasses.gradient} text-white font-bold text-sm px-8 py-4 rounded-xl transition cursor-pointer shadow-lg ${themeClasses.accentGlow}`}
+                      >
+                        Load {selectedModule.toUpperCase()} Test
+                      </button>
+                    )}
+
+                    {testData && (
+                      <div className="space-y-8">
+                        <h3 className="text-xl font-bold">{testData.title}</h3>
+
+                        {selectedModule === 'reading' && testData.passage && (
+                          <details
+                            open
+                            className={`p-6 rounded-2xl font-serif leading-relaxed shadow-sm border ${themeClasses.accentSoft}`}
+                          >
+                            <summary className={`cursor-pointer font-sans font-bold text-xs uppercase tracking-wider mb-4 ${themeClasses.accent}`}>
+                              Reading Passage (click to collapse)
+                            </summary>
+                            <div className="whitespace-pre-line text-sm">{testData.passage}</div>
+                          </details>
+                        )}
+
+                        {selectedModule === 'listening' && testData.audioScript && !hasAudioEnded && (
+                          <div className="p-5 bg-slate-950 text-white rounded-2xl space-y-3 shadow-inner border border-slate-800">
+                            <AudioPlayer
+                              script={testData.audioScript}
+                              onPlay={() => setHasAudioStarted(true)}
+                              onEnded={() => {
+                                setHasAudioEnded(true);
+                                setIsListeningTimerActive(true);
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {(selectedModule === 'reading' || hasAudioEnded) && (
+                          <div className="space-y-8">
+                            {selectedModule === 'listening' && isListeningTimerActive && !isSubmitted && (
+                              <div className="p-4 bg-gradient-to-r from-rose-600 to-red-600 text-white text-sm font-mono rounded-2xl flex items-center justify-between animate-pulse shadow-lg">
+                                <span className="flex items-center gap-2">
+                                  <Icon name="clock" className="w-5 h-5" />
+                                  Time Remaining:
+                                </span>
+                                <span className="text-lg font-black">{listeningTimer}s</span>
+                              </div>
+                            )}
+
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between text-xs font-bold">
+                                <span className={themeClasses.textMuted}>
+                                  Question {currentQuestionIndex + 1} of {totalQuestions}
+                                </span>
+                                <span className={themeClasses.accent}>
+                                  {answeredCount} / {totalQuestions} answered
+                                </span>
+                              </div>
+                              <div className="w-full h-2 bg-slate-500/20 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full bg-gradient-to-r ${themeClasses.gradient} transition-all duration-500`}
+                                  style={{
+                                    width: `${((currentQuestionIndex + 1) / Math.max(totalQuestions, 1)) * 100}%`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            {testData.questions[currentQuestionIndex] && (
+                              <div className={`p-6 rounded-2xl border space-y-5 ${themeClasses.cardHover}`}>
+                                <p className="font-semibold text-base">
+                                  {testData.questions[currentQuestionIndex].question}
+                                </p>
+
+                                <div className="grid grid-cols-1 gap-3">
+                                  {testData.questions[currentQuestionIndex].options?.map((opt, oIdx) => {
+                                    const qId = testData.questions[currentQuestionIndex].id;
+                                    const isSelected = selectedAnswers[qId] === opt;
+                                    const isCorrect =
+                                      isSubmitted &&
+                                      opt.trim().toLowerCase() ===
+                                        (testData.questions[currentQuestionIndex].correctAnswer || '')
+                                          .trim()
+                                          .toLowerCase();
+                                    const isWrongSelected = isSubmitted && isSelected && !isCorrect;
+
+                                    return (
+                                      <button
+                                        key={oIdx}
+                                        disabled={isSubmitted}
+                                        onClick={() => handleSelectAnswer(qId, opt)}
+                                        className={`p-4 text-left rounded-xl border text-sm font-medium transition-all cursor-pointer flex items-center gap-4 ${
+                                          isCorrect
+                                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 font-bold'
+                                            : isWrongSelected
+                                              ? 'bg-rose-500/20 border-rose-500 text-rose-400 font-bold'
+                                              : isSelected
+                                                ? 'bg-amber-500/20 border-amber-500 text-amber-400 font-bold'
+                                                : `border-slate-500/20 bg-transparent hover:border-violet-400`
                                         }`}
                                       >
-                                        {String.fromCharCode(65 + oIdx)}
-                                      </span>
-                                      <span className="flex-1">{opt}</span>
-                                      {isCorrect && <span className="text-emerald-500 text-base">✓</span>}
-                                      {isWrongSelected && <span className="text-rose-500 text-base">✕</span>}
+                                        <span
+                                          className={`w-8 h-8 shrink-0 rounded-full border-2 flex items-center justify-center text-xs font-black ${
+                                            isSelected
+                                              ? 'border-current bg-current/10'
+                                              : 'border-slate-500/40'
+                                          }`}
+                                        >
+                                          {String.fromCharCode(65 + oIdx)}
+                                        </span>
+                                        <span className="flex-1">{opt}</span>
+                                        {isCorrect && <span className="text-emerald-400 text-lg">✓</span>}
+                                        {isWrongSelected && <span className="text-rose-400 text-lg">✕</span>}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex flex-col sm:flex-row items-center gap-4">
+                              <button
+                                type="button"
+                                onClick={handlePreviousQuestion}
+                                disabled={currentQuestionIndex === 0}
+                                className={`w-full sm:w-auto px-6 py-3 text-sm font-bold rounded-xl transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
+                              >
+                                <Icon name="arrow-left" className="w-4 h-4" />
+                                <span>Previous</span>
+                              </button>
+
+                              <div className="flex-1 flex items-center justify-center gap-2 flex-wrap order-last sm:order-none w-full sm:w-auto">
+                                {testData.questions.map((q, idx) => {
+                                  const answered = !!selectedAnswers[q.id];
+                                  const isCurrent = idx === currentQuestionIndex;
+                                  return (
+                                    <button
+                                      key={q.id || idx}
+                                      onClick={() => setCurrentQuestionIndex(idx)}
+                                      aria-label={`Go to question ${idx + 1}`}
+                                      className={`w-9 h-9 rounded-full text-xs font-bold transition cursor-pointer flex items-center justify-center border-2 ${
+                                        isCurrent
+                                          ? `bg-gradient-to-r ${themeClasses.gradient} border-transparent text-white scale-110 shadow-lg`
+                                          : answered
+                                            ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                                            : `bg-transparent border-slate-500/30 text-slate-400 hover:border-violet-400`
+                                      }`}
+                                    >
+                                      {idx + 1}
                                     </button>
                                   );
                                 })}
                               </div>
-                            </div>
-                          )}
 
-                          <div className="flex flex-col sm:flex-row items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={handlePreviousQuestion}
-                              disabled={currentQuestionIndex === 0}
-                              className={`w-full sm:w-auto px-5 py-3 text-sm font-bold rounded-xl transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${themeClasses.hoverBg}`}
-                            >
-                              <Icon name="arrow-left" className="w-4 h-4" />
-                              <span>Previous</span>
-                            </button>
-
-                            <div className="flex-1 flex items-center justify-center gap-1.5 flex-wrap order-last sm:order-none w-full sm:w-auto">
-                              {testData.questions.map((q, idx) => {
-                                const answered = !!selectedAnswers[q.id];
-                                const isCurrent = idx === currentQuestionIndex;
-                                return (
-                                  <button
-                                    key={q.id || idx}
-                                    onClick={() => setCurrentQuestionIndex(idx)}
-                                    aria-label={`Go to question ${idx + 1}`}
-                                    className={`w-8 h-8 rounded-full text-[11px] font-bold transition cursor-pointer flex items-center justify-center border-2 ${
-                                      isCurrent
-                                        ? 'bg-indigo-600 border-indigo-600 text-white scale-110'
-                                        : answered
-                                          ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-600'
-                                          : 'bg-transparent border-slate-500/30 text-slate-400 hover:border-indigo-400'
-                                    }`}
-                                  >
-                                    {idx + 1}
-                                  </button>
-                                );
-                              })}
+                              {!isLastQuestion ? (
+                                <button
+                                  type="button"
+                                  onClick={handleNextQuestion}
+                                  className={`w-full sm:w-auto bg-gradient-to-r ${themeClasses.gradient} text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2`}
+                                >
+                                  <span>Next</span>
+                                  <Icon name="chevron-right" className="w-4 h-4" />
+                                </button>
+                              ) : !isSubmitted ? (
+                                <button
+                                  type="button"
+                                  onClick={selectedModule === 'listening' ? handleSubmitListening : handleSubmitReading}
+                                  disabled={!allQuestionsAnswered}
+                                  className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30"
+                                >
+                                  <span>
+                                    {allQuestionsAnswered
+                                      ? `Submit ${selectedModule} Answers`
+                                      : `Answer all (${answeredCount}/${totalQuestions})`}
+                                  </span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={handleBackToDashboard}
+                                  className={`w-full sm:w-auto bg-gradient-to-r ${themeClasses.gradient} text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer`}
+                                >
+                                  Back to Dashboard
+                                </button>
+                              )}
                             </div>
 
-                            {!isLastQuestion ? (
-                              <button
-                                type="button"
-                                onClick={handleNextQuestion}
-                                className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
-                              >
-                                <span>Next</span>
-                                <span>→</span>
-                              </button>
-                            ) : !isSubmitted ? (
-                              <button
-                                type="button"
-                                onClick={selectedModule === 'listening' ? handleSubmitListening : handleSubmitReading}
-                                disabled={!allQuestionsAnswered}
-                                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
-                              >
-                                <span>
-                                  {allQuestionsAnswered
-                                    ? `Submit ${selectedModule} Answers`
-                                    : `Answer all (${answeredCount}/${totalQuestions})`}
-                                </span>
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={handleBackToDashboard}
-                                className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer"
-                              >
-                                Back to Dashboard
-                              </button>
+                            {isSubmitted && !showScorePopup && (
+                              <div className={`p-4 rounded-xl font-bold text-sm ${themeClasses.accentSoft}`}>
+                                {selectedModule.toUpperCase()} Module Complete! Score Recorded: {score}%
+                                {appMode === 'full_exam' && ' • Advancing to next exam module...'}
+                              </div>
                             )}
                           </div>
-
-                          {isSubmitted && !showScorePopup && (
-                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 font-bold text-sm">
-                              {selectedModule.toUpperCase()} Module Complete! Score Recorded: {score}%
-                              {appMode === 'full_exam' && ' • Advancing to next exam module...'}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </main>
       </div>
 
+      {/* Mobile Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-50">
           <button
             type="button"
             aria-label="Close navigation menu"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
           />
 
-          <aside className={`absolute top-0 bottom-0 left-0 w-[min(88vw,340px)] ${themeClasses.sidebar} border-r shadow-2xl p-4 pt-5 flex flex-col overflow-y-auto`} style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top))', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
-            <div className={`flex items-center justify-between pb-4 mb-4 border-b ${themeClasses.divider}`}>
+          <aside className={`absolute top-0 bottom-0 left-0 w-[min(88vw,340px)] ${themeClasses.sidebar} border-r shadow-2xl p-5 pt-6 flex flex-col overflow-y-auto`} style={{ paddingTop: 'calc(1.5rem + env(safe-area-inset-top))', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+            <div className={`flex items-center justify-between pb-5 mb-5 border-b ${themeClasses.border}`}>
               <div className="min-w-0">
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>System Navigation</span>
-                <p className="text-sm font-black truncate">Cally Assessment Hub</p>
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${themeClasses.textMuted}`}>
+                  System Navigation
+                </span>
+                <p className="text-base font-black truncate mt-1">Cally Assessment Hub</p>
               </div>
               <button
                 type="button"
                 aria-label="Close menu"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${themeClasses.hoverBg}`}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition ${themeClasses.cardHover}`}
               >
                 <Icon name="x" className="w-5 h-5" />
               </button>
             </div>
 
-            {/* WORKSPACE NAV — now includes Support Tickets */}
+            <div className={`flex items-center gap-3 p-3 mb-4 rounded-2xl border ${themeClasses.card}`}>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-black text-base">
+                {(userName || 'C').charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold truncate">{userName || 'Candidate'}</p>
+                <p className={`text-[10px] ${themeClasses.textMuted}`}>Candidate</p>
+              </div>
+            </div>
+
             <div className="space-y-1">
-              <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>Workspace</span>
-              <nav className="space-y-1 pt-1">
+              <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
+                Workspace
+              </span>
+              <nav className="space-y-1.5 pt-2">
                 <button
                   onClick={() => handleSelectSidebarTab('overview')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition cursor-pointer text-left ${
-                    activeTab === 'overview' ? themeClasses.activeBg : `${themeClasses.mobileText} ${themeClasses.hoverBg}`
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer text-left ${
+                    activeTab === 'overview' 
+                      ? `bg-gradient-to-r ${themeClasses.gradient} text-white shadow-lg` 
+                      : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
                   }`}
                 >
                   <Icon name="chart" className="w-5 h-5" />
@@ -3324,8 +3828,10 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => handleSelectSidebarTab('logs')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition cursor-pointer text-left ${
-                    activeTab === 'logs' ? themeClasses.activeBg : `${themeClasses.mobileText} ${themeClasses.hoverBg}`
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer text-left ${
+                    activeTab === 'logs' 
+                      ? `bg-gradient-to-r ${themeClasses.gradient} text-white shadow-lg` 
+                      : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
                   }`}
                 >
                   <Icon name="trending" className="w-5 h-5" />
@@ -3333,8 +3839,10 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => handleSelectSidebarTab('support' as any)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition cursor-pointer text-left ${
-                    activeTab === 'support' ? themeClasses.activeBg : `${themeClasses.mobileText} ${themeClasses.hoverBg}`
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer text-left ${
+                    activeTab === 'support' 
+                      ? `bg-gradient-to-r ${themeClasses.gradient} text-white shadow-lg` 
+                      : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
                   }`}
                 >
                   <Icon name="info" className="w-5 h-5" />
@@ -3343,79 +3851,59 @@ export default function Home() {
               </nav>
             </div>
 
-            {/* PRACTICE MODULES — Take Full Exam button moved here, right under Chat & Typing Speed Test */}
             <div className="space-y-1 mt-6">
-              <span className={`text-[10px] font-bold uppercase tracking-wider px-3 ${themeClasses.textMuted}`}>Practice Modules</span>
-              <nav className="space-y-1 pt-1">
+              <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
+                Practice Modules
+              </span>
+              <nav className="space-y-1.5 pt-2">
                 {dashboardFeatures.map((feat) => (
                   <button
                     key={feat.id}
                     onClick={() => handleSelectSidebarTab(feat.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition cursor-pointer text-left ${
-                      activeTab === feat.id ? themeClasses.activeSoftBg : `${themeClasses.mobileText} ${themeClasses.hoverBg}`
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer text-left ${
+                      activeTab === feat.id 
+                        ? `${themeClasses.accentSoft} border` 
+                        : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
                     }`}
                   >
                     <span className="flex items-center gap-3 min-w-0">
-                      <Icon name={feat.icon} className="w-5 h-5 text-indigo-500" />
+                      <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${feat.gradient} flex items-center justify-center shrink-0`}>
+                        <Icon name={feat.icon} className="w-3.5 h-3.5 text-white" />
+                      </div>
                       <span className="truncate">{feat.title}</span>
                     </span>
-                    <span className={`text-xs ${themeClasses.textMuted}`}>&gt;</span>
+                    <Icon name="chevron-right" className="w-4 h-4 shrink-0 opacity-50" />
                   </button>
                 ))}
               </nav>
 
-              {/* Take Full Exam — right below Chat & Typing Speed Test */}
               <button
                 onClick={() => {
                   setIsMobileMenuOpen(false);
                   handleStartFullExam();
                 }}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-4 py-3.5 rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2 mt-2"
+                className={`w-full bg-gradient-to-r ${themeClasses.gradient} text-white font-black text-sm px-4 py-4 rounded-2xl shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 mt-4`}
               >
-                <Icon name="academic" className="w-5 h-5" />
+                <Icon name="academic" className="w-5 h-5" glow />
                 <span>Take Full Exam</span>
               </button>
             </div>
 
-            <div className={`mt-auto pt-6 border-t ${themeClasses.divider}`}>
-              <div className={`px-3 py-3 mb-2 rounded-2xl border ${themeClasses.card}`}>
-                <label htmlFor="mobile-theme" className={`block text-[10px] font-bold uppercase tracking-wider mb-2 ${themeClasses.textMuted}`}>Appearance</label>
-                <div className="relative">
-                  <select
-                    id="mobile-theme"
-                    value={theme}
-                    onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'midnight')}
-                    className={`w-full appearance-none rounded-xl border px-3 py-2.5 pr-9 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${
-                      theme === 'light'
-                        ? 'bg-white border-slate-200 text-slate-700'
-                        : theme === 'midnight'
-                          ? 'bg-slate-950 border-slate-900 text-white'
-                          : 'bg-slate-800 border-slate-700 text-white'
-                    }`}
-                  >
-                    <option value="light">Light Theme</option>
-                    <option value="dark">Dark Theme</option>
-                    <option value="midnight">Midnight Theme</option>
-                  </select>
-                  <span className={`pointer-events-none absolute inset-y-0 right-3 flex items-center ${themeClasses.textMuted}`}>⌄</span>
-                </div>
-              </div>
-
+            <div className={`mt-auto pt-6 border-t ${themeClasses.border} space-y-3`}>
               <button
                 onClick={() => {
-                  setIsLoggedIn(false);
                   setIsMobileMenuOpen(false);
-                  localStorage.removeItem('cally_user_email');
-                  localStorage.removeItem('cally_user_id');
+                  setShowLogoutModal(true);
                 }}
-                className="w-full mt-2 px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl transition cursor-pointer text-sm font-bold"
+                className="w-full px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl transition cursor-pointer text-sm font-bold flex items-center justify-center gap-2"
               >
-                Sign Out
+                <Icon name="log-out" className="w-4 h-4" />
+                <span>Sign Out</span>
               </button>
 
               <button
                 onClick={() => setShowRatingModal(true)}
-                className="w-full mt-2 px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-xl text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2 justify-center"
+                className="w-full px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-xl text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2 justify-center"
               >
                 <Icon name="star" className="w-4 h-4" />
                 <span>Rate Us</span>
@@ -3425,48 +3913,139 @@ export default function Home() {
         </div>
       )}
 
-      {isTimedEvaluationActive && showIntegrityWarning && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-          <div className={`w-full max-w-md rounded-3xl border p-6 sm:p-8 shadow-2xl ${themeClasses.card}`}>
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-4"><Icon name="alert-circle" className="w-7 h-7" /></div>
-            <h3 className="text-lg font-black">Assessment Integrity Warning</h3>
-            <p className={`mt-2 text-sm leading-relaxed ${themeClasses.textMuted}`}>{integrityWarning}</p>
-            <div className="mt-4 flex items-center justify-between text-xs"><span className={themeClasses.textMuted}>Integrity events detected</span><strong className="text-amber-500">{antiCheatViolations}</strong></div>
-            {!isFullscreen && <p className="mt-3 text-xs font-bold text-rose-500">Fullscreen is required to continue.</p>}
-            <button onClick={() => { if (document.fullscreenElement || !isTimedEvaluationActive) { setShowIntegrityWarning(false); } else { requestExamFullscreen(); } }} className="mt-6 w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm">Return to Assessment</button>
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="w-full max-w-md rounded-3xl border border-violet-500/20 bg-[#151520]/95 backdrop-blur-xl p-8 shadow-2xl text-center space-y-6">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-rose-500/20 to-red-500/20 flex items-center justify-center mx-auto border border-rose-500/30">
+                <Icon name="log-out" className="w-10 h-10 text-rose-400" glow />
+              </div>
+              <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-rose-500 flex items-center justify-center">
+                <span className="text-white text-xs font-black">!</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-2xl font-black text-white">Sign Out?</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Are you sure you want to sign out of your account? Your progress and certificates are saved and will be available when you return.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-violet-500/5 border border-violet-500/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-black text-base shrink-0">
+                  {(userName || 'C').charAt(0).toUpperCase()}
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="text-sm font-bold text-white truncate">{userName || 'Candidate'}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{email || 'candidate@example.com'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                disabled={isLoggingOut}
+                className="flex-1 py-4 px-6 rounded-xl border border-violet-500/20 bg-slate-800/50 text-white font-bold text-sm transition hover:bg-slate-700/50 disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="flex-1 py-4 px-6 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold text-sm shadow-lg shadow-rose-500/30 transition hover:shadow-xl hover:shadow-rose-500/50 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isLoggingOut ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Signing Out...</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon name="log-out" className="w-4 h-4" />
+                    <span>Yes, Sign Out</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* Integrity Warning Modal */}
+      {isTimedEvaluationActive && showIntegrityWarning && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4">
+          <div className={`w-full max-w-md rounded-3xl border p-8 shadow-2xl ${themeClasses.card}`}>
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-5">
+              <Icon name="alert-circle" className="w-8 h-8" glow />
+            </div>
+            <h3 className="text-xl font-black">Assessment Integrity Warning</h3>
+            <p className={`mt-3 text-sm leading-relaxed ${themeClasses.textMuted}`}>{integrityWarning}</p>
+            <div className="mt-5 flex items-center justify-between text-xs">
+              <span className={themeClasses.textMuted}>Integrity events detected</span>
+              <strong className="text-amber-400">{antiCheatViolations}</strong>
+            </div>
+            {!isFullscreen && (
+              <p className="mt-3 text-xs font-bold text-rose-400">Fullscreen is required to continue.</p>
+            )}
+            <button
+              onClick={() => {
+                if (document.fullscreenElement || !isTimedEvaluationActive) {
+                  setShowIntegrityWarning(false);
+                } else {
+                  requestExamFullscreen();
+                }
+              }}
+              className={`mt-6 w-full py-4 rounded-xl bg-gradient-to-r ${themeClasses.gradient} text-white font-bold text-sm shadow-lg`}
+            >
+              Return to Assessment
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Rating Modal */}
       {showRatingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className={`border rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
-            <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.divider}`}>
-              <div className="space-y-0.5">
-                <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest block">System Feedback</span>
-                <h3 className="text-lg font-black">Rate & Recommend Cally</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className={`border rounded-3xl max-w-md w-full p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
+            <div className={`flex items-center justify-between border-b pb-5 ${themeClasses.border}`}>
+              <div className="space-y-1">
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${themeClasses.accent}`}>
+                  System Feedback
+                </span>
+                <h3 className="text-xl font-black">Rate & Recommend Cally</h3>
               </div>
               <button
                 onClick={() => setShowRatingModal(false)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition cursor-pointer ${themeClasses.hoverBg}`}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer ${themeClasses.cardHover}`}
               >
-                <Icon name="x" className="w-4 h-4" />
+                <Icon name="x" className="w-5 h-5" />
               </button>
             </div>
 
             {ratingSubmitted ? (
-              <div className="py-8 text-center space-y-3">
-                <div className="w-12 h-12 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto">
-                  <Icon name="sparkles" className="w-6 h-6" />
+              <div className="py-10 text-center space-y-4">
+                <div className="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto">
+                  <Icon name="sparkles" className="w-8 h-8" glow />
                 </div>
-                <h4 className="text-base font-bold">Thank you for your feedback!</h4>
-                <p className={`text-xs ${themeClasses.textMuted}`}>Your review helps us improve the assessment platform.</p>
+                <h4 className="text-lg font-bold">Thank you for your feedback!</h4>
+                <p className={`text-sm ${themeClasses.textMuted}`}>
+                  Your review helps us improve the assessment platform.
+                </p>
               </div>
             ) : (
-              <form onSubmit={handleSubmitRating} className="space-y-5">
-                <div className="space-y-2 text-center">
-                  <label className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>Select Star Rating</label>
-                  <div className="flex items-center justify-center gap-2">
+              <form onSubmit={handleSubmitRating} className="space-y-6">
+                <div className="space-y-4 text-center">
+                  <label className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>
+                    Select Star Rating
+                  </label>
+                  <div className="flex items-center justify-center gap-3">
                     {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => (
                       <RatingStar
                         key={star}
@@ -3479,21 +4058,23 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>Your Recommendation & Comments</label>
+                <div className="space-y-2">
+                  <label className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>
+                    Your Recommendation & Comments
+                  </label>
                   <textarea
                     rows={4}
                     value={userFeedback}
                     onChange={(e) => setUserFeedback(e.target.value)}
                     placeholder="Tell us what you like about the system or what can be improved..."
-                    className="w-full p-3.5 rounded-xl border border-slate-500/30 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className={`w-full p-4 rounded-xl border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 ${themeClasses.border}`}
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmittingRating}
-                  className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-md cursor-pointer"
+                  className={`w-full py-4 bg-gradient-to-r ${themeClasses.gradient} disabled:opacity-50 text-white font-bold text-sm rounded-xl transition shadow-lg cursor-pointer`}
                 >
                   {isSubmittingRating ? 'Submitting Review...' : 'Submit Rating & Feedback'}
                 </button>
@@ -3503,28 +4084,44 @@ export default function Home() {
         </div>
       )}
 
+      {/* Score Popup */}
       {showScorePopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center space-y-5 transform animate-bounce-short">
-            <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto text-4xl shadow-inner ${score !== null && score <= 70 ? 'bg-rose-500/20 text-rose-500' : 'bg-emerald-500/20 text-emerald-500'}`}>
-              <Icon name={score !== null && score <= 70 ? 'alert-circle' : 'trophy'} className="w-10 h-10" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className={`border rounded-3xl max-w-sm w-full p-8 shadow-2xl text-center space-y-6 transform animate-bounce-short ${themeClasses.card}`}>
+            <div className={`w-24 h-24 rounded-3xl flex items-center justify-center mx-auto ${
+              score !== null && score <= 70 
+                ? 'bg-rose-500/20 text-rose-400' 
+                : 'bg-emerald-500/20 text-emerald-400'
+            }`}>
+              <Icon 
+                name={score !== null && score <= 70 ? 'alert-circle' : 'trophy'} 
+                className="w-12 h-12" 
+                glow 
+              />
             </div>
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest block">Cally Assessment Hub Module Completed</span>
+            
+            <div className="space-y-2">
+              <span className={`text-xs font-bold uppercase tracking-widest block ${themeClasses.accent}`}>
+                Module Completed
+              </span>
               <h3 className="text-2xl font-black">Your Score</h3>
             </div>
             
-            <div className={`py-3 rounded-2xl border ${score !== null && score <= 70 ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'}`}>
-              <span className="text-5xl font-black">{score}%</span>
+            <div className={`py-4 rounded-2xl border ${
+              score !== null && score <= 70 
+                ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' 
+                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+            }`}>
+              <span className="text-6xl font-black">{score}%</span>
             </div>
 
             {score !== null && score <= 70 && (
-              <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-300 text-xs italic font-medium leading-relaxed">
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-300 text-xs italic font-medium leading-relaxed">
                 {motivationalQuote}
               </div>
             )}
 
-            <div className="space-y-2 pt-1">
+            <div className="space-y-3 pt-2">
               <button
                 onClick={() => {
                   setShowScorePopup(false);
@@ -3532,9 +4129,9 @@ export default function Home() {
                     handleAdvanceExamStep(score || 0);
                   }
                 }}
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm py-3.5 px-4 rounded-xl transition shadow-md cursor-pointer"
+                className={`w-full bg-gradient-to-r ${themeClasses.gradient} text-white font-bold text-sm py-4 px-4 rounded-xl transition shadow-lg cursor-pointer`}
               >
-                {appMode === 'full_exam' ? 'Continue to Next Exam Module →' : 'Awesome, Close'}
+                {appMode === 'full_exam' ? 'Continue to Next Module →' : 'Close'}
               </button>
 
               {appMode === 'dashboard' && selectedModule && (
@@ -3543,7 +4140,7 @@ export default function Home() {
                     setShowScorePopup(false);
                     generateTest(selectedModule);
                   }}
-                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm py-3 px-4 rounded-xl transition cursor-pointer border border-slate-700 flex items-center justify-center gap-2"
+                  className={`w-full font-bold text-sm py-3.5 px-4 rounded-xl transition cursor-pointer border flex items-center justify-center gap-2 ${themeClasses.border} ${themeClasses.cardHover}`}
                 >
                   <Icon name="refresh" className="w-4 h-4" />
                   <span>Generate New Test</span>
@@ -3554,52 +4151,59 @@ export default function Home() {
         </div>
       )}
 
+      {/* Instructions Modal */}
       {showInstructionsModal && activeFeature && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-6 relative">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-500/20 text-indigo-400 rounded-2xl flex items-center justify-center shrink-0">
-                  <Icon name="info" className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className={`border rounded-3xl max-w-lg w-full p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
+            <div className={`flex items-center justify-between border-b pb-5 ${themeClasses.border}`}>
+              <div className="flex items-center gap-4">
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${activeFeature.gradient} flex items-center justify-center shadow-lg ${activeFeature.glow}`}>
+                  <Icon name={activeFeature.icon} className="w-7 h-7 text-white" glow />
                 </div>
                 <div>
-                  <span className="text-[10px] sm:text-[11px] font-bold text-indigo-400 uppercase tracking-widest block">TephdyTech Module Guide</span>
-                  <h3 className="text-base sm:text-lg font-black">{activeFeature.title}</h3>
+                  <span className={`text-[10px] font-bold uppercase tracking-widest block ${themeClasses.accent}`}>
+                    Module Guide
+                  </span>
+                  <h3 className="text-lg font-black">{activeFeature.title}</h3>
                 </div>
               </div>
               <button
                 onClick={() => setShowInstructionsModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition cursor-pointer text-sm font-bold shrink-0"
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer ${themeClasses.cardHover}`}
               >
-                <Icon name="x" className="w-4 h-4" />
+                <Icon name="x" className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 bg-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-800 text-slate-300 text-xs sm:text-sm leading-relaxed whitespace-pre-line font-medium">
+            <div className={`p-5 rounded-2xl border text-sm leading-relaxed whitespace-pre-line font-medium ${themeClasses.cardHover}`}>
               {activeFeature.instructions}
-          </div>
+            </div>
 
-          <div className="pt-2">
             <button
               onClick={() => setShowInstructionsModal(false)}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm py-3 px-4 rounded-xl transition shadow-md cursor-pointer"
-          >
+              className={`w-full bg-gradient-to-r ${themeClasses.gradient} text-white font-bold text-sm py-4 px-4 rounded-xl transition shadow-lg cursor-pointer`}
+            >
               Got it, Let's Begin!
-          </button>
+            </button>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
-    <footer className={`shrink-0 border-t py-3 px-3 sm:px-8 ${themeClasses.header}`}>
-      <div className="max-w-6xl mx-auto flex items-center justify-center text-xs text-center">
-        <div className="flex items-center gap-2 justify-center flex-wrap">
-          <span className="font-bold">Developed By TephdyTech</span>
-          <span>&bull;</span>
-          <span>&copy; {new Date().getFullYear()} All rights reserved.</span>
+      {/* Footer */}
+      <footer className={`relative z-10 shrink-0 border-t py-4 px-4 sm:px-8 ${themeClasses.header}`}>
+        <div className="max-w-6xl mx-auto flex items-center justify-center text-xs text-center">
+          <div className="flex items-center gap-3 justify-center flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-md bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
+                <span className="text-[8px] font-black text-white">T</span>
+              </div>
+              <span className="font-bold">Developed By TephdyTech</span>
+            </div>
+            <span className={themeClasses.textMuted}>&bull;</span>
+            <span className={themeClasses.textMuted}>&copy; {new Date().getFullYear()} All rights reserved.</span>
+          </div>
         </div>
-      </div>
-    </footer>
-  </div>
+      </footer>
+    </div>
   );
 }
