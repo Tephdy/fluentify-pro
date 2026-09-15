@@ -135,6 +135,18 @@ function Icon({ name, className = "w-5 h-5", glow = false }: IconProps) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       )
+    case 'book':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      )
+    case 'plus':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+      )
     default:
       return null
   }
@@ -168,23 +180,43 @@ function AnimatedCounter({ value, duration = 1000 }: { value: number; duration?:
 }
 
 // ============================================
-// ENHANCED ADMIN DASHBOARD WITH CRUD
+// ENHANCED ADMIN DASHBOARD WITH USERS & QUESTIONS CRUD
 // ============================================
 export default function AdminDashboardPage() {
   const [adminEmail, setAdminEmail] = useState('')
+  const [activeTab, setActiveTab] = useState<'users' | 'questions'>('users')
+  
+  // Data States
   const [users, setUsers] = useState<any[]>([])
+  const [questions, setQuestions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'user'>('all')
+  const [errorMsg, setErrorMsg] = useState('')
+  const [currentTime, setCurrentTime] = useState(new Date())
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [currentTime, setCurrentTime] = useState(new Date())
-  
-  // CRUD States
-  const [editingId, setEditingId] = useState<string | null>(null)
+
+  // Users Filter & Edit States
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'user'>('all')
+  const [editingUserId, setEditingUserId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
-  const [errorMsg, setErrorMsg] = useState('')
+
+  // Questions Filter & CRUD Form States
+  const [questionSearch, setQuestionSearch] = useState('')
+  const [questionModuleFilter, setQuestionModuleFilter] = useState<'all' | 'reading' | 'listening'>('all')
+  const [showQuestionModal, setShowQuestionModal] = useState(false)
+  const [editingQuestionId, setEditingQuestionId] = useState<string | number | null>(null)
+  
+  // Question Form Fields
+  const [qModuleId, setQModuleId] = useState<'reading' | 'listening'>('reading')
+  const [qTestTitle, setQTestTitle] = useState('')
+  const [qPassage, setQPassage] = useState('')
+  const [qAudioScript, setQAudioScript] = useState('')
+  const [qQuestionText, setQQuestionText] = useState('')
+  const [qOptionsStr, setQOptionsStr] = useState('')
+  const [qCorrectAnswer, setQCorrectAnswer] = useState('')
+
   const router = useRouter()
 
   // Live clock
@@ -193,7 +225,7 @@ export default function AdminDashboardPage() {
     return () => clearInterval(timer)
   }, [])
 
-  // 1. READ: Load Admin Data & Users
+  // 1. READ: Load Users and Questions from Supabase
   const loadAdminData = async () => {
     try {
       setErrorMsg('')
@@ -202,15 +234,24 @@ export default function AdminDashboardPage() {
         setAdminEmail(user.email)
       }
 
-      const { data, error } = await supabase
+      // Fetch Users
+      const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select('*')
         .order('created_at', { ascending: false })
 
-      if (error) throw error
-      if (data) {
-        setUsers(data)
-      }
+      if (usersError) throw usersError
+      if (usersData) setUsers(usersData)
+
+      // Fetch Questions
+      const { data: questionsData, error: questionsError } = await supabase
+        .from('questions')
+        .select('*')
+        .order('id', { ascending: false })
+
+      if (questionsError) throw questionsError
+      if (questionsData) setQuestions(questionsData)
+
     } catch (err: any) {
       console.error('Error loading admin dashboard data:', err)
       setErrorMsg('Failed to fetch registry records: ' + (err.message || 'Unknown error'))
@@ -229,7 +270,9 @@ export default function AdminDashboardPage() {
     await loadAdminData()
   }
 
-  // 2. UPDATE: Toggle Admin Role
+  // ==========================================
+  // USERS CRUD HANDLERS
+  // ==========================================
   const handleToggleAdmin = async (userId: string, currentStatus: boolean, userEmail: string) => {
     if (userEmail === adminEmail && currentStatus) {
       alert("Safety Lock: You cannot remove your own administrator privileges while logged in.")
@@ -251,7 +294,6 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // 3. UPDATE: Save Inline Edited Name
   const handleSaveName = async (userId: string) => {
     try {
       setErrorMsg('')
@@ -261,7 +303,7 @@ export default function AdminDashboardPage() {
         .eq('id', userId)
 
       if (error) throw error
-      setEditingId(null)
+      setEditingUserId(null)
       await loadAdminData()
     } catch (err: any) {
       console.error('Error updating name:', err)
@@ -269,7 +311,6 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // 4. DELETE: Remove User Record
   const handleDeleteUser = async (userId: string, userEmail: string) => {
     if (userEmail === adminEmail) {
       alert("Safety Lock: You cannot delete your own active admin account.")
@@ -289,7 +330,93 @@ export default function AdminDashboardPage() {
       await loadAdminData()
     } catch (err: any) {
       console.error('Error deleting user:', err)
-      alert('Deletion failed (Note: Foreign key constraints on related activity tables like module scores may require cascading deletes): ' + err.message)
+      alert('Deletion failed: ' + err.message)
+    }
+  }
+
+  // ==========================================
+  // QUESTIONS CRUD HANDLERS
+  // ==========================================
+  const openCreateQuestionModal = () => {
+    setEditingQuestionId(null)
+    setQModuleId('reading')
+    setQTestTitle('')
+    setQPassage('')
+    setQAudioScript('')
+    setQQuestionText('')
+    setQOptionsStr('')
+    setQCorrectAnswer('')
+    setShowQuestionModal(true)
+  }
+
+  const openEditQuestionModal = (q: any) => {
+    setEditingQuestionId(q.id)
+    setQModuleId(q.module_id || 'reading')
+    setQTestTitle(q.test_title || '')
+    setQPassage(q.passage || '')
+    setQAudioScript(q.audio_script || '')
+    setQQuestionText(q.question_text || '')
+    setQOptionsStr(Array.isArray(q.options) ? q.options.join(', ') : '')
+    setQCorrectAnswer(q.correct_answer || '')
+    setShowQuestionModal(true)
+  }
+
+  const handleSaveQuestion = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const optionsArray = qOptionsStr.split(',').map((o) => o.trim()).filter(Boolean)
+
+    const payload = {
+      module_id: qModuleId,
+      test_title: qTestTitle.trim(),
+      passage: qModuleId === 'reading' ? qPassage.trim() : null,
+      audio_script: qModuleId === 'listening' ? qAudioScript.trim() : null,
+      question_text: qQuestionText.trim(),
+      options: optionsArray,
+      correct_answer: qCorrectAnswer.trim(),
+    }
+
+    try {
+      setErrorMsg('')
+      if (editingQuestionId !== null) {
+        // UPDATE
+        const { error } = await supabase
+          .from('questions')
+          .update(payload)
+          .eq('id', editingQuestionId)
+
+        if (error) throw error
+      } else {
+        // CREATE
+        const { error } = await supabase
+          .from('questions')
+          .insert([payload])
+
+        if (error) throw error
+      }
+
+      setShowQuestionModal(false)
+      await loadAdminData()
+    } catch (err: any) {
+      console.error('Error saving question:', err)
+      alert('Failed to save question: ' + (err.message || 'Unknown error'))
+    }
+  }
+
+  const handleDeleteQuestion = async (questionId: string | number) => {
+    if (!confirm('Are you sure you want to permanently delete this question?')) return
+
+    try {
+      setErrorMsg('')
+      const { error } = await supabase
+        .from('questions')
+        .delete()
+        .eq('id', questionId)
+
+      if (error) throw error
+      await loadAdminData()
+    } catch (err: any) {
+      console.error('Error deleting question:', err)
+      alert('Failed to delete question: ' + err.message)
     }
   }
 
@@ -319,17 +446,31 @@ export default function AdminDashboardPage() {
     })
   }, [users, searchQuery, filterRole])
 
+  // Filtered questions
+  const filteredQuestions = useMemo(() => {
+    return questions.filter((q) => {
+      const matchesSearch =
+        questionSearch.trim() === '' ||
+        q.question_text?.toLowerCase().includes(questionSearch.toLowerCase()) ||
+        q.test_title?.toLowerCase().includes(questionSearch.toLowerCase())
+
+      const matchesModule =
+        questionModuleFilter === 'all' || q.module_id === questionModuleFilter
+
+      return matchesSearch && matchesModule
+    })
+  }, [questions, questionSearch, questionModuleFilter])
+
   const stats = useMemo(() => {
-    const total = users.length
+    const totalUsers = users.length
     const admins = users.filter((u) => u.is_admin).length
-    const regularUsers = total - admins
-    const recentSignups = users.filter((u) => {
-      if (!u.created_at) return false
-      const diff = Date.now() - new Date(u.created_at).getTime()
-      return diff < 7 * 24 * 60 * 60 * 1000 // last 7 days
-    }).length
-    return { total, admins, regularUsers, recentSignups }
-  }, [users])
+    const regularUsers = totalUsers - admins
+    const totalQuestions = questions.length
+    const readingQuestions = questions.filter(q => q.module_id === 'reading').length
+    const listeningQuestions = questions.filter(q => q.module_id === 'listening').length
+    
+    return { totalUsers, admins, regularUsers, totalQuestions, readingQuestions, listeningQuestions }
+  }, [users, questions])
 
   // Loading state
   if (loading) {
@@ -350,15 +491,6 @@ export default function AdminDashboardPage() {
             <p className="text-white font-bold text-lg tracking-tight">Initializing Admin Console</p>
             <p className="text-xs font-mono text-violet-400 uppercase tracking-widest">Loading secure data stream...</p>
           </div>
-          <div className="flex items-center gap-2">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="w-2 h-2 rounded-full bg-violet-400"
-                style={{ animation: `pulse 1.5s ease-in-out ${i * 0.2}s infinite` }}
-              />
-            ))}
-          </div>
         </div>
       </div>
     )
@@ -366,20 +498,16 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#0B0B0D] text-white relative">
-      {/* Background grid pattern */}
       <div className="fixed inset-0 opacity-[0.12] bg-[radial-gradient(rgba(139,92,246,0.4)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
-
-      {/* Ambient glows */}
       <div className="fixed top-0 right-0 w-[700px] h-[700px] bg-violet-500/10 rounded-full blur-[160px] pointer-events-none" />
       <div className="fixed bottom-0 left-0 w-[700px] h-[700px] bg-cyan-500/10 rounded-full blur-[160px] pointer-events-none" />
 
       {/* ============================================
-          HEADER — FIXED AT TOP (always visible)
+          HEADER
       ============================================ */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-violet-500/20 bg-[#121218]/80 backdrop-blur-xl">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Left: Logo & Title */}
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center border border-violet-400/30 shadow-lg shadow-violet-500/30">
@@ -388,16 +516,13 @@ export default function AdminDashboardPage() {
                 <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#121218] animate-pulse" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-base font-black tracking-tight leading-none">
-                  Admin Console
-                </h1>
+                <h1 className="text-base font-black tracking-tight leading-none">Admin Console</h1>
                 <p className="text-[10px] font-mono text-violet-400 uppercase tracking-widest mt-1">
-                  Restricted Node · v2.6.0 (CRUD Enabled)
+                  Restricted Node · v2.7.0 (Full CRUD)
                 </p>
               </div>
             </div>
 
-            {/* Center: Live Clock (Desktop) */}
             <div className="hidden lg:flex items-center gap-4 px-4 py-2 rounded-xl bg-slate-900/50 border border-violet-500/20">
               <Icon name="activity" className="w-4 h-4 text-emerald-400" glow />
               <div className="text-xs font-mono">
@@ -407,51 +532,29 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Right: Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Admin Badge */}
               <div className="hidden sm:flex items-center gap-2.5 px-3 py-2 rounded-xl bg-violet-500/10 border border-violet-500/30">
                 <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-black text-xs">
                   {adminEmail.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] font-bold text-violet-300 uppercase tracking-wider leading-none">
-                    Admin
-                  </span>
-                  <span className="text-[11px] text-slate-400 truncate max-w-[140px]">
-                    {adminEmail}
-                  </span>
+                  <span className="text-[10px] font-bold text-violet-300 uppercase tracking-wider leading-none">Admin</span>
+                  <span className="text-[11px] text-slate-400 truncate max-w-[140px]">{adminEmail}</span>
                 </div>
               </div>
 
-              {/* Notification Bell */}
-              <button className="relative w-10 h-10 rounded-xl flex items-center justify-center border border-violet-500/20 bg-slate-900/50 hover:border-violet-400/50 hover:bg-slate-800/50 transition-all">
-                <Icon name="bell" className="w-4 h-4 text-slate-300" />
-                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-              </button>
-
-              {/* Sign Out */}
               <button
                 onClick={() => setShowLogoutModal(true)}
-                className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-400/40 text-xs font-bold transition-all"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-400/40 text-xs font-bold transition-all"
               >
                 <Icon name="log-out" className="w-3.5 h-3.5" />
-                <span>Sign Out</span>
-              </button>
-
-              {/* Mobile sign out (icon only) */}
-              <button
-                onClick={() => setShowLogoutModal(true)}
-                className="sm:hidden w-10 h-10 rounded-xl flex items-center justify-center bg-rose-500/10 border border-rose-500/20 text-rose-400"
-              >
-                <Icon name="log-out" className="w-4 h-4" />
+                <span className="hidden sm:inline">Sign Out</span>
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Spacer — pushes content below the fixed header */}
       <div className="h-16" aria-hidden="true" />
 
       {/* ============================================
@@ -459,7 +562,6 @@ export default function AdminDashboardPage() {
       ============================================ */}
       <main className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-8 py-8 space-y-8">
 
-        {/* Error Notification */}
         {errorMsg && (
           <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm flex items-center justify-between">
             <span>{errorMsg}</span>
@@ -467,40 +569,37 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* ============================================
-            HERO / WELCOME BANNER
-        ============================================ */}
+        {/* HERO BANNER */}
         <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6 sm:p-8">
           <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-500/20 rounded-full blur-[100px] pointer-events-none" />
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/50 to-transparent" />
 
           <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="space-y-3 max-w-2xl">
               <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-[10px] font-bold uppercase tracking-widest text-violet-300">
                 <Icon name="shield" className="w-3 h-3" glow />
-                Authorized Command Center
+                Command & Management Hub
               </span>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
                 Welcome back, <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Administrator</span>
               </h2>
               <p className="text-sm text-slate-400 leading-relaxed">
-                Real-time oversight and CRUD management of the Cally database. Edit user accounts, toggle admin access, and maintain system security.
+                Oversee system users, manage roles, and execute full CRUD operations on your reading and listening test question bank.
               </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/50 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-violet-500/30 hover:shadow-xl transition-all disabled:opacity-50"
               >
                 <Icon name="refresh" className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
                 <span>{refreshing ? 'Syncing...' : 'Refresh Data'}</span>
               </button>
               <a
                 href="/"
-                className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-violet-500/20 bg-slate-900/50 text-slate-300 hover:text-white hover:border-violet-400/40 hover:bg-slate-800/50 font-bold text-xs transition-all"
+                className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-violet-500/20 bg-slate-900/50 text-slate-300 hover:text-white font-bold text-xs transition-all"
               >
                 <Icon name="home" className="w-4 h-4" />
                 <span>Public Hub</span>
@@ -509,73 +608,26 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* ============================================
-            METRIC CARDS
-        ============================================ */}
+        {/* METRIC CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {[
-            {
-              label: 'Total Users',
-              value: stats.total,
-              icon: 'users',
-              gradient: 'from-violet-500 to-purple-500',
-              glow: 'shadow-violet-500/30',
-              trend: `+${stats.recentSignups} this week`,
-              trendColor: 'text-emerald-400',
-            },
-            {
-              label: 'Administrators',
-              value: stats.admins,
-              icon: 'crown',
-              gradient: 'from-amber-500 to-orange-500',
-              glow: 'shadow-amber-500/30',
-              trend: 'Full access',
-              trendColor: 'text-amber-400',
-            },
-            {
-              label: 'Regular Users',
-              value: stats.regularUsers,
-              icon: 'user-check',
-              gradient: 'from-cyan-500 to-blue-500',
-              glow: 'shadow-cyan-500/30',
-              trend: 'Standard access',
-              trendColor: 'text-cyan-400',
-            },
-            {
-              label: 'System Status',
-              value: 100,
-              displayValue: 'Online',
-              icon: 'activity',
-              gradient: 'from-emerald-500 to-teal-500',
-              glow: 'shadow-emerald-500/30',
-              trend: 'All systems operational',
-              trendColor: 'text-emerald-400',
-            },
+            { label: 'Total Users', value: stats.totalUsers, icon: 'users', gradient: 'from-violet-500 to-purple-500', trend: `${stats.admins} admins` },
+            { label: 'Total Questions', value: stats.totalQuestions, icon: 'book', gradient: 'from-cyan-500 to-blue-500', trend: `${stats.readingQuestions} reading / ${stats.listeningQuestions} listening` },
+            { label: 'Admins Active', value: stats.admins, icon: 'crown', gradient: 'from-amber-500 to-orange-500', trend: 'Full privileges' },
+            { label: 'System Status', value: 100, displayValue: 'Online', icon: 'activity', gradient: 'from-emerald-500 to-teal-500', trend: 'Operational' },
           ].map((stat, idx) => (
-            <div
-              key={stat.label}
-              className="group relative overflow-hidden rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 transition-all duration-300 hover:border-violet-400/40 hover:scale-[1.02]"
-              style={{ animationDelay: `${idx * 100}ms` }}
-            >
-              <div className={`absolute -top-8 -right-8 w-32 h-32 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`} />
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/30 to-transparent" />
-
+            <div key={stat.label} className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5">
+              <div className={`absolute -top-8 -right-8 w-32 h-32 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl`} />
               <div className="relative space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg ${stat.glow}`}>
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
                     <Icon name={stat.icon} className="w-5 h-5 text-white" glow />
                   </div>
-                  <span className={`text-[10px] font-mono font-bold uppercase tracking-wider ${stat.trendColor}`}>
-                    {stat.trend}
-                  </span>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">{stat.trend}</span>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
-                    {stat.label}
-                  </p>
-                  <p className="text-3xl font-black text-white">
-                    {stat.displayValue || <AnimatedCounter value={stat.value} />}
-                  </p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{stat.label}</p>
+                  <p className="text-3xl font-black text-white">{stat.displayValue || <AnimatedCounter value={stat.value} />}</p>
                 </div>
               </div>
             </div>
@@ -583,285 +635,382 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* ============================================
-            USER MANAGEMENT TABLE (CRUD)
+            TAB SWITCHER NAVIGATION
         ============================================ */}
-        <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/50 to-transparent" />
+        <div className="flex border-b border-violet-500/20 gap-4">
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
+              activeTab === 'users'
+                ? 'border-violet-500 text-violet-300'
+                : 'border-transparent text-slate-400 hover:text-white'
+            }`}
+          >
+            <Icon name="users" className="w-4 h-4" />
+            <span>User Management ({users.length})</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('questions')}
+            className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all ${
+              activeTab === 'questions'
+                ? 'border-violet-500 text-violet-300'
+                : 'border-transparent text-slate-400 hover:text-white'
+            }`}
+          >
+            <Icon name="book" className="w-4 h-4" />
+            <span>Question Bank CRUD ({questions.length})</span>
+          </button>
+        </div>
 
-          {/* Table Header */}
-          <div className="p-6 border-b border-violet-500/20 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Icon name="grid" className="w-4 h-4 text-violet-400" glow />
-                  <h3 className="text-lg font-black tracking-tight">User Management (CRUD)</h3>
+        {/* ============================================
+            TAB 1: USER MANAGEMENT VIEW
+        ============================================ */}
+        {activeTab === 'users' && (
+          <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+            <div className="p-6 border-b border-violet-500/20 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-black tracking-tight">Registry Accounts</h3>
+                  <p className="text-xs text-slate-400">Manage user roles, edit profiles, and purge inactive records.</p>
                 </div>
-                <p className="text-xs text-slate-400">
-                  Manage registry accounts, toggle role permissions, edit user profiles, and delete records.
-                </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-violet-500/20 bg-slate-900/50 text-slate-300 hover:text-white hover:border-violet-400/40 text-xs font-bold transition-all disabled:opacity-50"
-                >
-                  <Icon name="refresh" className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-                  <span className="hidden sm:inline">Refresh</span>
-                </button>
-                <button className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-violet-500/20 bg-slate-900/50 text-slate-300 hover:text-white hover:border-violet-400/40 text-xs font-bold transition-all">
-                  <Icon name="download" className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Export</span>
-                </button>
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search by name or email..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400"
+                  />
+                </div>
+                <div className="flex items-center gap-1 p-1 rounded-xl border border-violet-500/20 bg-slate-900/50">
+                  {[{ key: 'all', label: 'All' }, { key: 'admin', label: 'Admins' }, { key: 'user', label: 'Users' }].map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setFilterRole(opt.key as any)}
+                      className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                        filterRole === opt.key ? 'bg-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Filters Row */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              {/* Search */}
-              <div className="relative flex-1">
-                <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+            {/* Users Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                    <th className="p-4">User</th>
+                    <th className="p-4 hidden md:table-cell">Email</th>
+                    <th className="p-4">Role Control</th>
+                    <th className="p-4 hidden lg:table-cell">Joined</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-violet-500/10">
+                  {filteredUsers.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-12 text-center text-slate-500">No users match your filters.</td>
+                    </tr>
+                  ) : (
+                    filteredUsers.map((u) => (
+                      <tr key={u.id} className="hover:bg-violet-500/[0.04] transition-colors group">
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+                              u.is_admin ? 'bg-amber-500 text-white' : 'bg-violet-600 text-white'
+                            }`}>
+                              {(u.name || u.email || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              {editingUserId === u.id ? (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    className="px-2 py-1 rounded border border-violet-400 bg-slate-900 text-xs"
+                                  />
+                                  <button onClick={() => handleSaveName(u.id)} className="px-2 py-1 bg-emerald-600 rounded text-xs font-bold">Save</button>
+                                  <button onClick={() => setEditingUserId(null)} className="px-2 py-1 bg-slate-800 rounded text-xs">Cancel</button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <p className="font-bold text-white text-sm">{u.name || 'Unnamed User'}</p>
+                                  <button onClick={() => { setEditingUserId(u.id); setEditName(u.name || '') }} className="opacity-0 group-hover:opacity-100 text-violet-400 p-1">
+                                    <Icon name="edit" className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                              <p className="text-[11px] text-slate-500 font-mono md:hidden">{u.email}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4 hidden md:table-cell text-slate-400 text-xs font-mono">{u.email}</td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => handleToggleAdmin(u.id, u.is_admin, u.email)}
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border ${
+                              u.is_admin ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-violet-500/10 text-violet-300 border-violet-500/20'
+                            }`}
+                          >
+                            <Icon name={u.is_admin ? 'crown' : 'users'} className="w-3.5 h-3.5" />
+                            <span>{u.is_admin ? 'Admin (Demote)' : 'User (Promote)'}</span>
+                          </button>
+                        </td>
+                        <td className="p-4 hidden lg:table-cell text-xs text-slate-400">
+                          {u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}
+                        </td>
+                        <td className="p-4 text-right">
+                          <button onClick={() => handleDeleteUser(u.id, u.email)} className="px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 text-xs font-bold">
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================
+            TAB 2: QUESTION BANK CRUD VIEW
+        ============================================ */}
+        {activeTab === 'questions' && (
+          <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+            <div className="p-6 border-b border-violet-500/20 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-black tracking-tight">Question Bank CRUD Manager</h3>
+                  <p className="text-xs text-slate-400">Create, Read, Update, and Delete reading and listening test questions stored in Supabase.</p>
+                </div>
+                <button
+                  onClick={openCreateQuestionModal}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-500/30 transition-all"
+                >
+                  <Icon name="plus" className="w-4 h-4" />
+                  <span>Add New Question</span>
+                </button>
+              </div>
+
+              {/* Question Filters */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={questionSearch}
+                    onChange={(e) => setQuestionSearch(e.target.value)}
+                    placeholder="Search by question text or test title..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400"
+                  />
+                </div>
+                <div className="flex items-center gap-1 p-1 rounded-xl border border-violet-500/20 bg-slate-900/50">
+                  {[{ key: 'all', label: 'All Modules' }, { key: 'reading', label: 'Reading' }, { key: 'listening', label: 'Listening' }].map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setQuestionModuleFilter(opt.key as any)}
+                      className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                        questionModuleFilter === opt.key ? 'bg-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Questions List Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                    <th className="p-4">Module & Test</th>
+                    <th className="p-4">Question & Options</th>
+                    <th className="p-4">Correct Answer</th>
+                    <th className="p-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-violet-500/10">
+                  {filteredQuestions.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="p-12 text-center text-slate-500">No questions found matching criteria. Click "Add New Question" to begin.</td>
+                    </tr>
+                  ) : (
+                    filteredQuestions.map((q) => (
+                      <tr key={q.id} className="hover:bg-violet-500/[0.04] transition-colors">
+                        <td className="p-4 align-top">
+                          <div className="space-y-1">
+                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                              q.module_id === 'reading' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                            }`}>
+                              {q.module_id}
+                            </span>
+                            <p className="font-bold text-white text-xs">{q.test_title}</p>
+                          </div>
+                        </td>
+                        <td className="p-4 space-y-2">
+                          <p className="font-semibold text-slate-100 text-sm">{q.question_text}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {Array.isArray(q.options) && q.options.map((opt: string, i: number) => (
+                              <span key={i} className={`px-2 py-0.5 rounded text-[11px] ${opt === q.correct_answer ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold' : 'bg-slate-800 text-slate-400'}`}>
+                                {opt}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="p-4 align-top text-emerald-400 font-mono text-xs font-bold">
+                          {q.correct_answer}
+                        </td>
+                        <td className="p-4 align-top text-right space-x-2">
+                          <button onClick={() => openEditQuestionModal(q)} className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold">
+                            Edit
+                          </button>
+                          <button onClick={() => handleDeleteQuestion(q.id)} className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold">
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* ============================================
+          QUESTION CREATE / EDIT MODAL
+      ============================================ */}
+      {showQuestionModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="relative w-full max-w-2xl rounded-3xl border border-violet-500/20 bg-[#151520] p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-violet-500/20 pb-4">
+              <h3 className="text-xl font-black text-white">
+                {editingQuestionId !== null ? '✏️ Edit Question Record' : '➕ Create New Question'}
+              </h3>
+              <button onClick={() => setShowQuestionModal(false)} className="text-slate-400 hover:text-white font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveQuestion} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase">Module Type</label>
+                  <select
+                    value={qModuleId}
+                    onChange={(e) => setQModuleId(e.target.value as any)}
+                    className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-violet-500/20 text-sm focus:outline-none focus:border-violet-400"
+                  >
+                    <option value="reading">Reading</option>
+                    <option value="listening">Listening</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase">Test Title / Batch</label>
+                  <input
+                    type="text"
+                    required
+                    value={qTestTitle}
+                    onChange={(e) => setQTestTitle(e.target.value)}
+                    placeholder="e.g., Reading Test 1"
+                    className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-violet-500/20 text-sm focus:outline-none focus:border-violet-400"
+                  />
+                </div>
+              </div>
+
+              {qModuleId === 'reading' ? (
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase">Passage Content</label>
+                  <textarea
+                    rows={3}
+                    value={qPassage}
+                    onChange={(e) => setQPassage(e.target.value)}
+                    placeholder="Enter reading comprehension text..."
+                    className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-violet-500/20 text-sm focus:outline-none focus:border-violet-400"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase">Audio Script</label>
+                  <textarea
+                    rows={3}
+                    value={qAudioScript}
+                    onChange={(e) => setQAudioScript(e.target.value)}
+                    placeholder="Enter listening transcript script..."
+                    className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-violet-500/20 text-sm focus:outline-none focus:border-violet-400"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase">Question Statement</label>
                 <input
                   type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name or email..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400/60 focus:ring-2 focus:ring-violet-500/20 transition-all"
+                  required
+                  value={qQuestionText}
+                  onChange={(e) => setQQuestionText(e.target.value)}
+                  placeholder="Enter the question text..."
+                  className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-violet-500/20 text-sm focus:outline-none focus:border-violet-400"
                 />
               </div>
 
-              {/* Role Filter */}
-              <div className="flex items-center gap-1 p-1 rounded-xl border border-violet-500/20 bg-slate-900/50">
-                {[
-                  { key: 'all', label: 'All' },
-                  { key: 'admin', label: 'Admins' },
-                  { key: 'user', label: 'Users' },
-                ].map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => setFilterRole(opt.key as any)}
-                    className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
-                      filterRole === opt.key
-                        ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg shadow-violet-500/30'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase">Options (Comma separated)</label>
+                  <input
+                    type="text"
+                    required
+                    value={qOptionsStr}
+                    onChange={(e) => setQOptionsStr(e.target.value)}
+                    placeholder="Option A, Option B, Option C, Option D"
+                    className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-violet-500/20 text-sm focus:outline-none focus:border-violet-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase">Correct Answer</label>
+                  <input
+                    type="text"
+                    required
+                    value={qCorrectAnswer}
+                    onChange={(e) => setQCorrectAnswer(e.target.value)}
+                    placeholder="Must match exact option string"
+                    className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-violet-500/20 text-sm focus:outline-none focus:border-violet-400"
+                  />
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
-                  <th className="p-4">User</th>
-                  <th className="p-4 hidden md:table-cell">Email</th>
-                  <th className="p-4">Role Control</th>
-                  <th className="p-4 hidden lg:table-cell">Joined</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-violet-500/10">
-                {filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="p-12 text-center">
-                      <div className="flex flex-col items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
-                          <Icon name="users" className="w-6 h-6 text-violet-400" />
-                        </div>
-                        <p className="text-sm font-bold text-slate-300">No users match your filters</p>
-                        <p className="text-xs text-slate-500">Try adjusting the search query or role filter</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-violet-500/[0.04] transition-colors group">
-                      
-                      {/* User & Inline Name Edit */}
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`relative w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
-                            u.is_admin
-                              ? 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/30'
-                              : 'bg-gradient-to-br from-violet-500 to-purple-500 shadow-lg shadow-violet-500/30'
-                          }`}>
-                            <span className="text-white">{(u.name || u.email || '?').charAt(0).toUpperCase()}</span>
-                            {u.is_admin && (
-                              <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 border-2 border-[#151520] flex items-center justify-center">
-                                <Icon name="crown" className="w-2 h-2 text-white" />
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            {editingId === u.id ? (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={editName}
-                                  onChange={(e) => setEditName(e.target.value)}
-                                  className="px-2.5 py-1.5 rounded-lg border border-violet-500/40 bg-slate-900 text-white text-xs focus:outline-none"
-                                />
-                                <button
-                                  onClick={() => handleSaveName(u.id)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition"
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  onClick={() => setEditingId(null)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs"
-                                >
-                                  Cancel
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <p className="font-bold text-white truncate text-sm">{u.name || 'Unnamed User'}</p>
-                                <button
-                                  onClick={() => { setEditingId(u.id); setEditName(u.name || '') }}
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity text-violet-400 hover:text-violet-300 p-1"
-                                  title="Edit Name"
-                                >
-                                  <Icon name="edit" className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            )}
-                            <p className="text-[11px] text-slate-500 font-mono truncate md:hidden">{u.email}</p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Email */}
-                      <td className="p-4 hidden md:table-cell">
-                        <div className="flex items-center gap-2">
-                          <Icon name="mail" className="w-3.5 h-3.5 text-slate-600" />
-                          <span className="text-slate-400 text-xs font-mono truncate max-w-[200px]">{u.email}</span>
-                        </div>
-                      </td>
-
-                      {/* Role Toggle Button */}
-                      <td className="p-4">
-                        <button
-                          onClick={() => handleToggleAdmin(u.id, u.is_admin, u.email)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                            u.is_admin
-                              ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border-amber-500/30 hover:bg-amber-500/30'
-                              : 'bg-violet-500/10 text-violet-300 border-violet-500/20 hover:bg-violet-500/20'
-                          }`}
-                          title="Click to toggle admin status"
-                        >
-                          {u.is_admin ? (
-                            <>
-                              <Icon name="crown" className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Admin (Demote)</span>
-                            </>
-                          ) : (
-                            <>
-                              <Icon name="users" className="w-3.5 h-3.5 text-violet-400" />
-                              <span>User (Promote)</span>
-                            </>
-                          )}
-                        </button>
-                      </td>
-
-                      {/* Joined */}
-                      <td className="p-4 hidden lg:table-cell">
-                        <div className="flex items-center gap-2 text-slate-400">
-                          <Icon name="clock" className="w-3.5 h-3.5 text-slate-600" />
-                          <span className="text-xs">
-                            {u.created_at
-                              ? new Date(u.created_at).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                })
-                              : 'N/A'}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Delete Action */}
-                      <td className="p-4 text-right">
-                        <button
-                          onClick={() => handleDeleteUser(u.id, u.email)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-400/40 text-xs font-bold transition-all"
-                          title="Delete user account"
-                        >
-                          <Icon name="trash" className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Delete</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Table Footer */}
-          {filteredUsers.length > 0 && (
-            <div className="p-4 border-t border-violet-500/20 flex items-center justify-between text-xs">
-              <span className="text-slate-500 font-mono">
-                Showing <span className="text-violet-300 font-bold">{filteredUsers.length}</span> of{' '}
-                <span className="text-violet-300 font-bold">{stats.total}</span> users
-              </span>
-              <div className="flex items-center gap-2 text-slate-500">
-                <Icon name="activity" className="w-3 h-3 text-emerald-400" />
-                <span className="font-mono">Live database sync · CRUD Active</span>
+              <div className="flex justify-end gap-3 pt-4 border-t border-violet-500/20">
+                <button
+                  type="button"
+                  onClick={() => setShowQuestionModal(false)}
+                  className="px-5 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-sm shadow-lg shadow-violet-500/30 hover:shadow-xl"
+                >
+                  {editingQuestionId !== null ? 'Save Changes' : 'Publish Question'}
+                </button>
               </div>
-            </div>
-          )}
+            </form>
+          </div>
         </div>
-
-        {/* ============================================
-            BOTTOM INFO STRIP
-        ============================================ */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { label: 'Access Level', value: 'Super Admin', icon: 'shield', color: 'text-violet-400' },
-            { label: 'Session Started', value: currentTime.toLocaleDateString(), icon: 'clock', color: 'text-cyan-400' },
-            { label: 'Data Source', value: 'Supabase Live', icon: 'activity', color: 'text-emerald-400' },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="flex items-center gap-3 p-4 rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl"
-            >
-              <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                <Icon name={item.icon} className={`w-4 h-4 ${item.color}`} glow />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                  {item.label}
-                </p>
-                <p className="text-sm font-bold text-white truncate">{item.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ============================================
-            FOOTER
-        ============================================ */}
-        <footer className="pt-6 border-t border-violet-500/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] font-mono text-slate-600">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-md bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
-              <span className="text-[7px] font-black text-white">T</span>
-            </div>
-            <span>&copy; {new Date().getFullYear()} TephdyTech &bull; Admin Console v2.6.0</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <Icon name="shield" className="w-3 h-3 text-emerald-400" />
-            <span className="text-emerald-500">Restricted Access · All actions logged</span>
-          </div>
-        </footer>
-      </main>
+      )}
 
       {/* ============================================
           LOGOUT CONFIRMATION MODAL
@@ -870,66 +1019,31 @@ export default function AdminDashboardPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-fadeIn">
           <div className="relative w-full max-w-md rounded-3xl border border-violet-500/20 bg-[#151520]/95 backdrop-blur-2xl p-8 shadow-2xl overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-500 via-red-500 to-rose-500" />
-            <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/10 rounded-full blur-[80px] pointer-events-none" />
-
+            
             <div className="relative text-center space-y-6">
-              <div className="relative inline-block">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-rose-500/20 to-red-500/20 border border-rose-500/30 flex items-center justify-center mx-auto">
-                  <Icon name="log-out" className="w-10 h-10 text-rose-400" glow />
-                </div>
-                <div className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-rose-500 border-2 border-[#151520] flex items-center justify-center">
-                  <span className="text-white text-xs font-black">!</span>
-                </div>
+              <div className="w-20 h-20 rounded-3xl bg-rose-500/20 border border-rose-500/30 flex items-center justify-center mx-auto">
+                <Icon name="log-out" className="w-10 h-10 text-rose-400" glow />
               </div>
 
               <div className="space-y-2">
                 <h3 className="text-2xl font-black text-white">Terminate Session?</h3>
-                <p className="text-sm text-slate-400 leading-relaxed">
-                  You are about to sign out of the Admin Console. All unsaved changes will be lost.
-                </p>
+                <p className="text-sm text-slate-400 leading-relaxed">You are about to sign out of the Admin Console.</p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-violet-500/5 border border-violet-500/20">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-black text-base shrink-0">
-                    {adminEmail.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="text-left min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400 leading-none mb-1">
-                      Signed in as
-                    </p>
-                    <p className="text-sm font-bold text-white truncate">{adminEmail}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowLogoutModal(false)}
                   disabled={isLoggingOut}
-                  className="flex-1 py-4 px-6 rounded-xl border border-violet-500/20 bg-slate-800/50 text-white font-bold text-sm transition hover:bg-slate-700/50 disabled:opacity-50"
+                  className="flex-1 py-4 px-6 rounded-xl border border-violet-500/20 bg-slate-800 text-white font-bold text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="flex-1 py-4 px-6 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold text-sm shadow-lg shadow-rose-500/30 transition hover:shadow-xl hover:shadow-rose-500/50 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-4 px-6 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 text-white font-bold text-sm shadow-lg shadow-rose-500/30 flex items-center justify-center gap-2"
                 >
-                  {isLoggingOut ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      <span>Signing Out...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Icon name="log-out" className="w-4 h-4" />
-                      <span>Yes, Sign Out</span>
-                    </>
-                  )}
+                  {isLoggingOut ? <span>Signing Out...</span> : <span>Yes, Sign Out</span>}
                 </button>
               </div>
             </div>
@@ -937,12 +1051,7 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Add global animation keyframes */}
       <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.85); }
-        }
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
