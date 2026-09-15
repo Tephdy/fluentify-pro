@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function AdminLayout({
@@ -12,52 +12,60 @@ export default function AdminLayout({
   const [authorized, setAuthorized] = useState(false)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
+    // Skip verification check if we are on the admin login page
+    if (pathname === '/admin/login') {
+      setLoading(false)
+      setAuthorized(true)
+      return
+    }
+
     async function checkAdminStatus() {
       try {
-        // 1. Get current logged-in user
+        // 1. Get current logged-in browser session
         const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-        if (authError || !user) {
-          console.log("❌ Admin Layout: No active session found.")
-          router.push('/')
+        if (authError || !user || !user.email) {
+          router.push('/admin/login')
           return
         }
 
-        console.log("🔍 Logged-in User ID:", user.id)
-        console.log("🔍 Logged-in Email:", user.email)
-
-        // 2. Fetch admin status from public.users
-        const { data: userDataList, error: dbError } = await supabase
+        // 2. Fetch records safely from public.users
+        const { data: allUsers, error: dbError } = await supabase
           .from('users')
-          .select('is_admin, id, email')
-          .eq('id', user.id)
-          .limit(1)
+          .select('*')
 
-        console.log("🔍 Database Query Result:", userDataList)
-        console.log("🔍 Database Query Error:", dbError)
-
-        const userData = userDataList?.[0]
-
-        if (dbError || !userData || userData.is_admin !== true) {
-          console.log("❌ User is not an admin or query blocked by RLS.")
-          router.push('/')
+        if (dbError || !allUsers) {
+          router.push('/admin/login')
           return
         }
 
-        // 3. Authorized!
+        // 3. Match the user by email (case-insensitive)
+        const userData = allUsers.find(
+          (u: any) => u.email?.toLowerCase() === user.email?.toLowerCase()
+        )
+
+        // 4. Verify admin privileges
+        if (!userData || userData.is_admin !== true) {
+          await supabase.auth.signOut()
+          router.push('/admin/login?error=unauthorized')
+          return
+        }
+
+        // 5. Success! Grant entry
         setAuthorized(true)
       } catch (err) {
-        console.error("❌ Error verifying admin access:", err)
-        router.push('/')
+        console.error("Error verifying admin access:", err)
+        router.push('/admin/login')
       } finally {
         setLoading(false)
       }
     }
 
     checkAdminStatus()
-  }, [router])
+  }, [router, pathname])
 
   if (loading) {
     return (
