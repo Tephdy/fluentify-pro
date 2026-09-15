@@ -381,7 +381,6 @@ function AudioPlayer({ script, onPlay, onEnded }: AudioPlayerProps) {
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-3">
-      {/* Audio Visualizer */}
       <div className="flex items-center gap-4">
         <div className="flex items-end gap-[2px] h-10">
           {audioLevels.map((level, i) => (
@@ -1608,6 +1607,9 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // ============================================
+  // GENERATE TEST (SUPABASE + FALLBACK)
+  // ============================================
   const generateTest = async (moduleType: ModuleType) => {
     setLoading(true);
     setIsSubmitted(false);
@@ -1681,37 +1683,57 @@ export default function Home() {
       return;
     }
 
-    if (moduleType === 'reading') {
-      const availableReading = FALLBACK_READING_QUESTIONS.filter(r => !usedReadingIds.includes(r.id));
-      const targetPool = availableReading.length > 0 ? availableReading : FALLBACK_READING_QUESTIONS;
-      const selectedItem = targetPool[Math.floor(Math.random() * targetPool.length)];
+    // ==========================================
+    // DYNAMIC SUPABASE FETCH FOR READING & LISTENING
+    // ==========================================
+    if (moduleType === 'reading' || moduleType === 'listening') {
+      try {
+        const { data, error } = await supabase
+          .from('questions')
+          .select('*')
+          .eq('module_id', moduleType);
 
-      if (availableReading.length > 0) {
-        setUsedReadingIds(prev => [...prev, selectedItem.id]);
-      } else {
-        setUsedReadingIds([selectedItem.id]);
+        if (error || !data || data.length === 0) {
+          throw new Error(error?.message || 'No questions returned from Supabase');
+        }
+
+        // Group flat rows back into tests by test_title
+        const groupedMap = new Map<string, TestData>();
+        data.forEach((row: any) => {
+          if (!groupedMap.has(row.test_title)) {
+            groupedMap.set(row.test_title, {
+              id: row.test_title,
+              title: row.test_title,
+              passage: row.passage || undefined,
+              audioScript: row.audio_script || undefined,
+              questions: [],
+            });
+          }
+
+          groupedMap.get(row.test_title)!.questions.push({
+            id: row.id.toString(),
+            question: row.question_text,
+            options: row.options || [],
+            correctAnswer: row.correct_answer,
+          });
+        });
+
+        const testsArray = Array.from(groupedMap.values());
+        const selectedItem = testsArray[Math.floor(Math.random() * testsArray.length)];
+
+        setTestData(selectedItem);
+        setCurrentQuestionIndex(0);
+      } catch (err) {
+        console.warn('Supabase fetch failed, falling back to static local data:', err);
+        
+        // Fallback to your local arrays if network/database fails
+        const fallbackSource = moduleType === 'reading' ? FALLBACK_READING_QUESTIONS : FALLBACK_LISTENING_QUESTIONS;
+        const selectedItem = fallbackSource[Math.floor(Math.random() * fallbackSource.length)];
+        setTestData(selectedItem);
+        setCurrentQuestionIndex(0);
+      } finally {
+        setLoading(false);
       }
-
-      setTestData(selectedItem);
-      setCurrentQuestionIndex(0);
-      setLoading(false);
-      return;
-    }
-
-    if (moduleType === 'listening') {
-      const availableListening = FALLBACK_LISTENING_QUESTIONS.filter(l => !usedListeningIds.includes(l.id));
-      const targetPool = availableListening.length > 0 ? availableListening : FALLBACK_LISTENING_QUESTIONS;
-      const selectedItem = targetPool[Math.floor(Math.random() * targetPool.length)];
-
-      if (availableListening.length > 0) {
-        setUsedListeningIds(prev => [...prev, selectedItem.id]);
-      } else {
-        setUsedListeningIds([selectedItem.id]);
-      }
-
-      setTestData(selectedItem);
-      setCurrentQuestionIndex(0);
-      setLoading(false);
       return;
     }
 
@@ -2266,7 +2288,7 @@ export default function Home() {
   };
 
   // ============================================
-  // RENDER: LOGIN PAGE (FIXED)
+  // RENDER: LOGIN PAGE
   // ============================================
   if (!isLoggedIn) {
     return (
@@ -2330,7 +2352,6 @@ export default function Home() {
 
         {/* Desktop Login */}
         <div className="hidden lg:grid h-screen w-screen overflow-hidden grid-cols-12 bg-[#0B0B0D]">
-          {/* Left Panel - Hero */}
           <div className="col-span-6 h-full overflow-y-auto bg-gradient-to-br from-slate-950 via-violet-950 to-slate-900 text-white p-16 flex flex-col justify-between relative border-r border-violet-500/20">
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#8B5CF6_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
             <div className="absolute top-0 right-0 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl pointer-events-none" />
@@ -2381,7 +2402,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Panel - Auth Form (FIXED - light card with proper contrast) */}
           <div className="col-span-6 h-full overflow-y-auto flex items-center justify-center p-12 bg-[#0B0B0D] relative">
             <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
@@ -2396,7 +2416,6 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Tab Switcher */}
               <div className="grid grid-cols-2 p-1.5 bg-slate-800/50 rounded-2xl text-xs font-bold">
                 <button
                   type="button"
@@ -2496,7 +2515,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Mobile Auth Modal (FIXED) */}
+        {/* Mobile Auth Modal */}
         <div className={`fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity ${showAuthModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} aria-hidden={!showAuthModal}>
           <button type="button" aria-label="Close login dialog" onClick={() => setShowAuthModal(false)} className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" />
           <div className="relative w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl border border-violet-500/20 shadow-2xl p-6 sm:p-8 bg-[#151520]/95 backdrop-blur-xl">
