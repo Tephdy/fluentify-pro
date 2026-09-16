@@ -511,7 +511,6 @@ function getLevelMeta(level: string): typeof LEVEL_META[TutorialLevel] {
 // TAB TYPE
 // ============================================
 type AdminTab = 'overview' | 'users' | 'questions' | 'tutorials' | 'rankings' | 'statistics'
-
 // ============================================
 // MAIN ADMIN DASHBOARD
 // ============================================
@@ -546,7 +545,9 @@ export default function AdminDashboardPage() {
     scores: any[]
     certificates: any[]
     tickets: any[]
-  }>({ user: null, scores: [], certificates: [], tickets: [] })
+    lessonProgress: any[]
+    completedLessonIds: string[]
+  }>({ user: null, scores: [], certificates: [], tickets: [], lessonProgress: [], completedLessonIds: [] })
   const [profileLoading, setProfileLoading] = useState(false)
 
   // Rankings Filter State
@@ -659,10 +660,17 @@ export default function AdminDashboardPage() {
   const openUserProfile = async (user: any) => {
     setViewingUserId(user.id)
     setProfileLoading(true)
-    setProfileData({ user, scores: [], certificates: [], tickets: [] })
+    setProfileData({
+      user,
+      scores: [],
+      certificates: [],
+      tickets: [],
+      lessonProgress: [],
+      completedLessonIds: [],
+    })
 
     try {
-      const [scoresRes, certsRes, ticketsRes] = await Promise.all([
+      const [scoresRes, certsRes, ticketsRes, lessonProgressRes] = await Promise.all([
         supabase
           .from('module_scores')
           .select('*')
@@ -678,13 +686,22 @@ export default function AdminDashboardPage() {
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false }),
+        supabase
+          .from('lesson_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('completed_at', { ascending: false }),
       ])
+
+      const lessonProgress = lessonProgressRes.data || []
 
       setProfileData({
         user,
         scores: scoresRes.data || [],
         certificates: certsRes.data || [],
         tickets: ticketsRes.data || [],
+        lessonProgress,
+        completedLessonIds: lessonProgress.map((row: any) => row.lesson_id),
       })
     } catch (err: any) {
       console.error('Error loading user profile:', err)
@@ -696,7 +713,14 @@ export default function AdminDashboardPage() {
 
   const closeUserProfile = () => {
     setViewingUserId(null)
-    setProfileData({ user: null, scores: [], certificates: [], tickets: [] })
+    setProfileData({
+      user: null,
+      scores: [],
+      certificates: [],
+      tickets: [],
+      lessonProgress: [],
+      completedLessonIds: [],
+    })
   }
 
   // ============================================
@@ -1116,6 +1140,53 @@ export default function AdminDashboardPage() {
     
     return { total, average, best, worst, certificates, tickets, moduleStats }
   }, [profileData])
+
+  // ============================================
+  // LEARNING PROGRESS STATS (for viewed user)
+  // ============================================
+  const learningProfileStats = useMemo(() => {
+    const completedIds = profileData.completedLessonIds || []
+    const totalLessons = tutorials.length
+
+    const byLevel: Record<string, { total: number; completed: number }> = {
+      beginner: { total: 0, completed: 0 },
+      intermediate: { total: 0, completed: 0 },
+      upper_intermediate: { total: 0, completed: 0 },
+      advanced: { total: 0, completed: 0 },
+    }
+
+    tutorials.forEach((lesson: any) => {
+      const lvl = (lesson.level || 'beginner') as TutorialLevel
+      if (byLevel[lvl]) {
+        byLevel[lvl].total++
+        if (completedIds.includes(lesson.id)) byLevel[lvl].completed++
+      }
+    })
+
+    const totalCompleted = completedIds.filter((id: string) =>
+      tutorials.some((l: any) => l.id === id)
+    ).length
+
+    const progressPct = totalLessons > 0
+      ? Math.round((totalCompleted / totalLessons) * 100)
+      : 0
+
+    const recentlyCompleted = (profileData.lessonProgress || [])
+      .map((row: any) => {
+        const lesson = tutorials.find((l: any) => l.id === row.lesson_id)
+        return lesson ? { ...lesson, completed_at: row.completed_at } : null
+      })
+      .filter(Boolean)
+      .slice(0, 8)
+
+    return {
+      totalLessons,
+      totalCompleted,
+      progressPct,
+      byLevel,
+      recentlyCompleted,
+    }
+  }, [profileData, tutorials])
 
   // ============================================
   // PLATFORM STATISTICS COMPUTATION
@@ -1571,6 +1642,8 @@ export default function AdminDashboardPage() {
               handleToggleAdmin={handleToggleAdmin}
               handleDeleteUser={handleDeleteUser}
               adminEmail={adminEmail}
+              learningProfileStats={learningProfileStats}
+              tutorials={tutorials}
             />
           ) : (
             <>
@@ -2824,7 +2897,6 @@ export default function AdminDashboardPage() {
     </div>
   )
 }
-
 // ============================================
 // SIDEBAR ITEM COMPONENT
 // ============================================
@@ -2905,12 +2977,16 @@ function UserProfileView({
   handleToggleAdmin,
   handleDeleteUser,
   adminEmail,
+  learningProfileStats,
+  tutorials,
 }: {
   profileData: {
     user: any
     scores: any[]
     certificates: any[]
     tickets: any[]
+    lessonProgress?: any[]
+    completedLessonIds?: string[]
   }
   profileStats: {
     total: number
@@ -2926,6 +3002,14 @@ function UserProfileView({
   handleToggleAdmin: (userId: string, currentStatus: boolean, userEmail: string) => void
   handleDeleteUser: (userId: string, userEmail: string) => void
   adminEmail: string
+  learningProfileStats: {
+    totalLessons: number
+    totalCompleted: number
+    progressPct: number
+    byLevel: Record<string, { total: number; completed: number }>
+    recentlyCompleted: any[]
+  }
+  tutorials: any[]
 }) {
   return (
     <div className="space-y-6">
@@ -2934,7 +3018,7 @@ function UserProfileView({
         className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-slate-300 hover:text-white hover:border-violet-400/40 font-bold text-xs transition-all"
       >
         <Icon name="arrow-left" className="w-4 h-4" />
-        <span>Back to {profileData.user ? 'Current View' : 'Registry'}</span>
+        <span>Back to Registry</span>
       </button>
 
       {/* Profile Hero */}
@@ -3055,6 +3139,145 @@ function UserProfileView({
               </div>
             ))}
           </div>
+
+          {/* ============================================ */}
+          {/* LEARNING PROGRESS SECTION */}
+          {/* ============================================ */}
+          <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg">
+                  <Icon name="graduation-cap" className="w-5 h-5 text-white" glow />
+                </div>
+                <div>
+                  <h3 className="text-base font-black tracking-tight">Learning Progress</h3>
+                  <p className="text-xs text-slate-400">
+                    {learningProfileStats.totalCompleted} of {learningProfileStats.totalLessons} lessons completed
+                  </p>
+                </div>
+              </div>
+
+              {/* Progress ring */}
+              <div className="flex items-center gap-3">
+                <div className="relative w-16 h-16">
+                  <svg className="transform -rotate-90 w-16 h-16">
+                    <circle cx="32" cy="32" r="26" stroke="currentColor" strokeWidth="5" fill="transparent" className="text-slate-500/20" />
+                    <circle
+                      cx="32" cy="32" r="26"
+                      stroke="url(#learningProgressGradient)" strokeWidth="5" fill="transparent"
+                      strokeDasharray={`${2 * Math.PI * 26}`}
+                      strokeDashoffset={`${2 * Math.PI * 26 * (1 - learningProfileStats.progressPct / 100)}`}
+                      strokeLinecap="round"
+                      className="transition-all duration-1000"
+                    />
+                    <defs>
+                      <linearGradient id="learningProgressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#6366f1" />
+                        <stop offset="100%" stopColor="#8b5cf6" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-sm font-black text-white">{learningProfileStats.progressPct}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Level breakdown */}
+            {learningProfileStats.totalLessons === 0 ? (
+              <div className="p-8 text-center text-slate-500 text-sm border-t border-violet-500/10 pt-6">
+                No lessons have been published yet.
+              </div>
+            ) : learningProfileStats.totalCompleted === 0 ? (
+              <div className="p-8 text-center text-slate-500 text-sm border-t border-violet-500/10 pt-6">
+                This user hasn't completed any lessons yet.
+              </div>
+            ) : (
+              <>
+                {/* Level cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                  {(['beginner', 'intermediate', 'upper_intermediate', 'advanced'] as TutorialLevel[]).map((level) => {
+                    const meta = getLevelMeta(level)
+                    const lvl = learningProfileStats.byLevel[level]
+                    const pct = lvl.total > 0 ? Math.round((lvl.completed / lvl.total) * 100) : 0
+                    return (
+                      <div
+                        key={level}
+                        className={`relative overflow-hidden rounded-2xl border ${meta.borderColor} ${meta.bgColor}/5 p-4 space-y-3`}
+                      >
+                        <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${meta.gradient} opacity-10 rounded-full blur-2xl`} />
+                        <div className="relative flex items-center justify-between">
+                          <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg`}>
+                            <span className="text-sm">{meta.emoji}</span>
+                          </div>
+                          <span className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor}`}>
+                            {pct}%
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <p className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor} mb-1`}>
+                            {meta.label}
+                          </p>
+                          <p className="text-xl font-black text-white">
+                            {lvl.completed}<span className="text-slate-500 text-base">/{lvl.total}</span>
+                          </p>
+                        </div>
+                        <div className="relative h-1.5 bg-slate-500/20 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full bg-gradient-to-r ${meta.gradient} rounded-full transition-all duration-700`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Recently completed lessons */}
+                {learningProfileStats.recentlyCompleted.length > 0 && (
+                  <div className="border-t border-violet-500/10 pt-6">
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                      <Icon name="check" className="w-3.5 h-3.5 text-emerald-400" glow />
+                      Recently Completed Lessons
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {learningProfileStats.recentlyCompleted.map((lesson: any) => {
+                        const meta = getLevelMeta(lesson.level)
+                        return (
+                          <div
+                            key={lesson.id}
+                            className={`relative overflow-hidden rounded-xl border ${meta.borderColor} bg-slate-900/30 p-3 space-y-2`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${meta.borderColor} ${meta.bgColor}/10 ${meta.textColor}`}>
+                                <span>{meta.emoji}</span>
+                                {meta.label}
+                              </span>
+                              <span className="text-[9px] font-mono text-slate-500">
+                                #{lesson.order_index}
+                              </span>
+                            </div>
+                            <p className="text-xs font-bold text-white line-clamp-2 leading-snug">
+                              {lesson.title}
+                            </p>
+                            <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-mono">
+                              <Icon name="check" className="w-3 h-3" />
+                              {lesson.completed_at
+                                ? new Date(lesson.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                                : 'Completed'}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          {/* ============ END LEARNING PROGRESS SECTION ============ */}
 
           {/* Module Stats */}
           {Object.keys(profileStats.moduleStats).length > 0 && (
