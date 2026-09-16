@@ -952,37 +952,24 @@ function getLessonLevelMeta(level: string) {
 // PRONUNCIATION PRACTICE CARD
 // ============================================
 interface PronunciationItem {
-  word: string;       // main word or phrase to pronounce
-  ipa?: string;       // IPA representation if detected
-  example?: string;   // example sentence if provided
+  word: string;
+  ipa?: string;
+  example?: string;
 }
 
 function parsePronunciationItems(content: string): PronunciationItem[] {
   const items: PronunciationItem[] = [];
   const lines = content.split('\n');
-
-  // Words with IPA in slashes: e.g., "/θ/ - think"  OR  "think - /θɪŋk/"
   const ipaSlashRegex = /\/([^\/]{1,12})\/\s*[-–—]\s*([A-Za-z][A-Za-z\s'-]{0,40})/;
   const wordIpaRegex = /^([A-Za-z][A-Za-z\s'-]{0,40})\s*[-–—]\s*\/([^\/]{1,12})\//;
-
-  // Word pairs like "ship / sheep" or "bit / beat"
   const pairRegex = /^([A-Za-z]{2,20})\s*\/\s*([A-Za-z]{2,20})$/;
-
-  // Example sentences in quotes: "I think so."
-  const quotedExampleRegex = /"([^"]{3,80})"/;
-
   const seen = new Set<string>();
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line || line.length > 200) continue;
+    if (/^(LECTURE|LEARNING OBJECTIVES|PROFESSOR|PRACTICE|KEY TAKEAWAYS|END OF|INTRODUCTION|STRUCTURE|FUNCTION|EXAMPLES?)/i.test(line)) continue;
 
-    // Skip section headers and instructions
-    if (/^(LECTURE|LEARNING OBJECTIVES|PROFESSOR|PRACTICE|KEY TAKEAWAYS|END OF|INTRODUCTION|STRUCTURE|FUNCTION|EXAMPLES?)/i.test(line)) {
-      continue;
-    }
-
-    // Case 1: "word - /IPA/"
     const wordIpaMatch = line.match(wordIpaRegex);
     if (wordIpaMatch) {
       const word = wordIpaMatch[1].trim();
@@ -994,7 +981,6 @@ function parsePronunciationItems(content: string): PronunciationItem[] {
       continue;
     }
 
-    // Case 2: "/IPA/ - word"
     const ipaSlashMatch = line.match(ipaSlashRegex);
     if (ipaSlashMatch) {
       const ipa = `/${ipaSlashMatch[1]}/`;
@@ -1006,7 +992,6 @@ function parsePronunciationItems(content: string): PronunciationItem[] {
       continue;
     }
 
-    // Case 3: "ship / sheep" pairs — render each as its own item
     const pairMatch = line.match(pairRegex);
     if (pairMatch) {
       const w1 = pairMatch[1];
@@ -1022,21 +1007,16 @@ function parsePronunciationItems(content: string): PronunciationItem[] {
       continue;
     }
 
-    // Case 4: line that is mostly a single english word (from a phoneme example section)
-    // e.g. lines like "  think"  or  "  • think"
     const singleWordMatch = line.match(/^[•\-*]?\s*([A-Za-z][A-Za-z'-]{2,25})$/);
     if (singleWordMatch) {
       const word = singleWordMatch[1];
-      // Only include if the surrounding context seems pronunciation-focused
-      // (heuristic: single word lines appear a lot in pronunciation drills)
       if (!seen.has(word.toLowerCase()) && items.length < 12) {
         seen.add(word.toLowerCase());
         items.push({ word });
       }
     }
   }
-
-  return items.slice(0, 12); // cap to keep UI clean
+  return items.slice(0, 12);
 }
 
 function PronunciationCard({
@@ -1092,8 +1072,6 @@ function PronunciationCard({
         alert('Microphone is not supported in this browser.');
         return;
       }
-
-      // Cleanup any previous recording
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
         setAudioUrl(null);
@@ -1183,7 +1161,6 @@ function PronunciationCard({
       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
 
       <div className="relative space-y-4">
-        {/* Header: word + IPA */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-lg sm:text-xl font-black tracking-tight truncate">
@@ -1206,9 +1183,7 @@ function PronunciationCard({
           </span>
         </div>
 
-        {/* Action buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Listen (normal) */}
           <button
             onClick={() => speakReference(0.9)}
             disabled={isPlayingReference}
@@ -1222,7 +1197,6 @@ function PronunciationCard({
             <span>{isPlayingReference ? 'Playing…' : 'Listen'}</span>
           </button>
 
-          {/* Listen slow */}
           <button
             onClick={() => speakReference(0.55)}
             className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${themeClasses.border} ${themeClasses.cardHover}`}
@@ -1232,7 +1206,6 @@ function PronunciationCard({
             <span>Slow</span>
           </button>
 
-          {/* Record / Stop */}
           {!isRecording ? (
             <button
               onClick={startRecording}
@@ -1251,7 +1224,6 @@ function PronunciationCard({
             </button>
           )}
 
-          {/* Playback */}
           {audioUrl && (
             <button
               onClick={playRecording}
@@ -1267,7 +1239,6 @@ function PronunciationCard({
             </button>
           )}
 
-          {/* Reset */}
           {audioUrl && (
             <button
               onClick={resetRecording}
@@ -1280,7 +1251,6 @@ function PronunciationCard({
           )}
         </div>
 
-        {/* Verify panel */}
         {showVerify && audioUrl && (
           <div className="pt-3 border-t border-slate-500/20 space-y-3 animate-fadeIn">
             <p className={`text-[11px] font-bold uppercase tracking-widest ${themeClasses.textMuted}`}>
@@ -1551,13 +1521,11 @@ function LearningModuleView({
             </div>
           </article>
 
-          {/* Pronunciation Practice (auto-detected from lesson content) */}
           <PronunciationPracticePanel
             content={selectedLesson.content}
             themeClasses={themeClasses}
             Icon={Icon}
           />
-
         </div>
 
         <div className={`rounded-2xl border p-4 flex items-center justify-between gap-3 shadow-lg ${themeClasses.card}`}>
@@ -1866,6 +1834,7 @@ function LearningModuleView({
       )}
     </div>
   );
+  
 }
 // ============================================
 // THEME CONFIGURATION
@@ -2013,7 +1982,7 @@ export default function Home() {
     speaking: 0,
     typing: 0,
     learning: 0,
-  } as Record<ModuleType, number>);
+  });
 
   const [testData, setTestData] = useState<TestData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -2428,25 +2397,72 @@ export default function Home() {
     loadLessons();
   }, []);
 
-  useEffect(() => {
-    const saved = localStorage.getItem('cally_completed_lessons');
-    if (saved) {
-      try {
-        setCompletedLessonIds(JSON.parse(saved));
-      } catch (e) {
-        console.warn('Failed to parse completed lessons');
-      }
+  // ============================================
+  // LOAD LESSON PROGRESS FROM SUPABASE (per user)
+  // ============================================
+  const loadLessonProgress = async () => {
+    if (!userId) {
+      setCompletedLessonIds([]);
+      return;
     }
-  }, []);
+    try {
+      const { data, error } = await supabase
+        .from('lesson_progress')
+        .select('lesson_id')
+        .eq('user_id', userId);
 
-  const toggleLessonCompleted = (lessonId: string) => {
-    setCompletedLessonIds(prev => {
-      const next = prev.includes(lessonId)
+      if (error) throw error;
+      setCompletedLessonIds((data || []).map((row: any) => row.lesson_id));
+    } catch (err: any) {
+      console.error('Error loading lesson progress:', err.message);
+      setCompletedLessonIds([]);
+    }
+  };
+
+  useEffect(() => {
+    loadLessonProgress();
+  }, [userId]);
+
+  // ============================================
+  // TOGGLE LESSON COMPLETION (syncs to Supabase)
+  // ============================================
+  const toggleLessonCompleted = async (lessonId: string) => {
+    if (!userId) {
+      alert('Please sign in to save your lesson progress across devices.');
+      return;
+    }
+
+    const isCurrentlyCompleted = completedLessonIds.includes(lessonId);
+
+    setCompletedLessonIds(prev =>
+      isCurrentlyCompleted
         ? prev.filter(id => id !== lessonId)
-        : [...prev, lessonId];
-      localStorage.setItem('cally_completed_lessons', JSON.stringify(next));
-      return next;
-    });
+        : [...prev, lessonId]
+    );
+
+    try {
+      if (isCurrentlyCompleted) {
+        const { error } = await supabase
+          .from('lesson_progress')
+          .delete()
+          .eq('user_id', userId)
+          .eq('lesson_id', lessonId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('lesson_progress')
+          .insert([{ user_id: userId, lesson_id: lessonId }]);
+        if (error) throw error;
+      }
+    } catch (err: any) {
+      console.error('Error syncing lesson progress:', err.message);
+      setCompletedLessonIds(prev =>
+        isCurrentlyCompleted
+          ? [...prev, lessonId]
+          : prev.filter(id => id !== lessonId)
+      );
+      alert('Failed to save progress. Please check your connection and try again.');
+    }
   };
 
   const filteredLessons = useMemo(() => {
@@ -2556,6 +2572,40 @@ export default function Home() {
     }
     return () => clearInterval(interval);
   }, [startTime, isTypingCompleted, userInput]);
+
+  // ============================================
+  // SUBMISSION HANDLERS (declared BEFORE the timer useEffect)
+  // ============================================
+  const handleSubmitListening = () => {
+    if (isSubmitted) return;
+    setIsListeningTimerActive(false);
+    if (!testData?.questions) return;
+
+    let totalCorrect = 0;
+    testData.questions.forEach((q) => {
+      const userAnswer = selectedAnswers[q.id]?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
+      const correctAnswer = q.correctAnswer?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
+      if (userAnswer === correctAnswer) totalCorrect += 1;
+    });
+
+    const finalPct = Math.round((totalCorrect / testData.questions.length) * 100);
+    handleScoreFinalized(finalPct);
+  };
+
+  const handleSubmitReading = () => {
+    if (isSubmitted) return;
+    if (!testData?.questions) return;
+
+    let totalCorrect = 0;
+    testData.questions.forEach((q) => {
+      const userAnswer = selectedAnswers[q.id]?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
+      const correctAnswer = q.correctAnswer?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
+      if (userAnswer === correctAnswer) totalCorrect += 1;
+    });
+
+    const finalPct = Math.round((totalCorrect / testData.questions.length) * 100);
+    handleScoreFinalized(finalPct);
+  };
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -2707,6 +2757,9 @@ export default function Home() {
       resetListeningState();
     } else {
       handleStartDashboardModule(tab);
+      if (tab === 'learning') {
+        loadLessonProgress();
+      }
     }
   };
 
@@ -2738,8 +2791,14 @@ export default function Home() {
       setAccuracy(100);
     } else if (mod === 'learning') {
       setSelectedLessonId(null);
-    } else if (mod === 'writing' || mod === 'speaking' || mod === 'reading' || mod === 'listening') {
-      generateTest(mod);
+      loadLessonProgress();
+    } else if (
+      mod === 'writing' ||
+      mod === 'speaking' ||
+      mod === 'reading' ||
+      mod === 'listening'
+    ) {
+      generateTest(mod as 'writing' | 'speaking' | 'reading' | 'listening');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -3031,37 +3090,6 @@ export default function Home() {
       }, 4000);
     }
   };
-  
-  const handleSubmitListening = () => {
-    if (isSubmitted) return;
-    setIsListeningTimerActive(false);
-    if (!testData?.questions) return;
-
-    let totalCorrect = 0;
-    testData.questions.forEach((q) => {
-      const userAnswer = selectedAnswers[q.id]?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
-      const correctAnswer = q.correctAnswer?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
-      if (userAnswer === correctAnswer) totalCorrect += 1;
-    });
-
-    const finalPct = Math.round((totalCorrect / testData.questions.length) * 100);
-    handleScoreFinalized(finalPct);
-  };
-
-  const handleSubmitReading = () => {
-    if (isSubmitted) return;
-    if (!testData?.questions) return;
-
-    let totalCorrect = 0;
-    testData.questions.forEach((q) => {
-      const userAnswer = selectedAnswers[q.id]?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
-      const correctAnswer = q.correctAnswer?.trim().toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "") || '';
-      if (userAnswer === correctAnswer) totalCorrect += 1;
-    });
-
-    const finalPct = Math.round((totalCorrect / testData.questions.length) * 100);
-    handleScoreFinalized(finalPct);
-  };
 
   const handleSubmitWriting = () => {
     if (!writingText.trim()) return;
@@ -3311,7 +3339,7 @@ export default function Home() {
   const certificateEligible = overallExamAverage >= 80;
 
   const handleRetakeAssessment = () => {
-    setExamScores({ listening: 0, reading: 0, writing: 0, speaking: 0, typing: 0, learning: 0 } as Record<ModuleType, number>);
+    setExamScores({ listening: 0, reading: 0, writing: 0, speaking: 0, typing: 0, learning: 0 });
     setAntiCheatViolations(0);
     setShowIntegrityWarning(false);
     setGeneratedCertificateCode('');
@@ -4335,8 +4363,7 @@ export default function Home() {
                 </div>
               </div>
             )}
-
-            {appMode === 'dashboard' && !selectedModule && activeTab === 'support' && (
+                        {appMode === 'dashboard' && !selectedModule && activeTab === 'support' && (
               <div className="space-y-6 animate-fadeIn">
                 <div className={`border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${themeClasses.border}`}>
                   <div>
