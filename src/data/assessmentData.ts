@@ -1,6 +1,6 @@
 // data/assessmentData.ts
 
-export type ModuleType = 'listening' | 'reading' | 'writing' | 'speaking' | 'typing';
+export type ModuleType = 'listening' | 'reading' | 'writing' | 'speaking' | 'typing' | 'learning';
 
 export interface TestQuestion {
   id: string;

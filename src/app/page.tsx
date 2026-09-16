@@ -316,7 +316,6 @@ function LegalModal({
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-fadeIn">
       <div className="relative w-full max-w-3xl max-h-[90vh] rounded-3xl border border-violet-500/20 bg-[#151520]/98 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col">
-        {/* Header */}
         <div className="shrink-0 flex items-center justify-between px-6 sm:px-8 py-5 border-b border-violet-500/20 bg-[#121218]/50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
@@ -338,12 +337,10 @@ function LegalModal({
           </button>
         </div>
 
-        {/* Content - Scrollable */}
         <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-5 text-slate-300 text-sm leading-relaxed">
           {children}
         </div>
 
-        {/* Footer */}
         <div className="shrink-0 px-6 sm:px-8 py-4 border-t border-violet-500/20 bg-[#121218]/50 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500">
             <Icon name="shield" className="w-3 h-3 text-emerald-400" />
@@ -894,6 +891,983 @@ interface WritingEvaluationDetails {
 }
 
 // ============================================
+// LESSON INTERFACE & LEVEL META
+// ============================================
+interface Lesson {
+  id: string;
+  title: string;
+  level: 'beginner' | 'intermediate' | 'upper_intermediate' | 'advanced';
+  order_index: number;
+  content: string;
+  created_at?: string;
+}
+
+const LESSON_LEVEL_META: Record<Lesson['level'], {
+  label: string;
+  emoji: string;
+  gradient: string;
+  textColor: string;
+  borderColor: string;
+  bgColor: string;
+}> = {
+  beginner: {
+    label: 'Beginner',
+    emoji: '🌱',
+    gradient: 'from-emerald-500 to-teal-500',
+    textColor: 'text-emerald-300',
+    borderColor: 'border-emerald-500/30',
+    bgColor: 'bg-emerald-500',
+  },
+  intermediate: {
+    label: 'Intermediate',
+    emoji: '🚀',
+    gradient: 'from-sky-500 to-blue-500',
+    textColor: 'text-sky-300',
+    borderColor: 'border-sky-500/30',
+    bgColor: 'bg-sky-500',
+  },
+  upper_intermediate: {
+    label: 'Upper Intermediate',
+    emoji: '⭐',
+    gradient: 'from-violet-500 to-purple-500',
+    textColor: 'text-violet-300',
+    borderColor: 'border-violet-500/30',
+    bgColor: 'bg-violet-500',
+  },
+  advanced: {
+    label: 'Advanced',
+    emoji: '🔥',
+    gradient: 'from-rose-500 to-pink-500',
+    textColor: 'text-rose-300',
+    borderColor: 'border-rose-500/30',
+    bgColor: 'bg-rose-500',
+  },
+};
+
+function getLessonLevelMeta(level: string) {
+  return LESSON_LEVEL_META[level as Lesson['level']] ?? LESSON_LEVEL_META.beginner;
+}
+
+// ============================================
+// PRONUNCIATION PRACTICE CARD
+// ============================================
+interface PronunciationItem {
+  word: string;       // main word or phrase to pronounce
+  ipa?: string;       // IPA representation if detected
+  example?: string;   // example sentence if provided
+}
+
+function parsePronunciationItems(content: string): PronunciationItem[] {
+  const items: PronunciationItem[] = [];
+  const lines = content.split('\n');
+
+  // Words with IPA in slashes: e.g., "/θ/ - think"  OR  "think - /θɪŋk/"
+  const ipaSlashRegex = /\/([^\/]{1,12})\/\s*[-–—]\s*([A-Za-z][A-Za-z\s'-]{0,40})/;
+  const wordIpaRegex = /^([A-Za-z][A-Za-z\s'-]{0,40})\s*[-–—]\s*\/([^\/]{1,12})\//;
+
+  // Word pairs like "ship / sheep" or "bit / beat"
+  const pairRegex = /^([A-Za-z]{2,20})\s*\/\s*([A-Za-z]{2,20})$/;
+
+  // Example sentences in quotes: "I think so."
+  const quotedExampleRegex = /"([^"]{3,80})"/;
+
+  const seen = new Set<string>();
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.length > 200) continue;
+
+    // Skip section headers and instructions
+    if (/^(LECTURE|LEARNING OBJECTIVES|PROFESSOR|PRACTICE|KEY TAKEAWAYS|END OF|INTRODUCTION|STRUCTURE|FUNCTION|EXAMPLES?)/i.test(line)) {
+      continue;
+    }
+
+    // Case 1: "word - /IPA/"
+    const wordIpaMatch = line.match(wordIpaRegex);
+    if (wordIpaMatch) {
+      const word = wordIpaMatch[1].trim();
+      const ipa = `/${wordIpaMatch[2]}/`;
+      if (!seen.has(word.toLowerCase())) {
+        seen.add(word.toLowerCase());
+        items.push({ word, ipa });
+      }
+      continue;
+    }
+
+    // Case 2: "/IPA/ - word"
+    const ipaSlashMatch = line.match(ipaSlashRegex);
+    if (ipaSlashMatch) {
+      const ipa = `/${ipaSlashMatch[1]}/`;
+      const word = ipaSlashMatch[2].trim();
+      if (!seen.has(word.toLowerCase())) {
+        seen.add(word.toLowerCase());
+        items.push({ word, ipa });
+      }
+      continue;
+    }
+
+    // Case 3: "ship / sheep" pairs — render each as its own item
+    const pairMatch = line.match(pairRegex);
+    if (pairMatch) {
+      const w1 = pairMatch[1];
+      const w2 = pairMatch[2];
+      if (!seen.has(w1.toLowerCase())) {
+        seen.add(w1.toLowerCase());
+        items.push({ word: w1 });
+      }
+      if (!seen.has(w2.toLowerCase())) {
+        seen.add(w2.toLowerCase());
+        items.push({ word: w2 });
+      }
+      continue;
+    }
+
+    // Case 4: line that is mostly a single english word (from a phoneme example section)
+    // e.g. lines like "  think"  or  "  • think"
+    const singleWordMatch = line.match(/^[•\-*]?\s*([A-Za-z][A-Za-z'-]{2,25})$/);
+    if (singleWordMatch) {
+      const word = singleWordMatch[1];
+      // Only include if the surrounding context seems pronunciation-focused
+      // (heuristic: single word lines appear a lot in pronunciation drills)
+      if (!seen.has(word.toLowerCase()) && items.length < 12) {
+        seen.add(word.toLowerCase());
+        items.push({ word });
+      }
+    }
+  }
+
+  return items.slice(0, 12); // cap to keep UI clean
+}
+
+function PronunciationCard({
+  item,
+  themeClasses,
+  Icon,
+}: {
+  item: PronunciationItem;
+  themeClasses: any;
+  Icon: any;
+}) {
+  const [isPlayingReference, setIsPlayingReference] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPlayingRecording, setIsPlayingRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [showVerify, setShowVerify] = useState(false);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const maxRecordSeconds = 6;
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const speakReference = (rate: number = 0.9) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      alert('Text-to-speech is not supported in this browser.');
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(item.word);
+    utterance.rate = rate;
+    utterance.lang = 'en-US';
+    utterance.onstart = () => setIsPlayingReference(true);
+    utterance.onend = () => setIsPlayingReference(false);
+    utterance.onerror = () => setIsPlayingReference(false);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startRecording = async () => {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+        alert('Microphone is not supported in this browser.');
+        return;
+      }
+
+      // Cleanup any previous recording
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+        setAudioUrl(null);
+      }
+      setShowVerify(false);
+      audioChunksRef.current = [];
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const supportedMimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'];
+      const mimeType = supportedMimeTypes.find((t) => MediaRecorder.isTypeSupported(t)) || '';
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+        }
+        setIsRecording(false);
+        setShowVerify(true);
+      };
+
+      recorder.start();
+      setIsRecording(true);
+      setRecordingSeconds(0);
+
+      timerRef.current = setInterval(() => {
+        setRecordingSeconds((prev) => {
+          const next = prev + 1;
+          if (next >= maxRecordSeconds) {
+            stopRecording();
+            return 0;
+          }
+          return next;
+        });
+      }, 1000);
+    } catch (err) {
+      console.error('Recording error:', err);
+      alert('Could not access microphone. Please check your browser permissions.');
+      setIsRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  const playRecording = () => {
+    if (!audioUrl) return;
+    if (audioElRef.current) {
+      audioElRef.current.pause();
+    }
+    const el = new Audio(audioUrl);
+    audioElRef.current = el;
+    el.onplay = () => setIsPlayingRecording(true);
+    el.onended = () => setIsPlayingRecording(false);
+    el.onerror = () => setIsPlayingRecording(false);
+    el.play();
+  };
+
+  const resetRecording = () => {
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+      setAudioUrl(null);
+    }
+    setShowVerify(false);
+    setRecordingSeconds(0);
+  };
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border p-4 sm:p-5 shadow-lg transition-all ${themeClasses.card}`}>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+
+      <div className="relative space-y-4">
+        {/* Header: word + IPA */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-lg sm:text-xl font-black tracking-tight truncate">
+              {item.word}
+            </p>
+            {item.ipa && (
+              <p className="text-xs font-mono text-emerald-400 mt-0.5">
+                {item.ipa}
+              </p>
+            )}
+            {item.example && (
+              <p className={`text-[11px] mt-1 italic ${themeClasses.textMuted}`}>
+                e.g. "{item.example}"
+              </p>
+            )}
+          </div>
+          <span className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            <Icon name="mic" className="w-2.5 h-2.5" />
+            Pronunciation
+          </span>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Listen (normal) */}
+          <button
+            onClick={() => speakReference(0.9)}
+            disabled={isPlayingReference}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
+              isPlayingReference
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                : `${themeClasses.border} ${themeClasses.cardHover}`
+            }`}
+          >
+            <Icon name="audio" className="w-3.5 h-3.5" glow={isPlayingReference} />
+            <span>{isPlayingReference ? 'Playing…' : 'Listen'}</span>
+          </button>
+
+          {/* Listen slow */}
+          <button
+            onClick={() => speakReference(0.55)}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${themeClasses.border} ${themeClasses.cardHover}`}
+            title="Play at slow speed"
+          >
+            <Icon name="clock" className="w-3.5 h-3.5" />
+            <span>Slow</span>
+          </button>
+
+          {/* Record / Stop */}
+          {!isRecording ? (
+            <button
+              onClick={startRecording}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-lg shadow-rose-500/30"
+            >
+              <Icon name="mic" className="w-3.5 h-3.5" glow />
+              <span>Record</span>
+            </button>
+          ) : (
+            <button
+              onClick={stopRecording}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer bg-gradient-to-r from-rose-600 to-red-600 text-white shadow-lg shadow-rose-500/40 animate-pulse"
+            >
+              <Icon name="stop" className="w-3.5 h-3.5" />
+              <span>Stop ({maxRecordSeconds - recordingSeconds}s)</span>
+            </button>
+          )}
+
+          {/* Playback */}
+          {audioUrl && (
+            <button
+              onClick={playRecording}
+              disabled={isPlayingRecording}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                isPlayingRecording
+                  ? 'bg-violet-500/20 text-violet-400 border-violet-500/40'
+                  : `${themeClasses.border} ${themeClasses.cardHover}`
+              }`}
+            >
+              <Icon name="activity" className="w-3.5 h-3.5" glow={isPlayingRecording} />
+              <span>{isPlayingRecording ? 'Playing…' : 'Play Mine'}</span>
+            </button>
+          )}
+
+          {/* Reset */}
+          {audioUrl && (
+            <button
+              onClick={resetRecording}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${themeClasses.border} ${themeClasses.cardHover}`}
+              title="Discard recording"
+            >
+              <Icon name="refresh" className="w-3.5 h-3.5" />
+              <span>Retry</span>
+            </button>
+          )}
+        </div>
+
+        {/* Verify panel */}
+        {showVerify && audioUrl && (
+          <div className="pt-3 border-t border-slate-500/20 space-y-3 animate-fadeIn">
+            <p className={`text-[11px] font-bold uppercase tracking-widest ${themeClasses.textMuted}`}>
+              Self-Verification
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
+                  🎯 Target
+                </p>
+                <p className="text-base font-black">{item.word}</p>
+                {item.ipa && (
+                  <p className="text-[11px] font-mono text-emerald-300 mt-0.5">{item.ipa}</p>
+                )}
+              </div>
+              <div className="p-3 rounded-xl bg-violet-500/5 border border-violet-500/20">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-violet-400 mb-1">
+                  🎤 Your Attempt
+                </p>
+                <p className={`text-xs ${themeClasses.textMuted} leading-relaxed`}>
+                  Compare your recording with the target. Focus on:
+                </p>
+                <ul className={`mt-1 text-[11px] space-y-0.5 ${themeClasses.textMuted}`}>
+                  <li>• Vowel length</li>
+                  <li>• Consonant clarity (θ, ð, r, l, v)</li>
+                  <li>• Word stress</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className={`flex items-center gap-2 text-[11px] font-mono ${themeClasses.textMuted}`}>
+              <Icon name="check" className="w-3 h-3 text-emerald-400" />
+              <span>Recording saved · {recordingSeconds}s</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// PRONUNCIATION SECTION WRAPPER
+// ============================================
+function PronunciationPracticePanel({
+  content,
+  themeClasses,
+  Icon,
+}: {
+  content: string;
+  themeClasses: any;
+  Icon: any;
+}) {
+  const items = useMemo(() => parsePronunciationItems(content), [content]);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className={`mt-8 rounded-3xl border p-5 sm:p-6 shadow-xl ${themeClasses.card}`}>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg text-white">
+          <Icon name="mic" className="w-5 h-5" glow />
+        </div>
+        <div>
+          <h3 className="text-base font-black tracking-tight">Pronunciation Practice</h3>
+          <p className={`text-xs ${themeClasses.textMuted}`}>
+            Listen, repeat, record, and compare your pronunciation.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {items.map((item, idx) => (
+          <PronunciationCard
+            key={`${item.word}-${idx}`}
+            item={item}
+            themeClasses={themeClasses}
+            Icon={Icon}
+          />
+        ))}
+      </div>
+
+      <p className={`mt-4 text-[10px] font-mono ${themeClasses.textMuted}`}>
+        💡 Tip: Recordings stay in your browser only — nothing is uploaded.
+      </p>
+    </div>
+  );
+}
+
+// ============================================
+// LEARNING MODULE VIEW COMPONENT
+// ============================================
+function LearningModuleView({
+  lessons,
+  filteredLessons,
+  lessonStats,
+  lessonsLoading,
+  lessonsError,
+  lessonLevelFilter,
+  setLessonLevelFilter,
+  lessonSearchQuery,
+  setLessonSearchQuery,
+  lessonStatusFilter,
+  setLessonStatusFilter,
+  selectedLesson,
+  setSelectedLessonId,
+  completedLessonIds,
+  toggleLessonCompleted,
+  reloadLessons,
+  themeClasses,
+  selectedLessonIndex,
+  Icon,
+}: {
+  lessons: Lesson[];
+  filteredLessons: Lesson[];
+  lessonStats: { byLevel: Record<string, { total: number; completed: number }>; totalCompleted: number; progressPct: number; total: number };
+  lessonsLoading: boolean;
+  lessonsError: string | null;
+  lessonLevelFilter: 'all' | Lesson['level'];
+  setLessonLevelFilter: (v: 'all' | Lesson['level']) => void;
+  lessonSearchQuery: string;
+  setLessonSearchQuery: (v: string) => void;
+  lessonStatusFilter: 'all' | 'completed' | 'incomplete';
+  setLessonStatusFilter: (v: 'all' | 'completed' | 'incomplete') => void;
+  selectedLesson: Lesson | null;
+  setSelectedLessonId: (id: string | null) => void;
+  completedLessonIds: string[];
+  toggleLessonCompleted: (id: string) => void;
+  reloadLessons: () => void;
+  themeClasses: any;
+  selectedLessonIndex: number;
+  Icon: any;
+}) {
+  const currentLevelMeta = selectedLesson ? getLessonLevelMeta(selectedLesson.level) : null;
+  const isCurrentCompleted = selectedLesson ? completedLessonIds.includes(selectedLesson.id) : false;
+
+  const handlePrev = () => {
+    if (selectedLessonIndex > 0) {
+      setSelectedLessonId(filteredLessons[selectedLessonIndex - 1].id);
+    }
+  };
+  const handleNext = () => {
+    if (selectedLessonIndex >= 0 && selectedLessonIndex < filteredLessons.length - 1) {
+      setSelectedLessonId(filteredLessons[selectedLessonIndex + 1].id);
+    }
+  };
+
+  // ============ LESSON READER ============
+  if (selectedLesson && currentLevelMeta) {
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        <div className={`rounded-2xl border p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-lg ${themeClasses.card}`}>
+          <button
+            onClick={() => setSelectedLessonId(null)}
+            className={`px-4 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
+          >
+            <Icon name="arrow-left" className="w-4 h-4" />
+            <span>Back to Lesson Library</span>
+          </button>
+
+          <div className="flex items-center gap-2 justify-center">
+            <button
+              onClick={handlePrev}
+              disabled={selectedLessonIndex <= 0}
+              className={`px-4 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+            >
+              <Icon name="arrow-left" className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Previous</span>
+            </button>
+            <span className={`text-xs font-mono ${themeClasses.textMuted} px-2`}>
+              {selectedLessonIndex + 1} / {filteredLessons.length}
+            </span>
+            <button
+              onClick={handleNext}
+              disabled={selectedLessonIndex >= filteredLessons.length - 1}
+              className={`px-4 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+            >
+              <span className="hidden sm:inline">Next</span>
+              <Icon name="chevron-right" className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <div className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 shadow-xl ${themeClasses.card}`}>
+          <div className={`absolute top-0 right-0 w-80 h-80 bg-gradient-to-br ${currentLevelMeta.gradient} opacity-10 rounded-full blur-3xl pointer-events-none`} />
+          <div className={`absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-br ${currentLevelMeta.gradient} opacity-5 rounded-full blur-3xl pointer-events-none`} />
+
+          <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0">
+              <div className={`w-14 h-14 shrink-0 rounded-2xl bg-gradient-to-br ${currentLevelMeta.gradient} flex items-center justify-center shadow-lg text-white font-black text-xl`}>
+                {selectedLesson.order_index}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${currentLevelMeta.borderColor} ${currentLevelMeta.bgColor}/10 ${currentLevelMeta.textColor}`}>
+                    <span>{currentLevelMeta.emoji}</span>
+                    {currentLevelMeta.label}
+                  </span>
+                  {isCurrentCompleted && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                      <Icon name="check" className="w-3 h-3" />
+                      Completed
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                  {selectedLesson.title}
+                </h2>
+                <p className={`text-xs mt-1 ${themeClasses.textMuted}`}>
+                  Lesson {selectedLesson.order_index} of {lessons.length} · {selectedLesson.content.length.toLocaleString()} characters
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => toggleLessonCompleted(selectedLesson.id)}
+              className={`shrink-0 px-5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-2 ${
+                isCurrentCompleted
+                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : `bg-gradient-to-r ${themeClasses.gradient} text-white shadow-lg`
+              }`}
+            >
+              <Icon name="check" className="w-4 h-4" />
+              <span>{isCurrentCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className={`rounded-3xl border p-6 sm:p-10 shadow-xl ${themeClasses.card}`}>
+          <article className="max-w-3xl mx-auto">
+            <div className="prose prose-invert max-w-none">
+              {selectedLesson.content.split('\n').map((paragraph, idx) => {
+                const trimmed = paragraph.trim();
+                if (!trimmed) return <div key={idx} className="h-3" />;
+
+                if (/^-{3,}$/.test(trimmed)) {
+                  return <hr key={idx} className="my-6 border-slate-500/20" />;
+                }
+
+                const isHeading =
+                  /^[A-Z0-9][A-Z0-9\s\-&':,]{5,}$/.test(trimmed) ||
+                  /^\d+\.\s+[A-Z]/.test(trimmed);
+
+                if (isHeading) {
+                  return (
+                    <h3 key={idx} className="text-lg sm:text-xl font-black mt-8 mb-3 tracking-tight">
+                      {trimmed}
+                    </h3>
+                  );
+                }
+
+                if (/^[•\-*]\s/.test(trimmed)) {
+                  return (
+                    <div key={idx} className="flex items-start gap-3 ml-2 my-2">
+                      <span className={`mt-2 w-1.5 h-1.5 rounded-full bg-gradient-to-br ${currentLevelMeta.gradient} shrink-0`} />
+                      <p className="flex-1 text-sm sm:text-base leading-relaxed">{trimmed.replace(/^[•\-*]\s/, '')}</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <p key={idx} className="text-sm sm:text-base leading-relaxed my-3 text-slate-200">
+                    {trimmed}
+                  </p>
+                );
+              })}
+            </div>
+          </article>
+
+          {/* Pronunciation Practice (auto-detected from lesson content) */}
+          <PronunciationPracticePanel
+            content={selectedLesson.content}
+            themeClasses={themeClasses}
+            Icon={Icon}
+          />
+
+        </div>
+
+        <div className={`rounded-2xl border p-4 flex items-center justify-between gap-3 shadow-lg ${themeClasses.card}`}>
+          <button
+            onClick={handlePrev}
+            disabled={selectedLessonIndex <= 0}
+            className={`flex-1 sm:flex-none px-5 py-3 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+          >
+            <Icon name="arrow-left" className="w-4 h-4" />
+            <span>Previous Lesson</span>
+          </button>
+
+          <button
+            onClick={() => toggleLessonCompleted(selectedLesson.id)}
+            className={`hidden sm:flex px-5 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer items-center gap-2 ${
+              isCurrentCompleted
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                : `bg-gradient-to-r ${themeClasses.gradient} text-white shadow-lg`
+            }`}
+          >
+            <Icon name="check" className="w-4 h-4" />
+            <span>{isCurrentCompleted ? 'Completed' : 'Mark Complete'}</span>
+          </button>
+
+          <button
+            onClick={handleNext}
+            disabled={selectedLessonIndex >= filteredLessons.length - 1}
+            className={`flex-1 sm:flex-none px-5 py-3 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+          >
+            <span>Next Lesson</span>
+            <Icon name="chevron-right" className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============ LESSON LIBRARY ============
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      <div className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 shadow-xl ${themeClasses.card}`}>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border ${themeClasses.accentSoft}`}>
+              <Icon name="book" className="w-3.5 h-3.5" glow />
+              Self-Paced Learning Library
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
+              Master English, <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 bg-clip-text text-transparent">Step by Step</span>
+            </h1>
+            <p className={`text-sm sm:text-base leading-relaxed ${themeClasses.textMuted}`}>
+              Study grammar, phonics, conditionals, academic writing, and advanced discourse at your own pace. Track your progress as you complete each lesson.
+            </p>
+          </div>
+
+          <div className="shrink-0 flex items-center gap-4">
+            <div className="relative w-28 h-28">
+              <svg className="transform -rotate-90 w-28 h-28">
+                <circle cx="56" cy="56" r="48" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-500/20" />
+                <circle
+                  cx="56" cy="56" r="48"
+                  stroke="url(#progressGradient)" strokeWidth="8" fill="transparent"
+                  strokeDasharray={`${2 * Math.PI * 48}`}
+                  strokeDashoffset={`${2 * Math.PI * 48 * (1 - lessonStats.progressPct / 100)}`}
+                  strokeLinecap="round"
+                  className="transition-all duration-1000"
+                />
+                <defs>
+                  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#8b5cf6" />
+                    <stop offset="100%" stopColor="#06b6d4" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-black">{lessonStats.progressPct}%</span>
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                  Complete
+                </span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-bold uppercase tracking-wider text-violet-400">Progress</p>
+              <p className="text-2xl font-black">{lessonStats.totalCompleted} / {lessonStats.total}</p>
+              <p className={`text-[11px] ${themeClasses.textMuted}`}>lessons completed</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {(['beginner', 'intermediate', 'upper_intermediate', 'advanced'] as Lesson['level'][]).map((level) => {
+          const meta = LESSON_LEVEL_META[level];
+          const stats = lessonStats.byLevel[level];
+          const isActive = lessonLevelFilter === level;
+          const levelPct = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+          return (
+            <button
+              key={level}
+              onClick={() => setLessonLevelFilter(isActive ? 'all' : level)}
+              className={`relative overflow-hidden rounded-2xl border-2 p-4 text-left transition-all duration-300 hover:scale-[1.02] cursor-pointer ${
+                isActive
+                  ? `${meta.borderColor} ${meta.bgColor}/10`
+                  : `border-slate-500/20 ${themeClasses.card}`
+              }`}
+            >
+              <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${meta.gradient} opacity-10 rounded-full blur-2xl`} />
+              <div className="relative space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg`}>
+                    <span className="text-base">{meta.emoji}</span>
+                  </div>
+                  {isActive && (
+                    <span className={`text-[9px] font-bold uppercase tracking-widest ${meta.textColor}`}>
+                      Filtering
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor} mb-1`}>
+                    {meta.label}
+                  </p>
+                  <p className="text-2xl font-black">{stats.total}</p>
+                  <p className={`text-[10px] ${themeClasses.textMuted}`}>
+                    {stats.completed} completed · {levelPct}%
+                  </p>
+                </div>
+                <div className="h-1.5 bg-slate-500/20 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full bg-gradient-to-r ${meta.gradient} rounded-full transition-all duration-700`}
+                    style={{ width: `${levelPct}%` }}
+                  />
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className={`rounded-2xl border p-4 shadow-lg ${themeClasses.card}`}>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <Icon name="chart" className={`w-4 h-4 ${themeClasses.textMuted}`} />
+            </div>
+            <input
+              type="text"
+              value={lessonSearchQuery}
+              onChange={(e) => setLessonSearchQuery(e.target.value)}
+              placeholder="Search lessons by title or content..."
+              className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 ${themeClasses.border}`}
+            />
+          </div>
+
+          <div className={`flex items-center gap-1 p-1 rounded-xl border ${themeClasses.border}`}>
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'incomplete', label: 'To Do' },
+              { key: 'completed', label: 'Done' },
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setLessonStatusFilter(opt.key as any)}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  lessonStatusFilter === opt.key
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg'
+                    : `${themeClasses.textMuted}`
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={reloadLessons}
+            disabled={lessonsLoading}
+            className={`px-4 py-3 rounded-xl text-xs font-bold transition cursor-pointer border flex items-center justify-center gap-2 disabled:opacity-50 ${themeClasses.border} ${themeClasses.cardHover}`}
+          >
+            <Icon name="refresh" className={`w-3.5 h-3.5 ${lessonsLoading ? 'animate-spin' : ''}`} />
+            <span>{lessonsLoading ? 'Loading...' : 'Refresh'}</span>
+          </button>
+        </div>
+
+        {(lessonLevelFilter !== 'all' || lessonSearchQuery || lessonStatusFilter !== 'all') && (
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+              Active filters:
+            </span>
+            {lessonLevelFilter !== 'all' && (
+              <button
+                onClick={() => setLessonLevelFilter('all')}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold ${themeClasses.accentSoft} cursor-pointer`}
+              >
+                {LESSON_LEVEL_META[lessonLevelFilter].emoji} {LESSON_LEVEL_META[lessonLevelFilter].label}
+                <Icon name="x" className="w-3 h-3" />
+              </button>
+            )}
+            {lessonStatusFilter !== 'all' && (
+              <button
+                onClick={() => setLessonStatusFilter('all')}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold ${themeClasses.accentSoft} cursor-pointer`}
+              >
+                Status: {lessonStatusFilter}
+                <Icon name="x" className="w-3 h-3" />
+              </button>
+            )}
+            <span className={`text-[10px] font-mono ml-auto ${themeClasses.textMuted}`}>
+              {filteredLessons.length} lesson{filteredLessons.length === 1 ? '' : 's'} shown
+            </span>
+          </div>
+        )}
+      </div>
+
+      {lessonsError && (
+        <div className="p-5 rounded-2xl border border-rose-500/30 bg-rose-500/5 flex items-start gap-4">
+          <Icon name="alert-circle" className="w-6 h-6 text-rose-400 shrink-0" glow />
+          <div>
+            <p className="text-sm font-bold text-rose-400">Couldn't load lessons</p>
+            <p className={`text-xs mt-1 ${themeClasses.textMuted}`}>{lessonsError}</p>
+          </div>
+        </div>
+      )}
+
+      {lessonsLoading ? (
+        <div className={`rounded-3xl border p-16 text-center ${themeClasses.card}`}>
+          <div className="inline-flex items-center gap-3 text-violet-400">
+            <svg className="animate-spin h-6 w-6" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span className="font-bold text-sm uppercase tracking-widest">Loading Lessons...</span>
+          </div>
+        </div>
+      ) : filteredLessons.length === 0 ? (
+        <div className={`rounded-3xl border p-16 text-center ${themeClasses.card}`}>
+          <div className={`w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4 ${themeClasses.accentSoft}`}>
+            <Icon name="book" className="w-8 h-8" glow />
+          </div>
+          <h3 className="text-lg font-bold">
+            {lessons.length === 0 ? 'No lessons available yet' : 'No matching lessons'}
+          </h3>
+          <p className={`text-sm mt-2 ${themeClasses.textMuted}`}>
+            {lessons.length === 0
+              ? 'Lessons will appear here once they are published to the database.'
+              : 'Try adjusting your filters or search query.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredLessons.map((lesson) => {
+            const meta = getLessonLevelMeta(lesson.level);
+            const isCompleted = completedLessonIds.includes(lesson.id);
+            return (
+              <button
+                key={lesson.id}
+                onClick={() => setSelectedLessonId(lesson.id)}
+                className={`group relative overflow-hidden rounded-2xl border p-5 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer ${themeClasses.card} ${themeClasses.cardHover}`}
+              >
+                <div className={`absolute -top-8 -right-8 w-32 h-32 bg-gradient-to-br ${meta.gradient} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`} />
+
+                <div className="relative space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg text-white font-black text-base`}>
+                      {lesson.order_index}
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${meta.borderColor} ${meta.bgColor}/10 ${meta.textColor}`}>
+                        {meta.emoji} {meta.label}
+                      </span>
+                      {isCompleted && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          <Icon name="check" className="w-2.5 h-2.5" />
+                          Done
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-base font-bold leading-snug line-clamp-2 group-hover:text-violet-300 transition-colors">
+                      {lesson.title}
+                    </h3>
+                    <p className={`text-xs leading-relaxed line-clamp-3 ${themeClasses.textMuted}`}>
+                      {lesson.content.substring(0, 160).replace(/\n/g, ' ')}...
+                    </p>
+                  </div>
+
+                  <div className={`flex items-center justify-between pt-3 border-t ${themeClasses.border}`}>
+                    <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
+                      {lesson.content.length.toLocaleString()} chars
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-violet-400 group-hover:translate-x-1 transition-transform">
+                      Read lesson
+                      <Icon name="chevron-right" className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+// ============================================
 // THEME CONFIGURATION
 // ============================================
 type ThemeMode = 'light' | 'dark' | 'midnight' | 'cyber' | 'emerald';
@@ -1038,7 +2012,8 @@ export default function Home() {
     writing: 0,
     speaking: 0,
     typing: 0,
-  });
+    learning: 0,
+  } as Record<ModuleType, number>);
 
   const [testData, setTestData] = useState<TestData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -1100,6 +2075,18 @@ export default function Home() {
   const [showIntegrityWarning, setShowIntegrityWarning] = useState(false);
   const [integrityWarning, setIntegrityWarning] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // ============================================
+  // LEARNING MODULE STATE
+  // ============================================
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+  const [lessonsError, setLessonsError] = useState<string | null>(null);
+  const [lessonLevelFilter, setLessonLevelFilter] = useState<'all' | Lesson['level']>('all');
+  const [lessonSearchQuery, setLessonSearchQuery] = useState('');
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
+  const [lessonStatusFilter, setLessonStatusFilter] = useState<'all' | 'completed' | 'incomplete'>('all');
 
   const themeClasses = themeConfigs[theme];
 
@@ -1415,6 +2402,99 @@ export default function Home() {
     refreshUserStats();
   }, [userId]);
 
+  // ============================================
+  // LOAD LESSONS FROM SUPABASE
+  // ============================================
+  const loadLessons = async () => {
+    setLessonsLoading(true);
+    setLessonsError(null);
+    try {
+      const { data, error } = await supabase
+        .from('lessons')
+        .select('*')
+        .order('order_index', { ascending: true });
+
+      if (error) throw error;
+      setLessons((data as Lesson[]) || []);
+    } catch (err: any) {
+      console.error('Error loading lessons:', err.message);
+      setLessonsError(err.message || 'Failed to load lessons');
+    } finally {
+      setLessonsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLessons();
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('cally_completed_lessons');
+    if (saved) {
+      try {
+        setCompletedLessonIds(JSON.parse(saved));
+      } catch (e) {
+        console.warn('Failed to parse completed lessons');
+      }
+    }
+  }, []);
+
+  const toggleLessonCompleted = (lessonId: string) => {
+    setCompletedLessonIds(prev => {
+      const next = prev.includes(lessonId)
+        ? prev.filter(id => id !== lessonId)
+        : [...prev, lessonId];
+      localStorage.setItem('cally_completed_lessons', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const filteredLessons = useMemo(() => {
+    return lessons.filter(lesson => {
+      const matchesLevel = lessonLevelFilter === 'all' || lesson.level === lessonLevelFilter;
+      const matchesSearch =
+        lessonSearchQuery.trim() === '' ||
+        lesson.title.toLowerCase().includes(lessonSearchQuery.toLowerCase()) ||
+        lesson.content.toLowerCase().includes(lessonSearchQuery.toLowerCase());
+      const isCompleted = completedLessonIds.includes(lesson.id);
+      const matchesStatus =
+        lessonStatusFilter === 'all' ||
+        (lessonStatusFilter === 'completed' && isCompleted) ||
+        (lessonStatusFilter === 'incomplete' && !isCompleted);
+      return matchesLevel && matchesSearch && matchesStatus;
+    });
+  }, [lessons, lessonLevelFilter, lessonSearchQuery, lessonStatusFilter, completedLessonIds]);
+
+  const lessonStats = useMemo(() => {
+    const byLevel: Record<string, { total: number; completed: number }> = {
+      beginner: { total: 0, completed: 0 },
+      intermediate: { total: 0, completed: 0 },
+      upper_intermediate: { total: 0, completed: 0 },
+      advanced: { total: 0, completed: 0 },
+    };
+    lessons.forEach(l => {
+      if (byLevel[l.level]) {
+        byLevel[l.level].total++;
+        if (completedLessonIds.includes(l.id)) byLevel[l.level].completed++;
+      }
+    });
+    const totalCompleted = completedLessonIds.filter(id =>
+      lessons.some(l => l.id === id)
+    ).length;
+    const progressPct = lessons.length > 0 ? Math.round((totalCompleted / lessons.length) * 100) : 0;
+    return { byLevel, totalCompleted, progressPct, total: lessons.length };
+  }, [lessons, completedLessonIds]);
+
+  const selectedLesson = useMemo(() => {
+    if (!selectedLessonId) return null;
+    return lessons.find(l => l.id === selectedLessonId) || null;
+  }, [selectedLessonId, lessons]);
+
+  const selectedLessonIndex = useMemo(() => {
+    if (!selectedLesson) return -1;
+    return filteredLessons.findIndex(l => l.id === selectedLesson.id);
+  }, [selectedLesson, filteredLessons]);
+
   useEffect(() => {
     const savedEmail = localStorage.getItem('cally_user_email');
     const savedName = localStorage.getItem('cally_user_name');
@@ -1623,6 +2703,7 @@ export default function Home() {
       setWritingSubIndex(0);
       setWritingDrafts([]);
       setWritingSubPrompts([]);
+      setSelectedLessonId(null);
       resetListeningState();
     } else {
       handleStartDashboardModule(tab);
@@ -1655,6 +2736,8 @@ export default function Home() {
       setIsTypingCompleted(false);
       setWpm(0);
       setAccuracy(100);
+    } else if (mod === 'learning') {
+      setSelectedLessonId(null);
     } else if (mod === 'writing' || mod === 'speaking' || mod === 'reading' || mod === 'listening') {
       generateTest(mod);
     }
@@ -1702,6 +2785,7 @@ export default function Home() {
     setWritingSubIndex(0);
     setWritingDrafts([]);
     setWritingSubPrompts([]);
+    setSelectedLessonId(null);
     resetListeningState();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -1718,6 +2802,11 @@ export default function Home() {
     setWritingEvaluationDetails(null);
     setCurrentQuestionIndex(0);
     resetListeningState();
+
+    if (moduleType === 'learning') {
+      setLoading(false);
+      return;
+    }
 
     if (moduleType === 'typing') {
       const targetPassage = DEFAULT_TYPING_PASSAGES[Math.floor(Math.random() * DEFAULT_TYPING_PASSAGES.length)];
@@ -1745,7 +2834,6 @@ export default function Home() {
 
       setWritingPrompt(selectedPrompt);
 
-      // Single-step writing prompt
       const singlePrompt = `Write a professional customer response addressing the following scenario. Include a proper greeting, a clear body with the resolution or relevant details, and a professional closing.\n\nScenario: ${selectedPrompt}`;
       setWritingSubPrompts([singlePrompt]);
       setWritingSubIndex(0);
@@ -2223,7 +3311,7 @@ export default function Home() {
   const certificateEligible = overallExamAverage >= 80;
 
   const handleRetakeAssessment = () => {
-    setExamScores({ listening: 0, reading: 0, writing: 0, speaking: 0, typing: 0 });
+    setExamScores({ listening: 0, reading: 0, writing: 0, speaking: 0, typing: 0, learning: 0 } as Record<ModuleType, number>);
     setAntiCheatViolations(0);
     setShowIntegrityWarning(false);
     setGeneratedCertificateCode('');
@@ -2288,6 +3376,16 @@ export default function Home() {
   };
 
   const dashboardFeatures = [
+    {
+      id: 'learning' as ModuleType,
+      title: 'Learning & Lessons',
+      description: 'Study grammar, phonics, conditionals, and academic writing at your own pace.',
+      tag: 'Learning',
+      icon: 'book',
+      gradient: 'from-indigo-500 to-violet-500',
+      glow: 'shadow-indigo-500/30',
+      instructions: "1. Browse lessons by level (Beginner → Advanced).\n2. Click any lesson to read its full content.\n3. Mark lessons as complete to track your progress.",
+    },
     {
       id: 'listening' as ModuleType,
       title: 'Listening & Dictation',
@@ -2795,9 +3893,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ============================================
-            LEGAL MODALS
-        ============================================ */}
+        {/* Legal Modals */}
         <LegalModal
           isOpen={showPrivacyModal}
           onClose={() => setShowPrivacyModal(false)}
@@ -2841,10 +3937,6 @@ export default function Home() {
                   <span className="text-violet-400 font-bold">•</span>
                   <span><strong className="text-slate-200">Technical Data:</strong> IP address, browser type, device identifiers, operating system, and session integrity logs.</span>
                 </li>
-                <li className="flex gap-3">
-                  <span className="text-violet-400 font-bold">•</span>
-                  <span><strong className="text-slate-200">Usage Data:</strong> Interaction patterns, feature usage, session duration, and assessment metadata.</span>
-                </li>
               </ul>
             </section>
 
@@ -2853,104 +3945,19 @@ export default function Home() {
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">3</span>
                 How We Use Your Information
               </h4>
-              <p>We process your personal data for the following lawful purposes:</p>
               <ul className="space-y-2 pl-4">
                 <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Service Delivery:</strong> To provide, operate, and maintain the assessment and certification platform.</span></li>
                 <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Evaluation:</strong> To process and score your module responses using AI and rule-based engines.</span></li>
                 <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Authentication:</strong> To verify identity and protect against unauthorized access.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Communications:</strong> To send service updates, security alerts, and support responses.</span></li>
                 <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Improvement:</strong> To analyze usage patterns and improve the Service's functionality and user experience.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Legal Compliance:</strong> To comply with legal obligations and enforce our Terms of Service.</span></li>
               </ul>
             </section>
 
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">4</span>
-                Data Sharing & Disclosure
-              </h4>
-              <p>We do not sell your personal information. We may share your data only with:</p>
-              <ul className="space-y-2 pl-4">
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Service Providers:</strong> Supabase (database hosting), OpenAI/Whisper (speech evaluation), and cloud infrastructure providers bound by confidentiality agreements.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Legal Authorities:</strong> When required by law, court order, or to protect the rights and safety of our users.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets, with prior notice to you.</span></li>
-              </ul>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">5</span>
-                Data Security
-              </h4>
-              <p>
-                We implement industry-standard security measures including 256-bit TLS encryption in transit, AES-256 encryption at rest, hashed password storage (bcrypt), role-based access controls, and regular security audits. Audio recordings are ephemeral and deleted immediately after AI evaluation. However, no method of transmission over the Internet is 100% secure.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">6</span>
-                Your Privacy Rights
-              </h4>
-              <p>Depending on your jurisdiction, you have the following rights:</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                {[
-                  { title: 'Right to Access', desc: 'Request a copy of your personal data.' },
-                  { title: 'Right to Rectification', desc: 'Correct inaccurate or incomplete data.' },
-                  { title: 'Right to Erasure', desc: '"Right to be forgotten" — delete your account and data.' },
-                  { title: 'Right to Restrict', desc: 'Limit how we process your data.' },
-                  { title: 'Right to Portability', desc: 'Receive your data in a machine-readable format.' },
-                  { title: 'Right to Object', desc: 'Object to certain processing activities.' },
-                ].map((right) => (
-                  <div key={right.title} className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-1">
-                    <p className="text-xs font-bold text-violet-300">{right.title}</p>
-                    <p className="text-[11px] text-slate-400 leading-snug">{right.desc}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="mt-3">
-                To exercise these rights, email <span className="text-violet-300 font-mono">privacy@tephdytech.com</span>. We will respond within 30 days.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">7</span>
-                Data Retention
-              </h4>
-              <p>
-                We retain your personal data for as long as your account is active. Upon account deletion, all associated data — including assessment scores, certificates, and audio recordings — is permanently removed within 30 days, unless retention is required by law.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">8</span>
-                Cookies & Tracking
-              </h4>
-              <p>
-                We use strictly necessary cookies for authentication and session management. We do not use third-party advertising or tracking cookies. Analytics data is aggregated and anonymized.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">9</span>
-                Children's Privacy
-              </h4>
-              <p>
-                Our Service is not intended for individuals under 16 years of age. We do not knowingly collect data from children. If you become aware of any data we have collected from children, please contact us immediately.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">10</span>
                 Contact Us
               </h4>
-              <p>
-                For privacy-related inquiries, contact our Data Protection Officer at:
-              </p>
               <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-1 font-mono text-xs">
                 <p className="text-slate-300">📧 privacy@tephdytech.com</p>
                 <p className="text-slate-300">📧 dpo@tephdytech.com</p>
@@ -2983,128 +3990,18 @@ export default function Home() {
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">2</span>
-                Eligibility & Account Registration
+                Acceptable Use Policy
               </h4>
               <ul className="space-y-2 pl-4">
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>You must be at least 16 years old to create an account.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>You must provide accurate, current, and complete information during registration.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>You are responsible for maintaining the confidentiality of your account credentials.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>One person may not maintain more than one account. Account sharing is strictly prohibited.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>You must notify us immediately of any unauthorized access to your account.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Cheat, use automated scripts, or employ AI assistance during official assessments.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Copy, distribute, or reverse-engineer assessment content, questions, or answer keys.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Share certificates under a false identity or misrepresent your credentials.</span></li>
               </ul>
             </section>
 
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">3</span>
-                Acceptable Use Policy
-              </h4>
-              <p className="font-semibold text-slate-200">You agree NOT to:</p>
-              <ul className="space-y-2 pl-4">
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Cheat, use automated scripts, or employ AI assistance during official assessments.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Copy, distribute, or reverse-engineer assessment content, questions, or answer keys.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Share certificates under a false identity or misrepresent your credentials.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Attempt to bypass anti-cheat, fullscreen, or clipboard-blocking measures.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Upload malicious code, spam, or content that violates applicable laws.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Use the Service for any commercial purpose without our express written consent.</span></li>
-              </ul>
-              <p className="mt-2 text-rose-400 font-semibold">
-                Violation may result in immediate account termination and certificate revocation.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">4</span>
-                Assessment Integrity & Anti-Cheat
-              </h4>
-              <p>
-                During official exams, the Service activates a comprehensive anti-cheat system including fullscreen enforcement, tab-switch detection, clipboard blocking, and session integrity monitoring. Any violations are logged and may result in score invalidation, certificate revocation, and permanent account suspension.
-              </p>
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                <p className="text-xs font-bold text-amber-300 mb-1">⚠ Integrity Monitoring Active</p>
-                <p className="text-[11px] text-slate-300">
-                  Copy, cut, paste, right-click, and keyboard shortcuts (Ctrl+C/V/X/A) are disabled during assessments. Repeated violations will terminate your session.
-                </p>
-              </div>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">5</span>
-                Certificates & Credentials
-              </h4>
-              <ul className="space-y-2 pl-4">
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Certificates are awarded to candidates who achieve a minimum cumulative rating of 80% on the Full Exam.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Each certificate carries a unique verification ID that can be validated through our API.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>We reserve the right to revoke any certificate obtained through fraudulent means.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Certificates reflect the candidate's performance at the time of assessment and have no expiration unless stated otherwise.</span></li>
-              </ul>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">6</span>
-                Intellectual Property
-              </h4>
-              <p>
-                All content on the Service — including but not limited to assessment questions, reading passages, audio scripts, evaluation algorithms, design, logos, and code — is the exclusive property of TephdyTech and is protected by international copyright and trademark laws. You are granted a limited, non-exclusive, non-transferable license to access the Service for personal, non-commercial use only.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">7</span>
-                AI-Powered Evaluation Disclaimer
-              </h4>
-              <p>
-                The Service uses artificial intelligence, including Whisper speech-to-text and large language models, to evaluate Speaking and Writing modules. While we strive for accuracy, AI evaluations are advisory in nature. We do not guarantee that AI-generated scores reflect real-world performance. Final hiring or academic decisions should consider multiple factors.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">8</span>
-                Limitation of Liability
-              </h4>
-              <p>
-                To the maximum extent permitted by law, TephdyTech shall not be liable for any indirect, incidental, special, consequential, or punitive damages — including loss of profits, data, or goodwill — arising from your use of the Service. Our total liability shall not exceed the amount you paid for the Service in the 12 months preceding the claim.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">9</span>
-                Termination
-              </h4>
-              <p>
-                We may suspend or terminate your account at any time, with or without notice, for conduct that violates these Terms, harms other users, or exposes us to legal liability. You may delete your account at any time through your account settings or by contacting support.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">10</span>
-                Modifications to Terms
-              </h4>
-              <p>
-                We reserve the right to modify these Terms at any time. Material changes will be communicated via email or a prominent notice on the Service at least 14 days before they take effect. Continued use of the Service after changes constitutes acceptance of the updated Terms.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">11</span>
-                Governing Law & Dispute Resolution
-              </h4>
-              <p>
-                These Terms shall be governed by and construed in accordance with the laws of the Republic of the Philippines, without regard to conflict of law principles. Any disputes arising under these Terms shall be resolved exclusively through binding arbitration in Metro Manila, Philippines.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">12</span>
                 Contact Information
               </h4>
               <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-1 font-mono text-xs">
@@ -3112,9 +4009,6 @@ export default function Home() {
                 <p className="text-slate-300">📧 support@tephdytech.com</p>
                 <p className="text-slate-400">TephdyTech Inc. · Legal Department</p>
               </div>
-              <p className="text-xs italic text-slate-400 mt-3">
-                By creating an account, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy.
-              </p>
             </section>
           </div>
         </LegalModal>
@@ -3403,7 +4297,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
                     {dashboardFeatures.map((feat, idx) => (
                       <div
                         key={feat.id}
@@ -3898,7 +4792,7 @@ export default function Home() {
                       <Icon name="arrow-left" className="w-4 h-4" />
                       <span>Back to Dashboard</span>
                     </button>
-                    {appMode === 'dashboard' && selectedModule && (
+                    {appMode === 'dashboard' && selectedModule && selectedModule !== 'learning' && (
                       <button
                         onClick={() => generateTest(selectedModule)}
                         className={`flex-1 sm:flex-none px-4 py-2.5 text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center gap-2 ${themeClasses.accentSoft}`}
@@ -3916,6 +4810,30 @@ export default function Home() {
                   </div>
                 </div>
 
+                {selectedModule === 'learning' && (
+                  <LearningModuleView
+                    lessons={lessons}
+                    filteredLessons={filteredLessons}
+                    lessonStats={lessonStats}
+                    lessonsLoading={lessonsLoading}
+                    lessonsError={lessonsError}
+                    lessonLevelFilter={lessonLevelFilter}
+                    setLessonLevelFilter={setLessonLevelFilter}
+                    lessonSearchQuery={lessonSearchQuery}
+                    setLessonSearchQuery={setLessonSearchQuery}
+                    lessonStatusFilter={lessonStatusFilter}
+                    setLessonStatusFilter={setLessonStatusFilter}
+                    selectedLesson={selectedLesson}
+                    setSelectedLessonId={setSelectedLessonId}
+                    completedLessonIds={completedLessonIds}
+                    toggleLessonCompleted={toggleLessonCompleted}
+                    reloadLessons={loadLessons}
+                    themeClasses={themeClasses}
+                    selectedLessonIndex={selectedLessonIndex}
+                    Icon={Icon}
+                  />
+                )}
+
                 {selectedModule === 'speaking' && (
                   <div className={`rounded-3xl border p-6 sm:p-8 shadow-xl ${themeClasses.card}`}>
                     <SpeakingRecorder
@@ -3928,7 +4846,6 @@ export default function Home() {
 
                 {selectedModule === 'writing' && (
                   <div className={`rounded-3xl border p-6 sm:p-8 shadow-xl space-y-6 ${themeClasses.card}`}>
-                    {/* Single Scenario Prompt */}
                     <div className={`p-5 rounded-2xl border ${themeClasses.accentSoft} space-y-2`}>
                       <span className={`text-xs font-bold uppercase block ${themeClasses.accent}`}>
                         Writing Scenario Prompt:
@@ -3938,7 +4855,6 @@ export default function Home() {
                       </p>
                     </div>
 
-                    {/* Single Response Textarea */}
                     <textarea
                       rows={14}
                       value={writingDrafts[0] ?? ''}
@@ -3951,7 +4867,6 @@ export default function Home() {
                       className={`w-full p-5 border rounded-2xl bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 leading-relaxed resize-y ${themeClasses.border}`}
                     />
 
-                    {/* Word Count & Submit */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       <span className={`text-xs ${themeClasses.textMuted}`}>
                         Total: {writingText.trim() ? writingText.trim().split(/\s+/).length : 0} words
@@ -4657,7 +5572,7 @@ export default function Home() {
                 {appMode === 'full_exam' ? 'Continue to Next Module →' : 'Close'}
               </button>
 
-              {appMode === 'dashboard' && selectedModule && (
+              {appMode === 'dashboard' && selectedModule && selectedModule !== 'learning' && (
                 <button
                   onClick={() => {
                     setShowScorePopup(false);

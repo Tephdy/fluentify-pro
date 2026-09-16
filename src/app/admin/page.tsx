@@ -261,6 +261,31 @@ function Icon({ name, className = "w-5 h-5", glow = false }: IconProps) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
       )
+    case 'layers':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+        </svg>
+      )
+    case 'graduation-cap':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M22 10L12 5 2 10l10 5 10-5z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 12v5c3 3 9 3 12 0v-5" />
+        </svg>
+      )
+    case 'chevron-down':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      )
+    case 'chevron-right':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      )
     default:
       return null
   }
@@ -405,16 +430,68 @@ function getModuleMeta(moduleName: string) {
 }
 
 // ============================================
+// LEVEL COLOR HELPER
+// ============================================
+type TutorialLevel = 'beginner' | 'intermediate' | 'upper_intermediate' | 'advanced'
+
+const LEVEL_META: Record<TutorialLevel, {
+  gradient: string;
+  textColor: string;
+  borderColor: string;
+  bgColor: string;
+  label: string;
+  emoji: string;
+}> = {
+  beginner: {
+    gradient: 'from-emerald-500 to-teal-500',
+    textColor: 'text-emerald-300',
+    borderColor: 'border-emerald-500/30',
+    bgColor: 'bg-emerald-500',
+    label: 'Beginner',
+    emoji: '🌱',
+  },
+  intermediate: {
+    gradient: 'from-sky-500 to-blue-500',
+    textColor: 'text-sky-300',
+    borderColor: 'border-sky-500/30',
+    bgColor: 'bg-sky-500',
+    label: 'Intermediate',
+    emoji: '🚀',
+  },
+  upper_intermediate: {
+    gradient: 'from-violet-500 to-purple-500',
+    textColor: 'text-violet-300',
+    borderColor: 'border-violet-500/30',
+    bgColor: 'bg-violet-500',
+    label: 'Upper Intermediate',
+    emoji: '⭐',
+  },
+  advanced: {
+    gradient: 'from-rose-500 to-pink-500',
+    textColor: 'text-rose-300',
+    borderColor: 'border-rose-500/30',
+    bgColor: 'bg-rose-500',
+    label: 'Advanced',
+    emoji: '🔥',
+  },
+}
+
+function getLevelMeta(level: string): typeof LEVEL_META[TutorialLevel] {
+  return LEVEL_META[level as TutorialLevel] ?? LEVEL_META.beginner
+}
+
+// ============================================
 // MAIN ADMIN DASHBOARD
 // ============================================
 export default function AdminDashboardPage() {
   const [adminEmail, setAdminEmail] = useState('')
-  const [activeTab, setActiveTab] = useState<'users' | 'questions' | 'rankings' | 'statistics'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'questions' | 'rankings' | 'statistics' | 'tutorials'>('users')
   
   // Data States
   const [users, setUsers] = useState<any[]>([])
   const [questions, setQuestions] = useState<any[]>([])
   const [allScores, setAllScores] = useState<any[]>([])
+  const [tutorials, setTutorials] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
@@ -457,6 +534,19 @@ export default function AdminDashboardPage() {
   const [qOptionsStr, setQOptionsStr] = useState('')
   const [qCorrectAnswer, setQCorrectAnswer] = useState('')
 
+  // ============================================
+  // TUTORIAL / LESSON STATES
+  // ============================================
+  const [tutorialSearch, setTutorialSearch] = useState('')
+  const [tutorialLevelFilter, setTutorialLevelFilter] = useState<'all' | TutorialLevel>('all')
+  const [showTutorialModal, setShowTutorialModal] = useState(false)
+  const [editingTutorialId, setEditingTutorialId] = useState<string | null>(null)
+  const [tTitle, setTTitle] = useState('')
+  const [tLevel, setTLevel] = useState<TutorialLevel>('beginner')
+  const [tOrderIndex, setTOrderIndex] = useState(1)
+  const [tContent, setTContent] = useState('')
+  const [expandedTutorialId, setExpandedTutorialId] = useState<string | null>(null)
+
   const router = useRouter()
 
   // Live clock
@@ -497,6 +587,15 @@ export default function AdminDashboardPage() {
 
       if (scoresError) throw scoresError
       if (scoresData) setAllScores(scoresData)
+
+      // Fetch Tutorials / Lessons
+      const { data: tutorialsData, error: tutorialsError } = await supabase
+        .from('lessons')
+        .select('*')
+        .order('order_index', { ascending: true })
+
+      if (tutorialsError) throw tutorialsError
+      if (tutorialsData) setTutorials(tutorialsData)
 
     } catch (err: any) {
       console.error('Error loading admin dashboard data:', err)
@@ -718,6 +817,72 @@ export default function AdminDashboardPage() {
     }
   }
 
+  // ============================================
+  // TUTORIALS / LESSONS CRUD HANDLERS
+  // ============================================
+  const openCreateTutorialModal = () => {
+    setEditingTutorialId(null)
+    setTTitle('')
+    setTLevel('beginner')
+    setTOrderIndex(tutorials.length + 1)
+    setTContent('')
+    setShowTutorialModal(true)
+  }
+
+  const openEditTutorialModal = (t: any) => {
+    setEditingTutorialId(t.id)
+    setTTitle(t.title || '')
+    setTLevel((t.level as TutorialLevel) || 'beginner')
+    setTOrderIndex(t.order_index || 1)
+    setTContent(t.content || '')
+    setShowTutorialModal(true)
+  }
+
+  const handleSaveTutorial = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const payload = {
+      title: tTitle.trim(),
+      level: tLevel,
+      order_index: Number(tOrderIndex),
+      content: tContent.trim(),
+    }
+
+    try {
+      setErrorMsg('')
+      if (editingTutorialId !== null) {
+        const { error } = await supabase
+          .from('lessons')
+          .update(payload)
+          .eq('id', editingTutorialId)
+        if (error) throw error
+      } else {
+        const { error } = await supabase
+          .from('lessons')
+          .insert([payload])
+        if (error) throw error
+      }
+
+      setShowTutorialModal(false)
+      await loadAdminData()
+    } catch (err: any) {
+      console.error('Error saving tutorial:', err)
+      alert('Failed to save tutorial: ' + (err.message || 'Unknown error'))
+    }
+  }
+
+  const handleDeleteTutorial = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this lesson? This cannot be undone.')) return
+    try {
+      setErrorMsg('')
+      const { error } = await supabase.from('lessons').delete().eq('id', id)
+      if (error) throw error
+      await loadAdminData()
+    } catch (err: any) {
+      console.error('Error deleting tutorial:', err)
+      alert('Failed to delete lesson: ' + err.message)
+    }
+  }
+
   const handleLogout = async () => {
     setIsLoggingOut(true)
     setTimeout(async () => {
@@ -758,6 +923,37 @@ export default function AdminDashboardPage() {
       return matchesSearch && matchesModule
     })
   }, [questions, questionSearch, questionModuleFilter])
+
+  // Filtered tutorials
+  const filteredTutorials = useMemo(() => {
+    return tutorials.filter((t) => {
+      const matchesSearch =
+        tutorialSearch.trim() === '' ||
+        t.title?.toLowerCase().includes(tutorialSearch.toLowerCase()) ||
+        t.content?.toLowerCase().includes(tutorialSearch.toLowerCase())
+
+      const matchesLevel =
+        tutorialLevelFilter === 'all' || t.level === tutorialLevelFilter
+
+      return matchesSearch && matchesLevel
+    })
+  }, [tutorials, tutorialSearch, tutorialLevelFilter])
+
+  // Tutorial stats for tab badge + metrics
+  const tutorialStats = useMemo(() => {
+    const total = tutorials.length
+    const byLevel: Record<string, number> = {
+      beginner: 0,
+      intermediate: 0,
+      upper_intermediate: 0,
+      advanced: 0,
+    }
+    tutorials.forEach(t => {
+      const lvl = (t.level || 'beginner') as TutorialLevel
+      if (byLevel[lvl] !== undefined) byLevel[lvl]++
+    })
+    return { total, byLevel }
+  }, [tutorials])
 
   const stats = useMemo(() => {
     const totalUsers = users.length
@@ -842,7 +1038,6 @@ export default function AdminDashboardPage() {
     }))
   }, [allScores, users, rankingModuleFilter])
 
-  // Filtered rankings for search
   const filteredRankings = useMemo(() => {
     if (!rankingSearch.trim()) return rankings
     const q = rankingSearch.toLowerCase()
@@ -853,7 +1048,6 @@ export default function AdminDashboardPage() {
     )
   }, [rankings, rankingSearch])
 
-  // Top 3 for podium (only show if no search filter)
   const topThree = useMemo(() => {
     return rankingSearch.trim() === ''
       ? rankings.filter(r => r.displayScore !== null).slice(0, 3)
@@ -892,7 +1086,6 @@ export default function AdminDashboardPage() {
     const totalAttempts = allScores.length
     const totalUsersWithAttempts = new Set(allScores.map(s => s.user_id)).size
 
-    // Module usage distribution
     const moduleUsage: Record<string, { 
       count: number; 
       totalScore: number; 
@@ -919,7 +1112,6 @@ export default function AdminDashboardPage() {
       if (s.user_id) moduleUsage[mod].uniqueUsers.add(s.user_id)
     })
 
-    // Convert to array for sorting
     const moduleList = Object.entries(moduleUsage).map(([name, data]) => ({
       name,
       count: data.count,
@@ -935,7 +1127,6 @@ export default function AdminDashboardPage() {
     const highestAvg = [...moduleList].sort((a, b) => b.average - a.average)[0] ?? null
     const lowestAvg = [...moduleList].sort((a, b) => a.average - b.average)[0] ?? null
 
-    // Score distribution histogram
     const scoreBuckets = [
       { range: '0-49', min: 0, max: 49, count: 0, color: 'from-rose-500 to-red-500' },
       { range: '50-59', min: 50, max: 59, count: 0, color: 'from-rose-400 to-orange-400' },
@@ -950,7 +1141,6 @@ export default function AdminDashboardPage() {
       if (bucket) bucket.count++
     })
 
-    // Activity over last 30 days
     const now = Date.now()
     const daysMap = new Map<string, number>()
     for (let i = 29; i >= 0; i--) {
@@ -974,7 +1164,6 @@ export default function AdminDashboardPage() {
       { date: '', count: 0 }
     )
 
-    // Top 3 performers per module
     const topPerformersByModule: Record<string, Array<{
       userId: string
       userName: string
@@ -1068,7 +1257,7 @@ export default function AdminDashboardPage() {
               <div className="hidden sm:block">
                 <h1 className="text-base font-black tracking-tight leading-none">Admin Console</h1>
                 <p className="text-[10px] font-mono text-violet-400 uppercase tracking-widest mt-1">
-                  Restricted Node · v3.0.0 (Analytics)
+                  Restricted Node · v3.1.0 (Lessons)
                 </p>
               </div>
             </div>
@@ -1508,7 +1697,7 @@ export default function AdminDashboardPage() {
                     Welcome back, <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Administrator</span>
                   </h2>
                   <p className="text-sm text-slate-400 leading-relaxed">
-                    Oversee users, review the leaderboard, analyze platform usage statistics, and manage your question bank.
+                    Oversee users, review the leaderboard, analyze platform usage, manage your question bank, and publish training lessons.
                   </p>
                 </div>
 
@@ -1536,9 +1725,9 @@ export default function AdminDashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {[
                 { label: 'Total Users', value: stats.totalUsers, icon: 'users', gradient: 'from-violet-500 to-purple-500', trend: `${stats.admins} admins` },
-                { label: 'Total Questions', value: stats.totalQuestions, icon: 'book', gradient: 'from-cyan-500 to-blue-500', trend: `${stats.readingQuestions} reading / ${stats.listeningQuestions} listening` },
-                { label: 'Total Attempts', value: platformStats.totalAttempts, icon: 'activity', gradient: 'from-amber-500 to-orange-500', trend: `${platformStats.totalUsersWithAttempts} active users` },
-                { label: 'System Status', value: 100, displayValue: 'Online', icon: 'activity', gradient: 'from-emerald-500 to-teal-500', trend: 'Operational' },
+                { label: 'Question Bank', value: stats.totalQuestions, icon: 'book', gradient: 'from-cyan-500 to-blue-500', trend: `${stats.readingQuestions} reading / ${stats.listeningQuestions} listening` },
+                { label: 'Training Lessons', value: tutorialStats.total, icon: 'graduation-cap', gradient: 'from-emerald-500 to-teal-500', trend: `${tutorialStats.byLevel.advanced} advanced` },
+                { label: 'System Status', value: 100, displayValue: 'Online', icon: 'activity', gradient: 'from-amber-500 to-orange-500', trend: 'Operational' },
               ].map((stat) => (
                 <div key={stat.label} className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5">
                   <div className={`absolute -top-8 -right-8 w-32 h-32 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl`} />
@@ -1581,6 +1770,17 @@ export default function AdminDashboardPage() {
               >
                 <Icon name="book" className="w-4 h-4" />
                 <span>Question Bank CRUD ({questions.length})</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('tutorials')}
+                className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+                  activeTab === 'tutorials'
+                    ? 'border-violet-500 text-violet-300'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <Icon name="graduation-cap" className="w-4 h-4" />
+                <span>Tutorials & Lessons ({tutorials.length})</span>
               </button>
               <button
                 onClick={() => setActiveTab('rankings')}
@@ -1830,7 +2030,235 @@ export default function AdminDashboardPage() {
               </div>
             )}
 
-            {/* TAB 3: RANKINGS DASHBOARD */}
+            {/* TAB 3: TUTORIALS & LESSONS */}
+            {activeTab === 'tutorials' && (
+              <div className="space-y-6">
+                {/* Tutorials Hero */}
+                <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-[#151520]/80 to-teal-500/5 backdrop-blur-xl p-6 sm:p-8">
+                  <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
+
+                  <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="space-y-3 max-w-2xl">
+                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+                        <Icon name="graduation-cap" className="w-3 h-3" glow />
+                        Training & Learning Content
+                      </span>
+                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                        Tutorials <span className="bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 bg-clip-text text-transparent">& Lessons</span>
+                      </h2>
+                      <p className="text-sm text-slate-400 leading-relaxed">
+                        Publish structured learning materials organized by difficulty level and order. Lessons are displayed sequentially to candidates for guided skill development.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={openCreateTutorialModal}
+                      className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all shrink-0"
+                    >
+                      <Icon name="plus" className="w-4 h-4" />
+                      <span>Create New Lesson</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Level Breakdown Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {(['beginner', 'intermediate', 'upper_intermediate', 'advanced'] as TutorialLevel[]).map((level) => {
+                    const meta = getLevelMeta(level)
+                    const count = tutorialStats.byLevel[level] || 0
+                    return (
+                      <div
+                        key={level}
+                        onClick={() => setTutorialLevelFilter(tutorialLevelFilter === level ? 'all' : level)}
+                        className={`relative overflow-hidden rounded-2xl border-2 backdrop-blur-xl p-4 cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
+                          tutorialLevelFilter === level
+                            ? `${meta.borderColor} ${meta.bgColor}/10`
+                            : 'border-violet-500/20 bg-[#151520]/70 hover:border-violet-400/40'
+                        }`}
+                      >
+                        <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${meta.gradient} opacity-10 rounded-full blur-2xl`} />
+                        <div className="relative space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg`}>
+                              <span className="text-base">{meta.emoji}</span>
+                            </div>
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor}`}>
+                              {tutorialLevelFilter === level ? 'Active' : 'Filter'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor} mb-1`}>
+                              {meta.label}
+                            </p>
+                            <p className="text-2xl font-black text-white">{count}</p>
+                            <p className="text-[10px] text-slate-500 font-mono">
+                              lesson{count === 1 ? '' : 's'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Tutorials Table */}
+                <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+                  <div className="p-6 border-b border-violet-500/20 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                          <Icon name="layers" className="w-4 h-4 text-emerald-400" glow />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-black tracking-tight">Lesson Library</h3>
+                          <p className="text-xs text-slate-400">
+                            {filteredTutorials.length} lesson{filteredTutorials.length === 1 ? '' : 's'} displayed
+                            {tutorialLevelFilter !== 'all' && ` · filtered to ${getLevelMeta(tutorialLevelFilter).label}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="relative flex-1 sm:max-w-xs">
+                        <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={tutorialSearch}
+                          onChange={(e) => setTutorialSearch(e.target.value)}
+                          placeholder="Search lessons..."
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400"
+                        />
+                      </div>
+                    </div>
+
+                    {tutorialLevelFilter !== 'all' && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setTutorialLevelFilter('all')}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
+                        >
+                          <Icon name="x" className="w-3 h-3" />
+                          Clear "{getLevelMeta(tutorialLevelFilter).label}" filter
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {filteredTutorials.length === 0 ? (
+                    <div className="p-12 text-center">
+                      <div className="inline-flex flex-col items-center gap-3">
+                        <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                          <Icon name="graduation-cap" className="w-8 h-8 text-emerald-400" glow />
+                        </div>
+                        <p className="text-slate-300 font-bold">
+                          {tutorialSearch.trim() || tutorialLevelFilter !== 'all'
+                            ? 'No matching lessons found'
+                            : 'No lessons published yet'}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {tutorialSearch.trim() || tutorialLevelFilter !== 'all'
+                            ? 'Try adjusting your search or level filter.'
+                            : 'Click "Create New Lesson" to publish your first training material.'}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-violet-500/10">
+                      {filteredTutorials.map((t) => {
+                        const meta = getLevelMeta(t.level)
+                        const isExpanded = expandedTutorialId === t.id
+                        return (
+                          <div key={t.id} className="hover:bg-violet-500/[0.02] transition-colors">
+                            <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                              {/* Order Index */}
+                              <div className={`w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg text-white font-black text-lg`}>
+                                {t.order_index ?? '#'}
+                              </div>
+
+                              {/* Title & Meta */}
+                              <div className="flex-1 min-w-0 space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${meta.borderColor} ${meta.bgColor}/10 ${meta.textColor}`}>
+                                    <span>{meta.emoji}</span>
+                                    {meta.label}
+                                  </span>
+                                  <span className="text-[10px] font-mono text-slate-500">
+                                    Order #{t.order_index ?? 'N/A'}
+                                  </span>
+                                </div>
+                                <h4 className="text-base font-bold text-white truncate">{t.title || 'Untitled Lesson'}</h4>
+                                <p className="text-xs text-slate-500 line-clamp-2">
+                                  {t.content ? t.content.substring(0, 140) + (t.content.length > 140 ? '...' : '') : 'No content preview available.'}
+                                </p>
+                              </div>
+
+                              {/* Actions */}
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  onClick={() => setExpandedTutorialId(isExpanded ? null : t.id)}
+                                  className="px-3 py-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-700 text-slate-300 border border-slate-700/60 text-xs font-bold transition-all flex items-center gap-1.5"
+                                >
+                                  <Icon name={isExpanded ? 'chevron-down' : 'chevron-right'} className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline">{isExpanded ? 'Collapse' : 'Preview'}</span>
+                                </button>
+                                <button
+                                  onClick={() => openEditTutorialModal(t)}
+                                  className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
+                                >
+                                  <Icon name="edit" className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline">Edit</span>
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTutorial(t.id)}
+                                  className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold transition-all"
+                                >
+                                  <Icon name="trash" className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Expanded Content Preview */}
+                            {isExpanded && (
+                              <div className="px-5 pb-5 animate-fadeIn">
+                                <div className={`p-5 rounded-2xl border ${meta.borderColor} bg-slate-900/40 space-y-2`}>
+                                  <p className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor}`}>
+                                    Full Lesson Content
+                                  </p>
+                                  <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+                                    {t.content || 'No content provided for this lesson.'}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Info Card */}
+                <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+                      <Icon name="info" className="w-5 h-5 text-emerald-400" glow />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-white">About the Lesson Library</h4>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        Lessons are stored in the <strong className="text-emerald-300">lessons</strong> table in Supabase.
+                        Each lesson has a <strong className="text-emerald-300">title</strong>, a difficulty <strong className="text-emerald-300">level</strong>
+                        {' '}(beginner / intermediate / upper_intermediate / advanced), an <strong className="text-emerald-300">order_index</strong> controlling sequential display,
+                        and full <strong className="text-emerald-300">content</strong> in the text field.
+                        Candidates access these lessons through the public hub for guided skill development.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: RANKINGS DASHBOARD */}
             {activeTab === 'rankings' && (
               <div className="space-y-6">
                 <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-[#151520]/80 to-amber-500/5 backdrop-blur-xl p-6 sm:p-8">
@@ -2128,11 +2556,10 @@ export default function AdminDashboardPage() {
               </div>
             )}
 
-            {/* TAB 4: ANALYTICS & STATISTICS */}
+            {/* TAB 5: ANALYTICS & STATISTICS */}
             {activeTab === 'statistics' && (
               <div className="space-y-6">
 
-                {/* Analytics Hero */}
                 <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 via-[#151520]/80 to-blue-500/5 backdrop-blur-xl p-6 sm:p-8">
                   <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-cyan-500/20 rounded-full blur-[100px] pointer-events-none" />
                   <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
@@ -2154,9 +2581,7 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-                {/* Most Used / Least Used / Highest Avg / Lowest Avg */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                  {/* Most Used */}
                   {platformStats.mostUsed && (
                     <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 backdrop-blur-xl p-5">
                       <div className="absolute -top-8 -right-8 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl" />
@@ -2181,7 +2606,6 @@ export default function AdminDashboardPage() {
                     </div>
                   )}
 
-                  {/* Least Used */}
                   {platformStats.leastUsed && platformStats.leastUsed.name !== platformStats.mostUsed?.name && (
                     <div className="relative overflow-hidden rounded-2xl border-2 border-slate-500/30 bg-gradient-to-br from-slate-500/10 to-slate-600/5 backdrop-blur-xl p-5">
                       <div className="absolute -top-8 -right-8 w-32 h-32 bg-slate-500/20 rounded-full blur-2xl" />
@@ -2205,7 +2629,6 @@ export default function AdminDashboardPage() {
                     </div>
                   )}
 
-                  {/* Highest Avg */}
                   {platformStats.highestAvg && (
                     <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-orange-500/5 backdrop-blur-xl p-5">
                       <div className="absolute -top-8 -right-8 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl" />
@@ -2230,7 +2653,6 @@ export default function AdminDashboardPage() {
                     </div>
                   )}
 
-                  {/* Lowest Avg */}
                   {platformStats.lowestAvg && platformStats.lowestAvg.name !== platformStats.highestAvg?.name && (
                     <div className="relative overflow-hidden rounded-2xl border-2 border-rose-500/40 bg-gradient-to-br from-rose-500/10 to-red-500/5 backdrop-blur-xl p-5">
                       <div className="absolute -top-8 -right-8 w-32 h-32 bg-rose-500/20 rounded-full blur-2xl" />
@@ -2256,7 +2678,6 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
 
-                {/* Module Usage Distribution Bar Chart */}
                 <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-lg">
@@ -2307,13 +2728,11 @@ export default function AdminDashboardPage() {
                               </div>
                             </div>
 
-                            {/* Bar */}
                             <div className="relative h-3 bg-slate-800/60 rounded-full overflow-hidden">
                               <div
                                 className={`absolute inset-y-0 left-0 bg-gradient-to-r ${meta.gradient} rounded-full transition-all duration-700 shadow-lg`}
                                 style={{ width: `${barWidth}%` }}
                               />
-                              {/* Best score marker */}
                               <div
                                 className="absolute inset-y-0 w-0.5 bg-white/60 rounded-full"
                                 style={{ left: `${Math.min(100, mod.best)}%` }}
@@ -2332,10 +2751,8 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
 
-                {/* Two Column: Score Distribution + Activity Timeline */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                  {/* Score Distribution Histogram */}
                   <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
@@ -2353,7 +2770,6 @@ export default function AdminDashboardPage() {
                       <div className="p-12 text-center text-slate-500 text-sm">No scores yet</div>
                     ) : (
                       <div className="space-y-4">
-                        {/* Vertical histogram bars */}
                         <div className="flex items-end justify-between gap-2 h-48 pb-2">
                           {platformStats.scoreBuckets.map((bucket) => {
                             const maxCount = Math.max(...platformStats.scoreBuckets.map(b => b.count), 1)
@@ -2373,7 +2789,6 @@ export default function AdminDashboardPage() {
                           })}
                         </div>
 
-                        {/* Labels */}
                         <div className="flex items-end justify-between gap-2 border-t border-violet-500/20 pt-2">
                           {platformStats.scoreBuckets.map((bucket) => (
                             <div key={bucket.range} className="flex-1 text-center">
@@ -2382,7 +2797,6 @@ export default function AdminDashboardPage() {
                           ))}
                         </div>
 
-                        {/* Summary */}
                         <div className="grid grid-cols-2 gap-3 pt-4 border-t border-violet-500/20">
                           <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Passing (≥80%)</p>
@@ -2407,7 +2821,6 @@ export default function AdminDashboardPage() {
                     )}
                   </div>
 
-                  {/* Activity Timeline */}
                   <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg">
@@ -2425,7 +2838,6 @@ export default function AdminDashboardPage() {
                       <div className="p-12 text-center text-slate-500 text-sm">No activity yet</div>
                     ) : (
                       <div className="space-y-4">
-                        {/* Sparkline-style bars */}
                         <div className="flex items-end gap-[2px] h-40">
                           {(() => {
                             const maxCount = Math.max(...platformStats.activityTimeline.map(d => d.count), 1)
@@ -2448,7 +2860,6 @@ export default function AdminDashboardPage() {
                                     }`}
                                     style={{ height: `${Math.max(2, heightPercent)}%` }}
                                   />
-                                  {/* Tooltip on hover */}
                                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
                                     <div className="px-2 py-1 rounded-lg bg-slate-950 border border-violet-500/30 text-[10px] font-mono whitespace-nowrap shadow-lg">
                                       <p className="text-slate-400">{day.date}</p>
@@ -2461,14 +2872,12 @@ export default function AdminDashboardPage() {
                           })()}
                         </div>
 
-                        {/* Timeline axis labels */}
                         <div className="flex justify-between text-[10px] font-mono text-slate-500 border-t border-violet-500/20 pt-2">
                           <span>{platformStats.activityTimeline[0]?.date || ''}</span>
                           <span>{platformStats.activityTimeline[Math.floor(platformStats.activityTimeline.length / 2)]?.date || ''}</span>
                           <span>Today</span>
                         </div>
 
-                        {/* Peak day summary */}
                         <div className="grid grid-cols-2 gap-3 pt-4 border-t border-violet-500/20">
                           <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300">Peak Day</p>
@@ -2491,7 +2900,6 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-                {/* Top Performers Per Module */}
                 {Object.keys(platformStats.topPerformersByModule).length > 0 && (
                   <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
                     <div className="flex items-center gap-3 mb-6">
@@ -2551,7 +2959,6 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
 
-                {/* Info Card */}
                 <div className="relative overflow-hidden rounded-3xl border border-cyan-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center shrink-0">
@@ -2686,6 +3093,110 @@ export default function AdminDashboardPage() {
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-sm shadow-lg shadow-violet-500/30 hover:shadow-xl"
                 >
                   {editingQuestionId !== null ? 'Save Changes' : 'Publish Question'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* TUTORIAL CREATE / EDIT MODAL */}
+      {showTutorialModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 overflow-y-auto">
+          <div className="relative w-full max-w-2xl rounded-3xl border border-emerald-500/20 bg-[#151520] p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-emerald-500/20 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                  <Icon name="graduation-cap" className="w-5 h-5 text-white" glow />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 block">
+                    Lesson Editor
+                  </span>
+                  <h3 className="text-xl font-black text-white">
+                    {editingTutorialId !== null ? 'Edit Lesson Record' : 'Create New Lesson'}
+                  </h3>
+                </div>
+              </div>
+              <button onClick={() => setShowTutorialModal(false)} className="text-slate-400 hover:text-white font-bold text-lg">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveTutorial} className="space-y-5">
+              {/* Title */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase">Lesson Title</label>
+                <input
+                  type="text"
+                  required
+                  value={tTitle}
+                  onChange={(e) => setTTitle(e.target.value)}
+                  placeholder="e.g., Introduction to Customer Service"
+                  className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-emerald-500/20 text-sm focus:outline-none focus:border-emerald-400"
+                />
+              </div>
+
+              {/* Level + Order */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase">Difficulty Level</label>
+                  <select
+                    value={tLevel}
+                    onChange={(e) => setTLevel(e.target.value as TutorialLevel)}
+                    className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-emerald-500/20 text-sm focus:outline-none focus:border-emerald-400 cursor-pointer"
+                  >
+                    <option value="beginner">🌱 Beginner</option>
+                    <option value="intermediate">🚀 Intermediate</option>
+                    <option value="upper_intermediate">⭐ Upper Intermediate</option>
+                    <option value="advanced">🔥 Advanced</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 uppercase">Order Index</label>
+                  <input
+                    type="number"
+                    required
+                    min={1}
+                    value={tOrderIndex}
+                    onChange={(e) => setTOrderIndex(Number(e.target.value))}
+                    placeholder="e.g., 1"
+                    className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-emerald-500/20 text-sm focus:outline-none focus:border-emerald-400"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1.5 font-mono">
+                    Controls the sequence in which lessons are displayed.
+                  </p>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase">Lesson Content</label>
+                <textarea
+                  rows={10}
+                  required
+                  value={tContent}
+                  onChange={(e) => setTContent(e.target.value)}
+                  placeholder="Enter the full lesson content, instructions, or training material here..."
+                  className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-emerald-500/20 text-sm focus:outline-none focus:border-emerald-400 leading-relaxed"
+                />
+                <p className="text-[10px] text-slate-500 mt-1.5 font-mono">
+                  {tContent.length} characters · {tContent.trim() ? tContent.trim().split(/\s+/).length : 0} words
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-emerald-500/20">
+                <button
+                  type="button"
+                  onClick={() => setShowTutorialModal(false)}
+                  className="px-5 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm hover:bg-slate-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/30 hover:shadow-xl"
+                >
+                  {editingTutorialId !== null ? 'Save Lesson' : 'Publish Lesson'}
                 </button>
               </div>
             </form>
