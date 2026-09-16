@@ -217,6 +217,50 @@ function Icon({ name, className = "w-5 h-5", glow = false }: IconProps) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18" />
         </svg>
       )
+    case 'headphones':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 18v-6a9 9 0 0118 0v6M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z" />
+        </svg>
+      )
+    case 'pencil':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+        </svg>
+      )
+    case 'mic':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+        </svg>
+      )
+    case 'keyboard':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <rect x="2" y="6" width="20" height="12" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12" />
+        </svg>
+      )
+    case 'pie-chart':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+        </svg>
+      )
+    case 'bar-chart':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      )
+    case 'zap':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      )
     default:
       return null
   }
@@ -297,11 +341,75 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 // ============================================
+// MODULE COLOR HELPER
+// ============================================
+const MODULE_META: Record<string, { 
+  gradient: string; 
+  textColor: string; 
+  bgColor: string; 
+  borderColor: string; 
+  icon: string;
+  label: string;
+}> = {
+  listening: {
+    gradient: 'from-rose-500 to-pink-500',
+    textColor: 'text-rose-300',
+    bgColor: 'bg-rose-500',
+    borderColor: 'border-rose-500/30',
+    icon: 'headphones',
+    label: 'Listening',
+  },
+  reading: {
+    gradient: 'from-amber-500 to-orange-500',
+    textColor: 'text-amber-300',
+    bgColor: 'bg-amber-500',
+    borderColor: 'border-amber-500/30',
+    icon: 'book',
+    label: 'Reading',
+  },
+  writing: {
+    gradient: 'from-violet-500 to-purple-500',
+    textColor: 'text-violet-300',
+    bgColor: 'bg-violet-500',
+    borderColor: 'border-violet-500/30',
+    icon: 'pencil',
+    label: 'Writing',
+  },
+  speaking: {
+    gradient: 'from-emerald-500 to-teal-500',
+    textColor: 'text-emerald-300',
+    bgColor: 'bg-emerald-500',
+    borderColor: 'border-emerald-500/30',
+    icon: 'mic',
+    label: 'Speaking',
+  },
+  typing: {
+    gradient: 'from-sky-500 to-blue-500',
+    textColor: 'text-sky-300',
+    bgColor: 'bg-sky-500',
+    borderColor: 'border-sky-500/30',
+    icon: 'keyboard',
+    label: 'Typing',
+  },
+}
+
+function getModuleMeta(moduleName: string) {
+  return MODULE_META[moduleName?.toLowerCase()] ?? {
+    gradient: 'from-slate-500 to-slate-600',
+    textColor: 'text-slate-300',
+    bgColor: 'bg-slate-500',
+    borderColor: 'border-slate-500/30',
+    icon: 'grid',
+    label: moduleName || 'Unknown',
+  }
+}
+
+// ============================================
 // MAIN ADMIN DASHBOARD
 // ============================================
 export default function AdminDashboardPage() {
   const [adminEmail, setAdminEmail] = useState('')
-  const [activeTab, setActiveTab] = useState<'users' | 'questions' | 'rankings'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'questions' | 'rankings' | 'statistics'>('users')
   
   // Data States
   const [users, setUsers] = useState<any[]>([])
@@ -666,7 +774,6 @@ export default function AdminDashboardPage() {
   // RANKINGS COMPUTATION
   // ============================================
   const rankings = useMemo(() => {
-    // Group scores by user
     const userScoreMap = new Map<string, {
       userId: string
       userName: string
@@ -700,7 +807,6 @@ export default function AdminDashboardPage() {
       entry.totalAttempts += 1
     })
 
-    // Compute rankings
     const list = Array.from(userScoreMap.values()).map((u) => {
       const moduleAverages: Record<string, number> = {}
       Object.keys(u.scoresByModule).forEach((mod) => {
@@ -719,7 +825,6 @@ export default function AdminDashboardPage() {
       }
     })
 
-    // Sort based on selected filter
     const sorted = [...list].sort((a, b) => {
       const getScore = (x: typeof a) => {
         if (rankingModuleFilter === 'overall') return x.overallAverage
@@ -780,6 +885,145 @@ export default function AdminDashboardPage() {
     return { total, average, best, worst, certificates, tickets, moduleStats }
   }, [profileData])
 
+  // ============================================
+  // PLATFORM STATISTICS COMPUTATION
+  // ============================================
+  const platformStats = useMemo(() => {
+    const totalAttempts = allScores.length
+    const totalUsersWithAttempts = new Set(allScores.map(s => s.user_id)).size
+
+    // Module usage distribution
+    const moduleUsage: Record<string, { 
+      count: number; 
+      totalScore: number; 
+      bestScore: number; 
+      worstScore: number;
+      uniqueUsers: Set<string>;
+    }> = {}
+
+    allScores.forEach(s => {
+      const mod = s.module_name?.toLowerCase() || 'unknown'
+      if (!moduleUsage[mod]) {
+        moduleUsage[mod] = {
+          count: 0,
+          totalScore: 0,
+          bestScore: 0,
+          worstScore: 100,
+          uniqueUsers: new Set(),
+        }
+      }
+      moduleUsage[mod].count++
+      moduleUsage[mod].totalScore += s.score || 0
+      moduleUsage[mod].bestScore = Math.max(moduleUsage[mod].bestScore, s.score || 0)
+      moduleUsage[mod].worstScore = Math.min(moduleUsage[mod].worstScore, s.score || 0)
+      if (s.user_id) moduleUsage[mod].uniqueUsers.add(s.user_id)
+    })
+
+    // Convert to array for sorting
+    const moduleList = Object.entries(moduleUsage).map(([name, data]) => ({
+      name,
+      count: data.count,
+      average: data.count > 0 ? Math.round(data.totalScore / data.count) : 0,
+      best: data.bestScore,
+      worst: data.count > 0 ? data.worstScore : 0,
+      uniqueUsers: data.uniqueUsers.size,
+      percentage: totalAttempts > 0 ? Math.round((data.count / totalAttempts) * 100) : 0,
+    })).sort((a, b) => b.count - a.count)
+
+    const mostUsed = moduleList[0] ?? null
+    const leastUsed = moduleList[moduleList.length - 1] ?? null
+    const highestAvg = [...moduleList].sort((a, b) => b.average - a.average)[0] ?? null
+    const lowestAvg = [...moduleList].sort((a, b) => a.average - b.average)[0] ?? null
+
+    // Score distribution histogram
+    const scoreBuckets = [
+      { range: '0-49', min: 0, max: 49, count: 0, color: 'from-rose-500 to-red-500' },
+      { range: '50-59', min: 50, max: 59, count: 0, color: 'from-rose-400 to-orange-400' },
+      { range: '60-69', min: 60, max: 69, count: 0, color: 'from-amber-500 to-orange-500' },
+      { range: '70-79', min: 70, max: 79, count: 0, color: 'from-yellow-500 to-amber-500' },
+      { range: '80-89', min: 80, max: 89, count: 0, color: 'from-emerald-500 to-teal-500' },
+      { range: '90-100', min: 90, max: 100, count: 0, color: 'from-emerald-400 to-cyan-400' },
+    ]
+    allScores.forEach(s => {
+      const score = s.score || 0
+      const bucket = scoreBuckets.find(b => score >= b.min && score <= b.max)
+      if (bucket) bucket.count++
+    })
+
+    // Activity over last 30 days
+    const now = Date.now()
+    const daysMap = new Map<string, number>()
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now - i * 24 * 60 * 60 * 1000)
+      const key = d.toISOString().slice(0, 10)
+      daysMap.set(key, 0)
+    }
+    allScores.forEach(s => {
+      if (!s.created_at) return
+      const key = new Date(s.created_at).toISOString().slice(0, 10)
+      if (daysMap.has(key)) {
+        daysMap.set(key, (daysMap.get(key) || 0) + 1)
+      }
+    })
+    const activityTimeline = Array.from(daysMap.entries()).map(([date, count]) => ({
+      date,
+      count,
+    }))
+    const peakDay = activityTimeline.reduce(
+      (max, d) => (d.count > max.count ? d : max),
+      { date: '', count: 0 }
+    )
+
+    // Top 3 performers per module
+    const topPerformersByModule: Record<string, Array<{
+      userId: string
+      userName: string
+      userEmail: string
+      avg: number
+      attempts: number
+    }>> = {}
+
+    Object.keys(moduleUsage).forEach(mod => {
+      const userMap = new Map<string, { total: number; count: number }>()
+      allScores
+        .filter(s => s.module_name?.toLowerCase() === mod)
+        .forEach(s => {
+          if (!s.user_id) return
+          if (!userMap.has(s.user_id)) userMap.set(s.user_id, { total: 0, count: 0 })
+          const e = userMap.get(s.user_id)!
+          e.total += s.score || 0
+          e.count++
+        })
+
+      const arr = Array.from(userMap.entries()).map(([uid, data]) => {
+        const u = users.find(x => x.id === uid)
+        return {
+          userId: uid,
+          userName: u?.name || 'Unknown User',
+          userEmail: u?.email || 'N/A',
+          avg: Math.round(data.total / data.count),
+          attempts: data.count,
+        }
+      }).sort((a, b) => b.avg - a.avg).slice(0, 3)
+
+      topPerformersByModule[mod] = arr
+    })
+
+    return {
+      totalAttempts,
+      totalUsersWithAttempts,
+      moduleList,
+      mostUsed,
+      leastUsed,
+      highestAvg,
+      lowestAvg,
+      scoreBuckets,
+      activityTimeline,
+      peakDay,
+      topPerformersByModule,
+    }
+  }, [allScores, users])
+
   // Loading state
   if (loading) {
     return (
@@ -824,7 +1068,7 @@ export default function AdminDashboardPage() {
               <div className="hidden sm:block">
                 <h1 className="text-base font-black tracking-tight leading-none">Admin Console</h1>
                 <p className="text-[10px] font-mono text-violet-400 uppercase tracking-widest mt-1">
-                  Restricted Node · v2.9.0 (Rankings)
+                  Restricted Node · v3.0.0 (Analytics)
                 </p>
               </div>
             </div>
@@ -1264,7 +1508,7 @@ export default function AdminDashboardPage() {
                     Welcome back, <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Administrator</span>
                   </h2>
                   <p className="text-sm text-slate-400 leading-relaxed">
-                    Oversee system users, inspect complete performance histories, review the ranking leaderboard, and execute CRUD operations on your question bank.
+                    Oversee users, review the leaderboard, analyze platform usage statistics, and manage your question bank.
                   </p>
                 </div>
 
@@ -1293,7 +1537,7 @@ export default function AdminDashboardPage() {
               {[
                 { label: 'Total Users', value: stats.totalUsers, icon: 'users', gradient: 'from-violet-500 to-purple-500', trend: `${stats.admins} admins` },
                 { label: 'Total Questions', value: stats.totalQuestions, icon: 'book', gradient: 'from-cyan-500 to-blue-500', trend: `${stats.readingQuestions} reading / ${stats.listeningQuestions} listening` },
-                { label: 'Admins Active', value: stats.admins, icon: 'crown', gradient: 'from-amber-500 to-orange-500', trend: 'Full privileges' },
+                { label: 'Total Attempts', value: platformStats.totalAttempts, icon: 'activity', gradient: 'from-amber-500 to-orange-500', trend: `${platformStats.totalUsersWithAttempts} active users` },
                 { label: 'System Status', value: 100, displayValue: 'Online', icon: 'activity', gradient: 'from-emerald-500 to-teal-500', trend: 'Operational' },
               ].map((stat) => (
                 <div key={stat.label} className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5">
@@ -1348,6 +1592,17 @@ export default function AdminDashboardPage() {
               >
                 <Icon name="trophy" className="w-4 h-4" />
                 <span>Rankings ({rankings.length})</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('statistics')}
+                className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
+                  activeTab === 'statistics'
+                    ? 'border-violet-500 text-violet-300'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <Icon name="bar-chart" className="w-4 h-4" />
+                <span>Analytics & Statistics</span>
               </button>
             </div>
 
@@ -1578,7 +1833,6 @@ export default function AdminDashboardPage() {
             {/* TAB 3: RANKINGS DASHBOARD */}
             {activeTab === 'rankings' && (
               <div className="space-y-6">
-                {/* Ranking Hero */}
                 <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-[#151520]/80 to-amber-500/5 backdrop-blur-xl p-6 sm:p-8">
                   <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-amber-500/20 rounded-full blur-[100px] pointer-events-none" />
                   <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-yellow-500/10 rounded-full blur-[100px] pointer-events-none" />
@@ -1611,7 +1865,6 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-                {/* Module Filter Tabs */}
                 <div className="flex flex-wrap items-center gap-2">
                   {[
                     { key: 'overall', label: 'Overall', icon: 'trophy' },
@@ -1636,16 +1889,13 @@ export default function AdminDashboardPage() {
                   ))}
                 </div>
 
-                {/* Top 3 Podium (only if not searching) */}
                 {topThree.length > 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    {/* Reorder for podium: 2nd | 1st | 3rd */}
                     {[1, 0, 2].map((podiumIdx) => {
                       const r = topThree[podiumIdx]
                       if (!r) return null
                       const isFirst = r.rank === 1
                       const isSecond = r.rank === 2
-                      const isThird = r.rank === 3
                       const medalGradient = isFirst
                         ? 'from-amber-400 via-yellow-500 to-orange-500'
                         : isSecond
@@ -1674,11 +1924,9 @@ export default function AdminDashboardPage() {
 
                           <div className="relative flex flex-col items-center text-center space-y-4">
                             <div className="text-4xl">{medalEmoji}</div>
-
                             <div className={`w-20 h-20 rounded-3xl bg-gradient-to-br ${medalGradient} flex items-center justify-center font-black text-3xl text-white shadow-2xl border-2 border-white/20`}>
                               {(r.userName || r.userEmail || '?').charAt(0).toUpperCase()}
                             </div>
-
                             <div className="space-y-1 w-full">
                               <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
                                 isFirst
@@ -1693,33 +1941,19 @@ export default function AdminDashboardPage() {
                               <h3 className="text-lg font-black text-white truncate">{r.userName}</h3>
                               <p className="text-xs text-slate-500 font-mono truncate">{r.userEmail}</p>
                             </div>
-
                             <div className={`w-full py-3 rounded-2xl border ${
-                              isFirst
-                                ? 'bg-amber-500/10 border-amber-500/30'
-                                : isSecond
-                                  ? 'bg-slate-400/10 border-slate-400/30'
-                                  : 'bg-orange-700/10 border-orange-700/30'
+                              isFirst ? 'bg-amber-500/10 border-amber-500/30' : isSecond ? 'bg-slate-400/10 border-slate-400/30' : 'bg-orange-700/10 border-orange-700/30'
                             }`}>
                               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
                                 {rankingModuleFilter === 'overall' ? 'Overall Average' : `${rankingModuleFilter} Score`}
                               </p>
-                              <p className={`text-4xl font-black ${
-                                isFirst ? 'text-amber-300' : isSecond ? 'text-slate-200' : 'text-orange-300'
-                              }`}>
+                              <p className={`text-4xl font-black ${isFirst ? 'text-amber-300' : isSecond ? 'text-slate-200' : 'text-orange-300'}`}>
                                 {r.displayScore ?? 0}%
                               </p>
                             </div>
-
                             <div className="flex items-center justify-center gap-4 text-[10px] font-mono text-slate-400 w-full">
-                              <span className="flex items-center gap-1">
-                                <Icon name="hash" className="w-3 h-3" />
-                                Rank #{r.rank}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Icon name="activity" className="w-3 h-3" />
-                                {r.totalAttempts} attempts
-                              </span>
+                              <span className="flex items-center gap-1"><Icon name="hash" className="w-3 h-3" /> Rank #{r.rank}</span>
+                              <span className="flex items-center gap-1"><Icon name="activity" className="w-3 h-3" /> {r.totalAttempts} attempts</span>
                             </div>
                           </div>
                         </div>
@@ -1728,7 +1962,6 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
 
-                {/* Rankings Table */}
                 <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
                   <div className="p-6 border-b border-violet-500/20 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1769,11 +2002,6 @@ export default function AdminDashboardPage() {
                         <p className="text-slate-400 font-bold">
                           {rankingSearch.trim() ? 'No matching candidates found' : 'No score records available yet'}
                         </p>
-                        <p className="text-xs text-slate-500">
-                          {rankingSearch.trim()
-                            ? 'Try adjusting your search query.'
-                            : 'Rankings will appear once candidates complete practice or full exam modules.'}
-                        </p>
                       </div>
                     </div>
                   ) : (
@@ -1804,9 +2032,7 @@ export default function AdminDashboardPage() {
                                 onClick={() => u && openUserProfile(u)}
                                 className="hover:bg-violet-500/[0.06] transition-colors cursor-pointer group"
                               >
-                                <td className="p-4">
-                                  <RankBadge rank={r.rank} />
-                                </td>
+                                <td className="p-4"><RankBadge rank={r.rank} /></td>
                                 <td className="p-4">
                                   <div className="flex items-center gap-3">
                                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
@@ -1835,9 +2061,7 @@ export default function AdminDashboardPage() {
                                     <span className="text-slate-500 italic text-xs">No data</span>
                                   ) : (
                                     <div className="flex items-center gap-2">
-                                      <span className={`font-black text-lg ${scoreColor}`}>
-                                        {score}%
-                                      </span>
+                                      <span className={`font-black text-lg ${scoreColor}`}>{score}%</span>
                                       {score >= 90 && <span className="text-lg">🔥</span>}
                                       {score >= 80 && score < 90 && <span className="text-lg">⭐</span>}
                                     </div>
@@ -1845,23 +2069,19 @@ export default function AdminDashboardPage() {
                                 </td>
                                 <td className="p-4 hidden md:table-cell">
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-violet-500/10 text-violet-300 border border-violet-500/20">
-                                    <Icon name="activity" className="w-3 h-3" />
-                                    {r.totalAttempts}
+                                    <Icon name="activity" className="w-3 h-3" />{r.totalAttempts}
                                   </span>
                                 </td>
                                 <td className="p-4 hidden lg:table-cell">
                                   <div className="flex flex-wrap gap-1">
                                     {Object.entries(r.moduleAverages).slice(0, 5).map(([mod, avg]) => (
-                                      <span
-                                        key={mod}
-                                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
-                                          mod === 'reading' ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' :
-                                          mod === 'listening' ? 'bg-purple-500/15 text-purple-300 border-purple-500/30' :
-                                          mod === 'writing' ? 'bg-violet-500/15 text-violet-300 border-violet-500/30' :
-                                          mod === 'speaking' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' :
-                                          'bg-sky-500/15 text-sky-300 border-sky-500/30'
-                                        }`}
-                                      >
+                                      <span key={mod} className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
+                                        mod === 'reading' ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' :
+                                        mod === 'listening' ? 'bg-purple-500/15 text-purple-300 border-purple-500/30' :
+                                        mod === 'writing' ? 'bg-violet-500/15 text-violet-300 border-violet-500/30' :
+                                        mod === 'speaking' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' :
+                                        'bg-sky-500/15 text-sky-300 border-sky-500/30'
+                                      }`}>
                                         {mod}: {avg}%
                                       </span>
                                     ))}
@@ -1888,7 +2108,6 @@ export default function AdminDashboardPage() {
                   )}
                 </div>
 
-                {/* Info Card */}
                 <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center shrink-0">
@@ -1902,6 +2121,449 @@ export default function AdminDashboardPage() {
                           ? ' Overall Ranking blends every module.'
                           : ` Currently filtered to ${rankingModuleFilter} module scores only.`}
                         {' '}Candidates with the same score are ranked alphabetically. Only users with recorded attempts appear in this leaderboard.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 4: ANALYTICS & STATISTICS */}
+            {activeTab === 'statistics' && (
+              <div className="space-y-6">
+
+                {/* Analytics Hero */}
+                <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 via-[#151520]/80 to-blue-500/5 backdrop-blur-xl p-6 sm:p-8">
+                  <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-cyan-500/20 rounded-full blur-[100px] pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+
+                  <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="space-y-3 max-w-2xl">
+                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-bold uppercase tracking-widest text-cyan-300">
+                        <Icon name="bar-chart" className="w-3 h-3" glow />
+                        Platform Analytics & Insights
+                      </span>
+                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                        Module Usage <span className="bg-gradient-to-r from-cyan-300 via-sky-300 to-blue-300 bg-clip-text text-transparent">Statistics</span>
+                      </h2>
+                      <p className="text-sm text-slate-400 leading-relaxed">
+                        Discover which assessment modules are most used, how scores are distributed, and how activity trends over time across the entire platform.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Most Used / Least Used / Highest Avg / Lowest Avg */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                  {/* Most Used */}
+                  {platformStats.mostUsed && (
+                    <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 backdrop-blur-xl p-5">
+                      <div className="absolute -top-8 -right-8 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl" />
+                      <div className="relative space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModuleMeta(platformStats.mostUsed.name).gradient} flex items-center justify-center shadow-lg`}>
+                            <Icon name={getModuleMeta(platformStats.mostUsed.name).icon} className="w-5 h-5 text-white" glow />
+                          </div>
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            <Icon name="zap" className="w-2.5 h-2.5" glow />
+                            Most Used
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 mb-1">Top Module</p>
+                          <p className="text-xl font-black text-white capitalize">{platformStats.mostUsed.name}</p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            <span className="font-bold text-white">{platformStats.mostUsed.count}</span> attempts ({platformStats.mostUsed.percentage}% of total)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Least Used */}
+                  {platformStats.leastUsed && platformStats.leastUsed.name !== platformStats.mostUsed?.name && (
+                    <div className="relative overflow-hidden rounded-2xl border-2 border-slate-500/30 bg-gradient-to-br from-slate-500/10 to-slate-600/5 backdrop-blur-xl p-5">
+                      <div className="absolute -top-8 -right-8 w-32 h-32 bg-slate-500/20 rounded-full blur-2xl" />
+                      <div className="relative space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModuleMeta(platformStats.leastUsed.name).gradient} flex items-center justify-center shadow-lg`}>
+                            <Icon name={getModuleMeta(platformStats.leastUsed.name).icon} className="w-5 h-5 text-white" glow />
+                          </div>
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-slate-500/20 text-slate-300 border border-slate-500/30">
+                            Least Used
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300 mb-1">Least Explored</p>
+                          <p className="text-xl font-black text-white capitalize">{platformStats.leastUsed.name}</p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            <span className="font-bold text-white">{platformStats.leastUsed.count}</span> attempts ({platformStats.leastUsed.percentage}% of total)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Highest Avg */}
+                  {platformStats.highestAvg && (
+                    <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-orange-500/5 backdrop-blur-xl p-5">
+                      <div className="absolute -top-8 -right-8 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl" />
+                      <div className="relative space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModuleMeta(platformStats.highestAvg.name).gradient} flex items-center justify-center shadow-lg`}>
+                            <Icon name="trophy" className="w-5 h-5 text-white" glow />
+                          </div>
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            <Icon name="award" className="w-2.5 h-2.5" glow />
+                            Easiest
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300 mb-1">Highest Avg Score</p>
+                          <p className="text-xl font-black text-white capitalize">{platformStats.highestAvg.name}</p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Average of <span className="font-bold text-amber-300">{platformStats.highestAvg.average}%</span> across {platformStats.highestAvg.count} attempts
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lowest Avg */}
+                  {platformStats.lowestAvg && platformStats.lowestAvg.name !== platformStats.highestAvg?.name && (
+                    <div className="relative overflow-hidden rounded-2xl border-2 border-rose-500/40 bg-gradient-to-br from-rose-500/10 to-red-500/5 backdrop-blur-xl p-5">
+                      <div className="absolute -top-8 -right-8 w-32 h-32 bg-rose-500/20 rounded-full blur-2xl" />
+                      <div className="relative space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModuleMeta(platformStats.lowestAvg.name).gradient} flex items-center justify-center shadow-lg`}>
+                            <Icon name="alert-circle" className="w-5 h-5 text-white" glow />
+                          </div>
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                            <Icon name="trending-down" className="w-2.5 h-2.5" glow />
+                            Hardest
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-rose-300 mb-1">Lowest Avg Score</p>
+                          <p className="text-xl font-black text-white capitalize">{platformStats.lowestAvg.name}</p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            Average of <span className="font-bold text-rose-300">{platformStats.lowestAvg.average}%</span> across {platformStats.lowestAvg.count} attempts
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Module Usage Distribution Bar Chart */}
+                <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-lg">
+                      <Icon name="bar-chart" className="w-5 h-5 text-white" glow />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black tracking-tight">Module Usage Distribution</h3>
+                      <p className="text-xs text-slate-400">
+                        Total attempts per module across all users — sorted from most to least used
+                      </p>
+                    </div>
+                  </div>
+
+                  {platformStats.moduleList.length === 0 ? (
+                    <div className="p-12 text-center text-slate-500 text-sm">
+                      No module data available yet. Statistics will appear once users start taking assessments.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {platformStats.moduleList.map((mod, idx) => {
+                        const meta = getModuleMeta(mod.name)
+                        const maxCount = platformStats.moduleList[0]?.count || 1
+                        const barWidth = maxCount > 0 ? (mod.count / maxCount) * 100 : 0
+                        return (
+                          <div key={mod.name} className="space-y-2">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shrink-0 shadow-lg`}>
+                                  <Icon name={meta.icon} className="w-4 h-4 text-white" glow />
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-white text-sm capitalize">{mod.name}</p>
+                                    {idx === 0 && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                        🔥 Top
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 font-mono">
+                                    {mod.count} attempts · {mod.uniqueUsers} user{mod.uniqueUsers === 1 ? '' : 's'} · avg {mod.average}%
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className={`text-2xl font-black ${meta.textColor}`}>{mod.percentage}%</p>
+                                <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">share</p>
+                              </div>
+                            </div>
+
+                            {/* Bar */}
+                            <div className="relative h-3 bg-slate-800/60 rounded-full overflow-hidden">
+                              <div
+                                className={`absolute inset-y-0 left-0 bg-gradient-to-r ${meta.gradient} rounded-full transition-all duration-700 shadow-lg`}
+                                style={{ width: `${barWidth}%` }}
+                              />
+                              {/* Best score marker */}
+                              <div
+                                className="absolute inset-y-0 w-0.5 bg-white/60 rounded-full"
+                                style={{ left: `${Math.min(100, mod.best)}%` }}
+                                title={`Best: ${mod.best}%`}
+                              />
+                            </div>
+
+                            <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                              <span>Best: <strong className={meta.textColor}>{mod.best}%</strong></span>
+                              <span>Worst: <strong className="text-rose-400">{mod.worst}%</strong></span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Two Column: Score Distribution + Activity Timeline */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                  {/* Score Distribution Histogram */}
+                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
+                        <Icon name="pie-chart" className="w-5 h-5 text-white" glow />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-black tracking-tight">Score Distribution</h3>
+                        <p className="text-xs text-slate-400">
+                          How candidate scores are spread across ranges
+                        </p>
+                      </div>
+                    </div>
+
+                    {platformStats.totalAttempts === 0 ? (
+                      <div className="p-12 text-center text-slate-500 text-sm">No scores yet</div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Vertical histogram bars */}
+                        <div className="flex items-end justify-between gap-2 h-48 pb-2">
+                          {platformStats.scoreBuckets.map((bucket) => {
+                            const maxCount = Math.max(...platformStats.scoreBuckets.map(b => b.count), 1)
+                            const heightPercent = (bucket.count / maxCount) * 100
+                            return (
+                              <div key={bucket.range} className="flex-1 flex flex-col items-center justify-end gap-2 h-full">
+                                {bucket.count > 0 && (
+                                  <span className="text-xs font-black text-white">{bucket.count}</span>
+                                )}
+                                <div
+                                  className={`w-full bg-gradient-to-t ${bucket.color} rounded-t-lg transition-all duration-700 shadow-lg`}
+                                  style={{ height: `${Math.max(4, heightPercent)}%` }}
+                                  title={`${bucket.range}: ${bucket.count} attempts`}
+                                />
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {/* Labels */}
+                        <div className="flex items-end justify-between gap-2 border-t border-violet-500/20 pt-2">
+                          {platformStats.scoreBuckets.map((bucket) => (
+                            <div key={bucket.range} className="flex-1 text-center">
+                              <p className="text-[10px] font-mono font-bold text-slate-400">{bucket.range}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Summary */}
+                        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-violet-500/20">
+                          <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Passing (≥80%)</p>
+                            <p className="text-2xl font-black text-white">
+                              {platformStats.scoreBuckets.slice(4).reduce((a, b) => a + b.count, 0)}
+                            </p>
+                            <p className="text-[10px] text-slate-500">
+                              {Math.round((platformStats.scoreBuckets.slice(4).reduce((a, b) => a + b.count, 0) / Math.max(platformStats.totalAttempts, 1)) * 100)}% of attempts
+                            </p>
+                          </div>
+                          <div className="p-3 rounded-xl bg-rose-500/5 border border-rose-500/20">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-rose-300">Needs Work (&lt;80%)</p>
+                            <p className="text-2xl font-black text-white">
+                              {platformStats.scoreBuckets.slice(0, 4).reduce((a, b) => a + b.count, 0)}
+                            </p>
+                            <p className="text-[10px] text-slate-500">
+                              {Math.round((platformStats.scoreBuckets.slice(0, 4).reduce((a, b) => a + b.count, 0) / Math.max(platformStats.totalAttempts, 1)) * 100)}% of attempts
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Activity Timeline */}
+                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg">
+                        <Icon name="activity" className="w-5 h-5 text-white" glow />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-black tracking-tight">30-Day Activity Timeline</h3>
+                        <p className="text-xs text-slate-400">
+                          Daily attempt volume across the platform
+                        </p>
+                      </div>
+                    </div>
+
+                    {platformStats.totalAttempts === 0 ? (
+                      <div className="p-12 text-center text-slate-500 text-sm">No activity yet</div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Sparkline-style bars */}
+                        <div className="flex items-end gap-[2px] h-40">
+                          {(() => {
+                            const maxCount = Math.max(...platformStats.activityTimeline.map(d => d.count), 1)
+                            return platformStats.activityTimeline.map((day) => {
+                              const heightPercent = maxCount > 0 ? (day.count / maxCount) * 100 : 0
+                              const isPeak = day.date === platformStats.peakDay.date && day.count > 0
+                              return (
+                                <div
+                                  key={day.date}
+                                  className="flex-1 group relative"
+                                  style={{ height: '100%' }}
+                                >
+                                  <div
+                                    className={`w-full rounded-sm transition-all duration-500 absolute bottom-0 ${
+                                      isPeak
+                                        ? 'bg-gradient-to-t from-amber-500 to-yellow-400 shadow-lg shadow-amber-500/50'
+                                        : day.count > 0
+                                          ? 'bg-gradient-to-t from-cyan-500 to-blue-400'
+                                          : 'bg-slate-800/60'
+                                    }`}
+                                    style={{ height: `${Math.max(2, heightPercent)}%` }}
+                                  />
+                                  {/* Tooltip on hover */}
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
+                                    <div className="px-2 py-1 rounded-lg bg-slate-950 border border-violet-500/30 text-[10px] font-mono whitespace-nowrap shadow-lg">
+                                      <p className="text-slate-400">{day.date}</p>
+                                      <p className="font-bold text-white">{day.count} attempt{day.count === 1 ? '' : 's'}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })
+                          })()}
+                        </div>
+
+                        {/* Timeline axis labels */}
+                        <div className="flex justify-between text-[10px] font-mono text-slate-500 border-t border-violet-500/20 pt-2">
+                          <span>{platformStats.activityTimeline[0]?.date || ''}</span>
+                          <span>{platformStats.activityTimeline[Math.floor(platformStats.activityTimeline.length / 2)]?.date || ''}</span>
+                          <span>Today</span>
+                        </div>
+
+                        {/* Peak day summary */}
+                        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-violet-500/20">
+                          <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300">Peak Day</p>
+                            <p className="text-xs font-mono text-white mt-1">{platformStats.peakDay.date || 'N/A'}</p>
+                            <p className="text-lg font-black text-amber-300">{platformStats.peakDay.count} attempts</p>
+                          </div>
+                          <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-300">Daily Average</p>
+                            <p className="text-xs font-mono text-white mt-1">Last 30 days</p>
+                            <p className="text-lg font-black text-cyan-300">
+                              {(platformStats.totalAttempts > 0
+                                ? platformStats.activityTimeline.reduce((a, b) => a + b.count, 0) / 30
+                                : 0
+                              ).toFixed(1)} attempts/day
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Top Performers Per Module */}
+                {Object.keys(platformStats.topPerformersByModule).length > 0 && (
+                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center shadow-lg">
+                        <Icon name="award" className="w-5 h-5 text-white" glow />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-black tracking-tight">Top Performers Per Module</h3>
+                        <p className="text-xs text-slate-400">
+                          The highest-scoring candidate in each assessment module
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                      {Object.entries(platformStats.topPerformersByModule).map(([modName, performers]) => {
+                        const meta = getModuleMeta(modName)
+                        const top = performers[0]
+                        if (!top) return null
+                        const u = users.find(x => x.id === top.userId)
+                        return (
+                          <div
+                            key={modName}
+                            onClick={() => u && openUserProfile(u)}
+                            className={`group relative overflow-hidden rounded-2xl border ${meta.borderColor} bg-slate-900/30 backdrop-blur-xl p-4 space-y-3 cursor-pointer transition-all duration-300 hover:scale-[1.02]`}
+                          >
+                            <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${meta.gradient} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`} />
+
+                            <div className="relative flex items-center justify-between">
+                              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg`}>
+                                <Icon name={meta.icon} className="w-4 h-4 text-white" glow />
+                              </div>
+                              <span className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor}`}>
+                                {meta.label}
+                              </span>
+                            </div>
+
+                            <div className="relative space-y-1">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-white font-black text-xs shadow-lg shrink-0">
+                                  {(top.userName || '?').charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-bold text-white text-xs truncate">{top.userName}</p>
+                                  <p className="text-[10px] text-slate-500 font-mono truncate">{top.attempts}× attempts</p>
+                                </div>
+                              </div>
+                              <div className={`mt-2 py-2 rounded-xl ${meta.textColor} bg-slate-950/40 text-center`}>
+                                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Top Avg</p>
+                                <p className={`text-2xl font-black ${meta.textColor}`}>{top.avg}%</p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Info Card */}
+                <div className="relative overflow-hidden rounded-3xl border border-cyan-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center shrink-0">
+                      <Icon name="info" className="w-5 h-5 text-cyan-400" glow />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-white">About These Statistics</h4>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        All analytics are computed live from the <strong className="text-cyan-300">module_scores</strong> table.
+                        Module usage counts every attempt, while the average/best/worst scores are calculated per module.
+                        The score distribution groups every attempt into ranges, and the 30-day timeline reveals how candidate activity trends over time.
+                        Refresh this page after users complete new assessments to see updated insights.
                       </p>
                     </div>
                   </div>
