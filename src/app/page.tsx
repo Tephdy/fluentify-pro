@@ -264,9 +264,101 @@ function Icon({ name, className = "w-5 h-5", glow = false }: IconProps) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
       );
+    case 'lock':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M7 11V7a5 5 0 0110 0v4" />
+        </svg>
+      );
+    case 'file-text':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    case 'check':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      );
     default:
       return null;
   }
+}
+
+// ============================================
+// LEGAL MODAL COMPONENT
+// ============================================
+function LegalModal({ 
+  isOpen, 
+  onClose, 
+  title, 
+  children 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  title: string; 
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-fadeIn">
+      <div className="relative w-full max-w-3xl max-h-[90vh] rounded-3xl border border-violet-500/20 bg-[#151520]/98 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="shrink-0 flex items-center justify-between px-6 sm:px-8 py-5 border-b border-violet-500/20 bg-[#121218]/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center shadow-lg shadow-violet-500/30">
+              <Icon name="file-text" className="w-5 h-5 text-white" glow />
+            </div>
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400 block">
+                Legal Document
+              </span>
+              <h3 className="text-lg font-black text-white">{title}</h3>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition text-slate-400 hover:text-white hover:bg-slate-800/50"
+            aria-label="Close"
+          >
+            <Icon name="x" className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-5 text-slate-300 text-sm leading-relaxed">
+          {children}
+        </div>
+
+        {/* Footer */}
+        <div className="shrink-0 px-6 sm:px-8 py-4 border-t border-violet-500/20 bg-[#121218]/50 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500">
+            <Icon name="shield" className="w-3 h-3 text-emerald-400" />
+            <span>Version 2.6.0 · Effective Jan 2026</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-violet-500/30 hover:shadow-xl transition-all"
+          >
+            Close Document
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ============================================
@@ -925,6 +1017,10 @@ export default function Home() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
   const [theme, setTheme] = useState<ThemeMode>('dark');
   const [showThemeMenu, setShowThemeMenu] = useState(false);
 
@@ -1018,9 +1114,6 @@ export default function Home() {
     setShowIntegrityWarning(true);
   };
 
-  // ============================================
-  // LOGOUT HANDLER
-  // ============================================
   const handleLogout = () => {
     setIsLoggingOut(true);
     setTimeout(() => {
@@ -1439,6 +1532,11 @@ export default function Home() {
       return;
     }
 
+    if (isSignUpMode && !hasAcceptedTerms) {
+      setAuthError('You must read and agree to the Privacy Policy and Terms of Service to create an account.');
+      return;
+    }
+
     setAuthError('');
     const derivedName = email.split('@')[0];
     const finalName = userName.trim() || derivedName.charAt(0).toUpperCase() + derivedName.slice(1);
@@ -1484,6 +1582,7 @@ export default function Home() {
         localStorage.setItem('cally_user_email', email);
         localStorage.setItem('cally_user_name', finalName);
         localStorage.setItem('cally_user_id', currentUserId);
+        setHasAcceptedTerms(false);
         setIsLoggedIn(true);
       }
     } catch (err) {
@@ -1646,14 +1745,11 @@ export default function Home() {
 
       setWritingPrompt(selectedPrompt);
 
-      const subs = [
-        `Step 1 of 3 — Opening: Introduce yourself and acknowledge the customer's concern.\n\nMain task: ${selectedPrompt}`,
-        `Step 2 of 3 — Body: Explain the resolution, next steps, or relevant details clearly.`,
-        `Step 3 of 3 — Closing: Offer further help, apologise for inconvenience, and sign off professionally.`,
-      ];
-      setWritingSubPrompts(subs);
+      // Single-step writing prompt
+      const singlePrompt = `Write a professional customer response addressing the following scenario. Include a proper greeting, a clear body with the resolution or relevant details, and a professional closing.\n\nScenario: ${selectedPrompt}`;
+      setWritingSubPrompts([singlePrompt]);
       setWritingSubIndex(0);
-      setWritingDrafts(['', '', '']);
+      setWritingDrafts(['']);
       setWritingText('');
       setLoading(false);
       return;
@@ -1683,9 +1779,6 @@ export default function Home() {
       return;
     }
 
-    // ==========================================
-    // DYNAMIC SUPABASE FETCH FOR READING & LISTENING
-    // ==========================================
     if (moduleType === 'reading' || moduleType === 'listening') {
       try {
         const { data, error } = await supabase
@@ -1697,7 +1790,6 @@ export default function Home() {
           throw new Error(error?.message || 'No questions returned from Supabase');
         }
 
-        // Group flat rows back into tests by test_title
         const groupedMap = new Map<string, TestData>();
         data.forEach((row: any) => {
           if (!groupedMap.has(row.test_title)) {
@@ -1726,7 +1818,6 @@ export default function Home() {
       } catch (err) {
         console.warn('Supabase fetch failed, falling back to static local data:', err);
         
-        // Fallback to your local arrays if network/database fails
         const fallbackSource = moduleType === 'reading' ? FALLBACK_READING_QUESTIONS : FALLBACK_LISTENING_QUESTIONS;
         const selectedItem = fallbackSource[Math.floor(Math.random() * fallbackSource.length)];
         setTestData(selectedItem);
@@ -2225,7 +2316,7 @@ export default function Home() {
       icon: 'pencil',
       gradient: 'from-violet-500 to-purple-500',
       glow: 'shadow-violet-500/30',
-      instructions: "1. Read scenario prompt.\n2. Draft your response in 3 guided steps (Opening → Body → Closing).",
+      instructions: "1. Read the scenario prompt carefully.\n2. Write a complete professional response in the text area.\n3. Click 'Submit Writing Assessment' when ready.",
     },
     {
       id: 'speaking' as ModuleType,
@@ -2341,7 +2432,14 @@ export default function Home() {
             </button>
             
             <p className="mt-4 text-[11px] text-slate-500">
-              Access your dashboard and begin your assessment journey.
+              By continuing, you agree to our{' '}
+              <button type="button" onClick={() => setShowTermsModal(true)} className="text-violet-400 underline hover:text-violet-300 font-semibold">
+                Terms
+              </button>
+              {' '}&amp;{' '}
+              <button type="button" onClick={() => setShowPrivacyModal(true)} className="text-violet-400 underline hover:text-violet-300 font-semibold">
+                Privacy Policy
+              </button>
             </p>
           </div>
           
@@ -2485,9 +2583,65 @@ export default function Home() {
                   />
                 </div>
 
+                {isSignUpMode && (
+                  <div className="p-4 rounded-2xl bg-violet-500/5 border border-violet-500/20 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setHasAcceptedTerms(!hasAcceptedTerms)}
+                        aria-checked={hasAcceptedTerms}
+                        role="checkbox"
+                        className={`relative shrink-0 w-5 h-5 mt-0.5 rounded-md border-2 transition-all flex items-center justify-center ${
+                          hasAcceptedTerms
+                            ? 'bg-gradient-to-br from-violet-500 to-purple-600 border-violet-400'
+                            : 'bg-transparent border-slate-500/50 hover:border-violet-400/60'
+                        }`}
+                      >
+                        {hasAcceptedTerms && (
+                          <Icon name="check" className="w-3 h-3 text-white" />
+                        )}
+                      </button>
+                      <label
+                        onClick={() => setHasAcceptedTerms(!hasAcceptedTerms)}
+                        className="text-xs text-slate-300 leading-relaxed cursor-pointer select-none"
+                      >
+                        I have read and agree to the{' '}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setShowTermsModal(true); }}
+                          className="text-violet-400 underline hover:text-violet-300 font-semibold"
+                        >
+                          Terms of Service
+                        </button>
+                        {' '}and{' '}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setShowPrivacyModal(true); }}
+                          className="text-violet-400 underline hover:text-violet-300 font-semibold"
+                        >
+                          Privacy Policy
+                        </button>
+                        . I consent to the collection, processing, and storage of my data as described.
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-[10px] font-mono text-slate-500 pl-8">
+                      <span className="flex items-center gap-1">
+                        <Icon name="shield" className="w-3 h-3 text-emerald-400" />
+                        GDPR Compliant
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Icon name="lock" className="w-3 h-3 text-cyan-400" />
+                        256-bit Encrypted
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full py-4 px-4 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-sm rounded-xl transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/50 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                  disabled={isSignUpMode && !hasAcceptedTerms}
+                  className={`w-full py-4 px-4 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-sm rounded-xl transition-all duration-300 shadow-lg shadow-violet-500/30 hover:shadow-xl hover:shadow-violet-500/50 hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100`}
                 >
                   {isSignUpMode ? 'Create Account & Start' : 'Sign In to Dashboard'}
                 </button>
@@ -2511,6 +2665,18 @@ export default function Home() {
                 </svg>
                 Continue with Google
               </button>
+
+              <div className="text-center text-[10px] text-slate-500 leading-relaxed">
+                By signing in or creating an account, you acknowledge that you have read and understood our{' '}
+                <button type="button" onClick={() => setShowTermsModal(true)} className="text-violet-400 underline hover:text-violet-300">
+                  Terms of Service
+                </button>
+                {' '}and{' '}
+                <button type="button" onClick={() => setShowPrivacyModal(true)} className="text-violet-400 underline hover:text-violet-300">
+                  Privacy Policy
+                </button>
+                .
+              </div>
             </div>
           </div>
         </div>
@@ -2551,7 +2717,56 @@ export default function Home() {
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Password</label>
                 <input type="password" required value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="••••••••" className="mt-1.5 w-full px-4 py-3.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
               </div>
-              <button type="submit" className="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-sm shadow-lg shadow-violet-500/30">
+
+              {isSignUpMode && (
+                <div className="p-4 rounded-2xl bg-violet-500/5 border border-violet-500/20 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setHasAcceptedTerms(!hasAcceptedTerms)}
+                      aria-checked={hasAcceptedTerms}
+                      role="checkbox"
+                      className={`relative shrink-0 w-5 h-5 mt-0.5 rounded-md border-2 transition-all flex items-center justify-center ${
+                        hasAcceptedTerms
+                          ? 'bg-gradient-to-br from-violet-500 to-purple-600 border-violet-400'
+                          : 'bg-transparent border-slate-500/50 hover:border-violet-400/60'
+                      }`}
+                    >
+                      {hasAcceptedTerms && (
+                        <Icon name="check" className="w-3 h-3 text-white" />
+                      )}
+                    </button>
+                    <label
+                      onClick={() => setHasAcceptedTerms(!hasAcceptedTerms)}
+                      className="text-xs text-slate-300 leading-relaxed cursor-pointer select-none"
+                    >
+                      I agree to the{' '}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setShowTermsModal(true); }}
+                        className="text-violet-400 underline hover:text-violet-300 font-semibold"
+                      >
+                        Terms of Service
+                      </button>
+                      {' '}and{' '}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setShowPrivacyModal(true); }}
+                        className="text-violet-400 underline hover:text-violet-300 font-semibold"
+                      >
+                        Privacy Policy
+                      </button>
+                      .
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSignUpMode && !hasAcceptedTerms}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-sm shadow-lg shadow-violet-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 {isSignUpMode ? 'Create Account & Start' : 'Sign In to Dashboard'}
               </button>
             </form>
@@ -2565,8 +2780,344 @@ export default function Home() {
             <button onClick={handleGoogleLogin} className="w-full py-4 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white font-bold text-sm transition hover:bg-slate-800/50">
               Continue with Google
             </button>
+
+            <div className="mt-4 text-center text-[10px] text-slate-500 leading-relaxed">
+              By continuing, you acknowledge our{' '}
+              <button type="button" onClick={() => setShowTermsModal(true)} className="text-violet-400 underline">
+                Terms
+              </button>
+              {' '}&amp;{' '}
+              <button type="button" onClick={() => setShowPrivacyModal(true)} className="text-violet-400 underline">
+                Privacy Policy
+              </button>
+              .
+            </div>
           </div>
         </div>
+
+        {/* ============================================
+            LEGAL MODALS
+        ============================================ */}
+        <LegalModal
+          isOpen={showPrivacyModal}
+          onClose={() => setShowPrivacyModal(false)}
+          title="Privacy Policy"
+        >
+          <div className="space-y-6">
+            <p className="text-slate-400 text-xs italic">
+              Last Updated: January 1, 2026 · Effective Date: January 15, 2026
+            </p>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">1</span>
+                Introduction
+              </h4>
+              <p>
+                TephdyTech ("we", "us", "our") operates the Cally Assessment Hub ("Service"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service. We are committed to protecting your privacy in accordance with the General Data Protection Regulation (GDPR), the California Consumer Privacy Act (CCPA), and other applicable data protection laws.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">2</span>
+                Information We Collect
+              </h4>
+              <p className="font-semibold text-slate-200">We collect the following categories of personal data:</p>
+              <ul className="space-y-2 pl-4">
+                <li className="flex gap-3">
+                  <span className="text-violet-400 font-bold">•</span>
+                  <span><strong className="text-slate-200">Account Information:</strong> Full name, email address, password (hashed), and profile details you provide during registration.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-violet-400 font-bold">•</span>
+                  <span><strong className="text-slate-200">Assessment Data:</strong> Test responses, scores, module attempts, completion times, and proficiency ratings.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-violet-400 font-bold">•</span>
+                  <span><strong className="text-slate-200">Audio Recordings:</strong> Voice samples recorded during Speaking assessments, used solely for AI-based evaluation and deleted after processing.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-violet-400 font-bold">•</span>
+                  <span><strong className="text-slate-200">Technical Data:</strong> IP address, browser type, device identifiers, operating system, and session integrity logs.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="text-violet-400 font-bold">•</span>
+                  <span><strong className="text-slate-200">Usage Data:</strong> Interaction patterns, feature usage, session duration, and assessment metadata.</span>
+                </li>
+              </ul>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">3</span>
+                How We Use Your Information
+              </h4>
+              <p>We process your personal data for the following lawful purposes:</p>
+              <ul className="space-y-2 pl-4">
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Service Delivery:</strong> To provide, operate, and maintain the assessment and certification platform.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Evaluation:</strong> To process and score your module responses using AI and rule-based engines.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Authentication:</strong> To verify identity and protect against unauthorized access.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Communications:</strong> To send service updates, security alerts, and support responses.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Improvement:</strong> To analyze usage patterns and improve the Service's functionality and user experience.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Legal Compliance:</strong> To comply with legal obligations and enforce our Terms of Service.</span></li>
+              </ul>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">4</span>
+                Data Sharing & Disclosure
+              </h4>
+              <p>We do not sell your personal information. We may share your data only with:</p>
+              <ul className="space-y-2 pl-4">
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Service Providers:</strong> Supabase (database hosting), OpenAI/Whisper (speech evaluation), and cloud infrastructure providers bound by confidentiality agreements.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Legal Authorities:</strong> When required by law, court order, or to protect the rights and safety of our users.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets, with prior notice to you.</span></li>
+              </ul>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">5</span>
+                Data Security
+              </h4>
+              <p>
+                We implement industry-standard security measures including 256-bit TLS encryption in transit, AES-256 encryption at rest, hashed password storage (bcrypt), role-based access controls, and regular security audits. Audio recordings are ephemeral and deleted immediately after AI evaluation. However, no method of transmission over the Internet is 100% secure.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">6</span>
+                Your Privacy Rights
+              </h4>
+              <p>Depending on your jurisdiction, you have the following rights:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                {[
+                  { title: 'Right to Access', desc: 'Request a copy of your personal data.' },
+                  { title: 'Right to Rectification', desc: 'Correct inaccurate or incomplete data.' },
+                  { title: 'Right to Erasure', desc: '"Right to be forgotten" — delete your account and data.' },
+                  { title: 'Right to Restrict', desc: 'Limit how we process your data.' },
+                  { title: 'Right to Portability', desc: 'Receive your data in a machine-readable format.' },
+                  { title: 'Right to Object', desc: 'Object to certain processing activities.' },
+                ].map((right) => (
+                  <div key={right.title} className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-1">
+                    <p className="text-xs font-bold text-violet-300">{right.title}</p>
+                    <p className="text-[11px] text-slate-400 leading-snug">{right.desc}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3">
+                To exercise these rights, email <span className="text-violet-300 font-mono">privacy@tephdytech.com</span>. We will respond within 30 days.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">7</span>
+                Data Retention
+              </h4>
+              <p>
+                We retain your personal data for as long as your account is active. Upon account deletion, all associated data — including assessment scores, certificates, and audio recordings — is permanently removed within 30 days, unless retention is required by law.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">8</span>
+                Cookies & Tracking
+              </h4>
+              <p>
+                We use strictly necessary cookies for authentication and session management. We do not use third-party advertising or tracking cookies. Analytics data is aggregated and anonymized.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">9</span>
+                Children's Privacy
+              </h4>
+              <p>
+                Our Service is not intended for individuals under 16 years of age. We do not knowingly collect data from children. If you become aware of any data we have collected from children, please contact us immediately.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">10</span>
+                Contact Us
+              </h4>
+              <p>
+                For privacy-related inquiries, contact our Data Protection Officer at:
+              </p>
+              <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-1 font-mono text-xs">
+                <p className="text-slate-300">📧 privacy@tephdytech.com</p>
+                <p className="text-slate-300">📧 dpo@tephdytech.com</p>
+                <p className="text-slate-400">TephdyTech Inc. · Data Protection Office</p>
+              </div>
+            </section>
+          </div>
+        </LegalModal>
+
+        <LegalModal
+          isOpen={showTermsModal}
+          onClose={() => setShowTermsModal(false)}
+          title="Terms of Service"
+        >
+          <div className="space-y-6">
+            <p className="text-slate-400 text-xs italic">
+              Last Updated: January 1, 2026 · Effective Date: January 15, 2026
+            </p>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">1</span>
+                Acceptance of Terms
+              </h4>
+              <p>
+                By accessing or using the Cally Assessment Hub ("Service"), operated by TephdyTech ("we", "us"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree with any part of these Terms, you must not use the Service.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">2</span>
+                Eligibility & Account Registration
+              </h4>
+              <ul className="space-y-2 pl-4">
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>You must be at least 16 years old to create an account.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>You must provide accurate, current, and complete information during registration.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>You are responsible for maintaining the confidentiality of your account credentials.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>One person may not maintain more than one account. Account sharing is strictly prohibited.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>You must notify us immediately of any unauthorized access to your account.</span></li>
+              </ul>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">3</span>
+                Acceptable Use Policy
+              </h4>
+              <p className="font-semibold text-slate-200">You agree NOT to:</p>
+              <ul className="space-y-2 pl-4">
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Cheat, use automated scripts, or employ AI assistance during official assessments.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Copy, distribute, or reverse-engineer assessment content, questions, or answer keys.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Share certificates under a false identity or misrepresent your credentials.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Attempt to bypass anti-cheat, fullscreen, or clipboard-blocking measures.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Upload malicious code, spam, or content that violates applicable laws.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Use the Service for any commercial purpose without our express written consent.</span></li>
+              </ul>
+              <p className="mt-2 text-rose-400 font-semibold">
+                Violation may result in immediate account termination and certificate revocation.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">4</span>
+                Assessment Integrity & Anti-Cheat
+              </h4>
+              <p>
+                During official exams, the Service activates a comprehensive anti-cheat system including fullscreen enforcement, tab-switch detection, clipboard blocking, and session integrity monitoring. Any violations are logged and may result in score invalidation, certificate revocation, and permanent account suspension.
+              </p>
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <p className="text-xs font-bold text-amber-300 mb-1">⚠ Integrity Monitoring Active</p>
+                <p className="text-[11px] text-slate-300">
+                  Copy, cut, paste, right-click, and keyboard shortcuts (Ctrl+C/V/X/A) are disabled during assessments. Repeated violations will terminate your session.
+                </p>
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">5</span>
+                Certificates & Credentials
+              </h4>
+              <ul className="space-y-2 pl-4">
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Certificates are awarded to candidates who achieve a minimum cumulative rating of 80% on the Full Exam.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Each certificate carries a unique verification ID that can be validated through our API.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>We reserve the right to revoke any certificate obtained through fraudulent means.</span></li>
+                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Certificates reflect the candidate's performance at the time of assessment and have no expiration unless stated otherwise.</span></li>
+              </ul>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">6</span>
+                Intellectual Property
+              </h4>
+              <p>
+                All content on the Service — including but not limited to assessment questions, reading passages, audio scripts, evaluation algorithms, design, logos, and code — is the exclusive property of TephdyTech and is protected by international copyright and trademark laws. You are granted a limited, non-exclusive, non-transferable license to access the Service for personal, non-commercial use only.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">7</span>
+                AI-Powered Evaluation Disclaimer
+              </h4>
+              <p>
+                The Service uses artificial intelligence, including Whisper speech-to-text and large language models, to evaluate Speaking and Writing modules. While we strive for accuracy, AI evaluations are advisory in nature. We do not guarantee that AI-generated scores reflect real-world performance. Final hiring or academic decisions should consider multiple factors.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">8</span>
+                Limitation of Liability
+              </h4>
+              <p>
+                To the maximum extent permitted by law, TephdyTech shall not be liable for any indirect, incidental, special, consequential, or punitive damages — including loss of profits, data, or goodwill — arising from your use of the Service. Our total liability shall not exceed the amount you paid for the Service in the 12 months preceding the claim.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">9</span>
+                Termination
+              </h4>
+              <p>
+                We may suspend or terminate your account at any time, with or without notice, for conduct that violates these Terms, harms other users, or exposes us to legal liability. You may delete your account at any time through your account settings or by contacting support.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">10</span>
+                Modifications to Terms
+              </h4>
+              <p>
+                We reserve the right to modify these Terms at any time. Material changes will be communicated via email or a prominent notice on the Service at least 14 days before they take effect. Continued use of the Service after changes constitutes acceptance of the updated Terms.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">11</span>
+                Governing Law & Dispute Resolution
+              </h4>
+              <p>
+                These Terms shall be governed by and construed in accordance with the laws of the Republic of the Philippines, without regard to conflict of law principles. Any disputes arising under these Terms shall be resolved exclusively through binding arbitration in Metro Manila, Philippines.
+              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">12</span>
+                Contact Information
+              </h4>
+              <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-1 font-mono text-xs">
+                <p className="text-slate-300">📧 legal@tephdytech.com</p>
+                <p className="text-slate-300">📧 support@tephdytech.com</p>
+                <p className="text-slate-400">TephdyTech Inc. · Legal Department</p>
+              </div>
+              <p className="text-xs italic text-slate-400 mt-3">
+                By creating an account, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy.
+              </p>
+            </section>
+          </div>
+        </LegalModal>
       </>
     );
   }
@@ -3377,90 +3928,43 @@ export default function Home() {
 
                 {selectedModule === 'writing' && (
                   <div className={`rounded-3xl border p-6 sm:p-8 shadow-xl space-y-6 ${themeClasses.card}`}>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs font-bold">
-                        <span className={themeClasses.textMuted}>
-                          Writing Step {writingSubIndex + 1} of {writingSubPrompts.length || 1}
-                        </span>
-                        <span className={themeClasses.accent}>
-                          {writingDrafts.filter(d => d.trim().length > 0).length} / {writingSubPrompts.length || 1} completed
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-slate-500/20 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full bg-gradient-to-r ${themeClasses.gradient} transition-all duration-500`}
-                          style={{
-                            width: `${((writingSubIndex + 1) / Math.max(writingSubPrompts.length, 1)) * 100}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-
+                    {/* Single Scenario Prompt */}
                     <div className={`p-5 rounded-2xl border ${themeClasses.accentSoft} space-y-2`}>
                       <span className={`text-xs font-bold uppercase block ${themeClasses.accent}`}>
-                        Step {writingSubIndex + 1} Prompt:
+                        Writing Scenario Prompt:
                       </span>
-                      <p className="text-sm sm:text-base font-medium whitespace-pre-line">
-                        {writingSubPrompts[writingSubIndex] || writingPrompt}
+                      <p className="text-sm sm:text-base font-medium whitespace-pre-line leading-relaxed">
+                        {writingSubPrompts[0] || writingPrompt}
                       </p>
                     </div>
 
+                    {/* Single Response Textarea */}
                     <textarea
-                      rows={8}
-                      value={writingDrafts[writingSubIndex] ?? ''}
+                      rows={14}
+                      value={writingDrafts[0] ?? ''}
                       onChange={(e) => {
-                        const updated = [...writingDrafts];
-                        updated[writingSubIndex] = e.target.value;
+                        const updated = [e.target.value];
                         setWritingDrafts(updated);
-                        setWritingText(updated.filter(Boolean).join('\n\n'));
+                        setWritingText(e.target.value);
                       }}
-                      placeholder="Type your response for this step..."
-                      className={`w-full p-5 border rounded-2xl bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 leading-relaxed ${themeClasses.border}`}
+                      placeholder="Type your complete professional response here..."
+                      className={`w-full p-5 border rounded-2xl bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 leading-relaxed resize-y ${themeClasses.border}`}
                     />
 
-                    <div className="flex items-center justify-between text-xs">
-                      <span className={themeClasses.textMuted}>
-                        {(writingDrafts[writingSubIndex] ?? '').trim()
-                          ? (writingDrafts[writingSubIndex] ?? '').trim().split(/\s+/).length
-                          : 0}{' '}
-                        words this step
-                      </span>
-                      <span className={themeClasses.textMuted}>
+                    {/* Word Count & Submit */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <span className={`text-xs ${themeClasses.textMuted}`}>
                         Total: {writingText.trim() ? writingText.trim().split(/\s+/).length : 0} words
                       </span>
-                    </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-3">
                       <button
                         type="button"
-                        onClick={() => setWritingSubIndex((i) => Math.max(0, i - 1))}
-                        disabled={writingSubIndex === 0}
-                        className={`w-full sm:w-auto px-6 py-3 text-sm font-bold rounded-xl transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
+                        onClick={handleSubmitWriting}
+                        disabled={isEvaluatingWriting || !writingText.trim()}
+                        className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 disabled:opacity-50 text-white font-bold text-sm px-8 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30"
                       >
-                        <Icon name="arrow-left" className="w-4 h-4" />
-                        <span>Previous Step</span>
+                        <span>{isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}</span>
                       </button>
-
-                      {writingSubIndex < writingSubPrompts.length - 1 ? (
-                        <button
-                          type="button"
-                          onClick={() => setWritingSubIndex((i) => Math.min(writingSubPrompts.length - 1, i + 1))}
-                          disabled={!(writingDrafts[writingSubIndex] ?? '').trim()}
-                          className={`w-full sm:w-auto bg-gradient-to-r ${themeClasses.gradient} disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2`}
-                        >
-                          <span>Next Step</span>
-                          <Icon name="chevron-right" className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleSubmitWriting}
-                          disabled={isEvaluatingWriting || !writingText.trim()}
-                          className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30"
-                        >
-                          <span>{isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}</span>
-                        </button>
-                      )}
                     </div>
 
                     {isEvaluatingWriting && (
@@ -4220,9 +4724,58 @@ export default function Home() {
             </div>
             <span className={themeClasses.textMuted}>&bull;</span>
             <span className={themeClasses.textMuted}>&copy; {new Date().getFullYear()} All rights reserved.</span>
+            <span className={themeClasses.textMuted}>&bull;</span>
+            <button type="button" onClick={() => setShowTermsModal(true)} className="hover:text-violet-400 transition">
+              Terms
+            </button>
+            <span className={themeClasses.textMuted}>&bull;</span>
+            <button type="button" onClick={() => setShowPrivacyModal(true)} className="hover:text-violet-400 transition">
+              Privacy
+            </button>
           </div>
         </div>
       </footer>
+
+      {/* Legal Modals (logged in state — abbreviated) */}
+      <LegalModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        title="Privacy Policy"
+      >
+        <div className="space-y-6">
+          <p className="text-slate-400 text-xs italic">
+            Last Updated: January 1, 2026 · Effective Date: January 15, 2026
+          </p>
+          <section className="space-y-3">
+            <h4 className="text-base font-black text-white">1. Introduction</h4>
+            <p>TephdyTech operates the Cally Assessment Hub. This Privacy Policy explains how we collect, use, and safeguard your information in accordance with GDPR, CCPA, and applicable laws.</p>
+          </section>
+          <section className="space-y-3">
+            <h4 className="text-base font-black text-white">2. Contact</h4>
+            <p className="font-mono text-violet-300">privacy@tephdytech.com</p>
+          </section>
+        </div>
+      </LegalModal>
+
+      <LegalModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        title="Terms of Service"
+      >
+        <div className="space-y-6">
+          <p className="text-slate-400 text-xs italic">
+            Last Updated: January 1, 2026 · Effective Date: January 15, 2026
+          </p>
+          <section className="space-y-3">
+            <h4 className="text-base font-black text-white">1. Acceptance</h4>
+            <p>By using the Cally Assessment Hub, you agree to be bound by these Terms.</p>
+          </section>
+          <section className="space-y-3">
+            <h4 className="text-base font-black text-white">2. Contact</h4>
+            <p className="font-mono text-violet-300">legal@tephdytech.com</p>
+          </section>
+        </div>
+      </LegalModal>
     </div>
   );
 }
