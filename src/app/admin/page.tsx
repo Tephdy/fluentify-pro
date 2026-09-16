@@ -286,6 +286,33 @@ function Icon({ name, className = "w-5 h-5", glow = false }: IconProps) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
         </svg>
       )
+    case 'menu':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      )
+    case 'settings':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="12" r="3" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+        </svg>
+      )
+    case 'database':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+        </svg>
+      )
+    case 'star':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.5l2.63 5.33 5.88.85-4.25 4.14 1 5.85L12 16.9l-5.26 2.77 1-5.85L3.5 9.68l5.87-.85L12 3.5z" />
+        </svg>
+      )
     default:
       return null
   }
@@ -481,11 +508,18 @@ function getLevelMeta(level: string): typeof LEVEL_META[TutorialLevel] {
 }
 
 // ============================================
+// TAB TYPE
+// ============================================
+type AdminTab = 'overview' | 'users' | 'questions' | 'tutorials' | 'rankings' | 'statistics'
+
+// ============================================
 // MAIN ADMIN DASHBOARD
 // ============================================
 export default function AdminDashboardPage() {
   const [adminEmail, setAdminEmail] = useState('')
-  const [activeTab, setActiveTab] = useState<'users' | 'questions' | 'rankings' | 'statistics' | 'tutorials'>('users')
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview')
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   
   // Data States
   const [users, setUsers] = useState<any[]>([])
@@ -555,6 +589,11 @@ export default function AdminDashboardPage() {
     return () => clearInterval(timer)
   }, [])
 
+  // Close mobile sidebar when tab changes
+  useEffect(() => {
+    setIsSidebarOpen(false)
+  }, [activeTab])
+
   // ============================================
   // LOAD ADMIN DATA
   // ============================================
@@ -588,7 +627,6 @@ export default function AdminDashboardPage() {
       if (scoresError) throw scoresError
       if (scoresData) setAllScores(scoresData)
 
-      // Fetch Tutorials / Lessons
       const { data: tutorialsData, error: tutorialsError } = await supabase
         .from('lessons')
         .select('*')
@@ -1054,7 +1092,7 @@ export default function AdminDashboardPage() {
       : []
   }, [rankings, rankingSearch])
 
-  // Profile Stats (computed for the viewed user)
+  // Profile Stats
   const profileStats = useMemo(() => {
     const scores = profileData.scores
     const total = scores.length
@@ -1213,6 +1251,25 @@ export default function AdminDashboardPage() {
     }
   }, [allScores, users])
 
+  // ============================================
+  // SIDEBAR NAV ITEMS
+  // ============================================
+  const navItems: Array<{
+    key: AdminTab
+    label: string
+    icon: string
+    gradient: string
+    badge?: number
+    section: 'main' | 'content' | 'analytics'
+  }> = [
+    { key: 'overview', label: 'Overview', icon: 'grid', gradient: 'from-violet-500 to-purple-500', section: 'main' },
+    { key: 'users', label: 'Users', icon: 'users', gradient: 'from-cyan-500 to-blue-500', badge: users.length, section: 'main' },
+    { key: 'questions', label: 'Question Bank', icon: 'book', gradient: 'from-amber-500 to-orange-500', badge: questions.length, section: 'content' },
+    { key: 'tutorials', label: 'Tutorials & Lessons', icon: 'graduation-cap', gradient: 'from-emerald-500 to-teal-500', badge: tutorials.length, section: 'content' },
+    { key: 'rankings', label: 'Rankings', icon: 'trophy', gradient: 'from-yellow-500 to-amber-500', badge: rankings.length, section: 'analytics' },
+    { key: 'statistics', label: 'Analytics', icon: 'bar-chart', gradient: 'from-fuchsia-500 to-pink-500', section: 'analytics' },
+  ]
+
   // Loading state
   if (loading) {
     return (
@@ -1243,1170 +1300,961 @@ export default function AdminDashboardPage() {
       <div className="fixed top-0 right-0 w-[700px] h-[700px] bg-violet-500/10 rounded-full blur-[160px] pointer-events-none" />
       <div className="fixed bottom-0 left-0 w-[700px] h-[700px] bg-cyan-500/10 rounded-full blur-[160px] pointer-events-none" />
 
-      {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-violet-500/20 bg-[#121218]/80 backdrop-blur-xl">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center border border-violet-400/30 shadow-lg shadow-violet-500/30">
-                  <Icon name="shield" className="w-5 h-5 text-white" glow />
-                </div>
-                <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#121218] animate-pulse" />
+      {/* MOBILE SIDEBAR OVERLAY */}
+      {isSidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* SIDEBAR */}
+      <aside
+        className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col border-r border-violet-500/20 bg-[#0d0d12]/95 backdrop-blur-xl transition-all duration-300 ${
+          isSidebarCollapsed ? 'lg:w-20' : 'lg:w-72'
+        } ${
+          isSidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        {/* Sidebar Header / Logo */}
+        <div className="shrink-0 h-16 border-b border-violet-500/20 px-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative shrink-0">
+              <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center border border-violet-400/30 shadow-lg shadow-violet-500/30">
+                <Icon name="shield" className="w-5 h-5 text-white" glow />
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-base font-black tracking-tight leading-none">Admin Console</h1>
-                <p className="text-[10px] font-mono text-violet-400 uppercase tracking-widest mt-1">
-                  Restricted Node · v3.1.0 (Lessons)
+              <div className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0d0d12] animate-pulse" />
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="min-w-0 transition-opacity duration-200">
+                <h1 className="text-sm font-black tracking-tight leading-none truncate">Admin Console</h1>
+                <p className="text-[10px] font-mono text-violet-400 uppercase tracking-widest mt-1 truncate">
+                  v3.1.0
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Mobile close button */}
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/50 transition"
+            aria-label="Close sidebar"
+          >
+            <Icon name="x" className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Sidebar Nav */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+          {/* Main Section */}
+          <div className="space-y-1">
+            {!isSidebarCollapsed && (
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 mb-2">
+                Main
+              </p>
+            )}
+            {navItems.filter(i => i.section === 'main').map((item) => (
+              <SidebarItem
+                key={item.key}
+                item={item}
+                active={activeTab === item.key}
+                collapsed={isSidebarCollapsed}
+                onClick={() => {
+                  setActiveTab(item.key)
+                  closeUserProfile()
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Content Section */}
+          <div className="space-y-1">
+            {!isSidebarCollapsed && (
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 mb-2">
+                Content
+              </p>
+            )}
+            {navItems.filter(i => i.section === 'content').map((item) => (
+              <SidebarItem
+                key={item.key}
+                item={item}
+                active={activeTab === item.key}
+                collapsed={isSidebarCollapsed}
+                onClick={() => {
+                  setActiveTab(item.key)
+                  closeUserProfile()
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Analytics Section */}
+          <div className="space-y-1">
+            {!isSidebarCollapsed && (
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-3 mb-2">
+                Analytics
+              </p>
+            )}
+            {navItems.filter(i => i.section === 'analytics').map((item) => (
+              <SidebarItem
+                key={item.key}
+                item={item}
+                active={activeTab === item.key}
+                collapsed={isSidebarCollapsed}
+                onClick={() => {
+                  setActiveTab(item.key)
+                  closeUserProfile()
+                }}
+              />
+            ))}
+          </div>
+        </nav>
+
+        {/* Sidebar Footer */}
+        <div className="shrink-0 border-t border-violet-500/20 p-3 space-y-2">
+          {/* System Status */}
+          {!isSidebarCollapsed && (
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                  System
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[10px] font-bold text-emerald-400">Online</span>
+                </span>
+              </div>
+              <div className="text-[10px] font-mono text-slate-400 truncate">
+                {currentTime.toLocaleTimeString()}
+              </div>
+            </div>
+          )}
+
+          {/* Refresh */}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className={`w-full flex items-center ${
+              isSidebarCollapsed ? 'justify-center' : 'justify-start'
+            } gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-slate-300 hover:text-white border border-violet-500/20 hover:border-violet-400/40 hover:bg-slate-900/50 transition-all disabled:opacity-50`}
+            title="Refresh Data"
+          >
+            <Icon name="refresh" className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {!isSidebarCollapsed && <span>{refreshing ? 'Syncing...' : 'Refresh Data'}</span>}
+          </button>
+
+          {/* Public Hub */}
+          <a
+            href="/"
+            className={`w-full flex items-center ${
+              isSidebarCollapsed ? 'justify-center' : 'justify-start'
+            } gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-slate-300 hover:text-white border border-violet-500/20 hover:border-violet-400/40 hover:bg-slate-900/50 transition-all`}
+            title="Public Hub"
+          >
+            <Icon name="home" className="w-4 h-4" />
+            {!isSidebarCollapsed && <span>Public Hub</span>}
+          </a>
+
+          {/* Admin Info + Logout */}
+          <div className={`flex items-center gap-2 ${
+            isSidebarCollapsed ? 'flex-col' : ''
+          }`}>
+            <div className={`flex items-center gap-2.5 flex-1 min-w-0 ${
+              isSidebarCollapsed ? 'justify-center' : ''
+            }`}>
+              <div className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-black text-sm">
+                {adminEmail.charAt(0).toUpperCase()}
+              </div>
+              {!isSidebarCollapsed && (
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-bold text-violet-300 uppercase tracking-wider leading-none">Admin</span>
+                  <span className="text-[11px] text-slate-400 truncate">{adminEmail}</span>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowLogoutModal(true)}
+              className={`shrink-0 w-9 h-9 rounded-xl flex items-center justify-center bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-400/40 transition-all`}
+              title="Sign Out"
+            >
+              <Icon name="log-out" className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Collapse toggle (desktop only) */}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:text-white border border-violet-500/20 hover:border-violet-400/40 hover:bg-slate-900/50 transition-all"
+          >
+            <Icon name={isSidebarCollapsed ? 'chevron-right' : 'chevron-down'} className="w-3.5 h-3.5" />
+            {!isSidebarCollapsed && <span>Collapse</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT AREA */}
+      <div
+        className={`min-h-screen transition-all duration-300 ${
+          isSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72'
+        }`}
+      >
+        {/* TOP BAR */}
+        <header className="sticky top-0 z-30 h-16 border-b border-violet-500/20 bg-[#0B0B0D]/80 backdrop-blur-xl">
+          <div className="h-full px-4 sm:px-8 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden w-10 h-10 rounded-xl border border-violet-500/20 flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-900/50 transition"
+                aria-label="Open sidebar"
+              >
+                <Icon name="menu" className="w-5 h-5" />
+              </button>
+
+              {/* Page title */}
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-lg font-black tracking-tight truncate">
+                  {navItems.find(i => i.key === activeTab)?.label || 'Overview'}
+                </h2>
+                <p className="text-[10px] sm:text-[11px] text-slate-500 font-mono truncate">
+                  {activeTab === 'overview' && 'Dashboard summary & quick actions'}
+                  {activeTab === 'users' && 'Manage user accounts & permissions'}
+                  {activeTab === 'questions' && 'Create, edit, and delete questions'}
+                  {activeTab === 'tutorials' && 'Publish and organize training lessons'}
+                  {activeTab === 'rankings' && 'Leaderboard and top performers'}
+                  {activeTab === 'statistics' && 'Platform analytics & insights'}
                 </p>
               </div>
             </div>
 
-            <div className="hidden lg:flex items-center gap-4 px-4 py-2 rounded-xl bg-slate-900/50 border border-violet-500/20">
-              <Icon name="activity" className="w-4 h-4 text-emerald-400" glow />
-              <div className="text-xs font-mono">
-                <span className="text-emerald-400 font-bold">SYS ONLINE</span>
-                <span className="mx-2 text-slate-600">·</span>
-                <span className="text-slate-300">{currentTime.toLocaleTimeString()}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="hidden sm:flex items-center gap-2.5 px-3 py-2 rounded-xl bg-violet-500/10 border border-violet-500/30">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-black text-xs">
-                  {adminEmail.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] font-bold text-violet-300 uppercase tracking-wider leading-none">Admin</span>
-                  <span className="text-[11px] text-slate-400 truncate max-w-[140px]">{adminEmail}</span>
-                </div>
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Live status pill (desktop) */}
+              <div className="hidden md:flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900/50 border border-violet-500/20">
+                <Icon name="activity" className="w-4 h-4 text-emerald-400" glow />
+                <span className="text-[11px] font-mono">
+                  <span className="text-emerald-400 font-bold">SYS OK</span>
+                  <span className="mx-2 text-slate-600">·</span>
+                  <span className="text-slate-300">{currentTime.toLocaleTimeString()}</span>
+                </span>
               </div>
 
+              {/* Quick logout (mobile) */}
               <button
                 onClick={() => setShowLogoutModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-400/40 text-xs font-bold transition-all"
+                className="lg:hidden w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center"
+                aria-label="Sign out"
               >
-                <Icon name="log-out" className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Sign Out</span>
+                <Icon name="log-out" className="w-4 h-4" />
               </button>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="h-16" aria-hidden="true" />
-
-      {/* MAIN CONTENT */}
-      <main className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-8 py-8 space-y-8">
-
-        {errorMsg && (
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm flex items-center justify-between">
-            <span>{errorMsg}</span>
-            <button onClick={() => setErrorMsg('')} className="text-xs font-bold uppercase underline">Dismiss</button>
-          </div>
-        )}
-
-        {/* USER PROFILE VIEW (conditional) */}
-        {viewingUserId && profileData.user ? (
-          <>
-            <button
-              onClick={closeUserProfile}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-slate-300 hover:text-white hover:border-violet-400/40 font-bold text-xs transition-all"
-            >
-              <Icon name="arrow-left" className="w-4 h-4" />
-              <span>Back to User Registry</span>
-            </button>
-
-            <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6 sm:p-8">
-              <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-500/20 rounded-full blur-[100px] pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
-              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/50 to-transparent" />
-
-              <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-                  <div className="relative shrink-0">
-                    <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-3xl flex items-center justify-center font-black text-3xl sm:text-4xl shadow-2xl border ${
-                      profileData.user.is_admin
-                        ? 'bg-gradient-to-br from-amber-500 to-orange-500 border-amber-400/40 shadow-amber-500/30'
-                        : 'bg-gradient-to-br from-violet-600 to-purple-600 border-violet-400/40 shadow-violet-500/30'
-                    }`}>
-                      <span className="text-white drop-shadow-lg">
-                        {(profileData.user.name || profileData.user.email || '?').charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    {profileData.user.is_admin && (
-                      <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-amber-400 border-4 border-[#151520] flex items-center justify-center shadow-lg">
-                        <Icon name="crown" className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-2 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
-                        profileData.user.is_admin
-                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                          : 'bg-violet-500/10 border-violet-500/30 text-violet-300'
-                      }`}>
-                        <Icon name={profileData.user.is_admin ? 'crown' : 'users'} className="w-3 h-3" glow />
-                        {profileData.user.is_admin ? 'Administrator' : 'Standard User'}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Active
-                      </span>
-                    </div>
-                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight truncate">
-                      {profileData.user.name || 'Unnamed User'}
-                    </h2>
-                    <div className="flex items-center gap-2 text-sm text-slate-400">
-                      <Icon name="mail" className="w-3.5 h-3.5" />
-                      <span className="font-mono truncate">{profileData.user.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Icon name="clock" className="w-3 h-3" />
-                      <span>
-                        Joined {profileData.user.created_at
-                          ? new Date(profileData.user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-                          : 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
-                  <button
-                    onClick={() => handleToggleAdmin(profileData.user.id, profileData.user.is_admin, profileData.user.email)}
-                    className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-xs border transition-all ${
-                      profileData.user.is_admin
-                        ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
-                        : 'bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border-violet-500/30'
-                    }`}
-                  >
-                    <Icon name={profileData.user.is_admin ? 'crown' : 'user-check'} className="w-4 h-4" />
-                    <span>{profileData.user.is_admin ? 'Demote to User' : 'Promote to Admin'}</span>
-                  </button>
-                  <button
-                    onClick={() => handleDeleteUser(profileData.user.id, profileData.user.email)}
-                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-xs transition-all"
-                  >
-                    <Icon name="trash" className="w-4 h-4" />
-                    <span>Delete Account</span>
-                  </button>
-                </div>
-              </div>
+        {/* PAGE CONTENT */}
+        <main className="px-4 sm:px-8 py-6 sm:py-8">
+          {errorMsg && (
+            <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm flex items-center justify-between gap-3">
+              <span className="flex-1">{errorMsg}</span>
+              <button onClick={() => setErrorMsg('')} className="text-xs font-bold uppercase underline shrink-0">Dismiss</button>
             </div>
+          )}
 
-            {profileLoading ? (
-              <div className="text-center py-16">
-                <div className="inline-flex items-center gap-3 text-violet-400">
-                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  <span className="font-bold text-sm uppercase tracking-widest">Loading Profile Data...</span>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                  {[
-                    { label: 'Attempts', value: profileStats.total, icon: 'activity', gradient: 'from-violet-500 to-purple-500' },
-                    { label: 'Average', value: `${profileStats.average}%`, icon: 'trending', gradient: 'from-cyan-500 to-blue-500' },
-                    { label: 'Best Score', value: `${profileStats.best}%`, icon: 'trophy', gradient: 'from-amber-500 to-orange-500' },
-                    { label: 'Certificates', value: profileStats.certificates, icon: 'shield', gradient: 'from-emerald-500 to-teal-500' },
-                    { label: 'Tickets', value: profileStats.tickets, icon: 'message-square', gradient: 'from-rose-500 to-pink-500' },
-                  ].map((stat) => (
-                    <div key={stat.label} className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-4">
-                      <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl`} />
-                      <div className="relative space-y-2">
-                        <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
-                          <Icon name={stat.icon} className="w-4 h-4 text-white" glow />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{stat.label}</p>
-                          <p className="text-2xl font-black text-white">
-                            {typeof stat.value === 'number' ? <AnimatedCounter value={stat.value} /> : stat.value}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* USER PROFILE VIEW */}
+          {viewingUserId && profileData.user ? (
+            <UserProfileView
+              profileData={profileData}
+              profileStats={profileStats}
+              profileLoading={profileLoading}
+              closeUserProfile={closeUserProfile}
+              handleToggleAdmin={handleToggleAdmin}
+              handleDeleteUser={handleDeleteUser}
+              adminEmail={adminEmail}
+            />
+          ) : (
+            <>
+              {/* ============ OVERVIEW TAB ============ */}
+              {activeTab === 'overview' && (
+                <div className="space-y-6">
+                  {/* Hero banner */}
+                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6 sm:p-8">
+                    <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-500/20 rounded-full blur-[100px] pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/50 to-transparent" />
 
-                {Object.keys(profileStats.moduleStats).length > 0 && (
-                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
-                    <div className="flex items-center gap-2 mb-5">
-                      <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                        <Icon name="grid" className="w-4 h-4 text-violet-400" glow />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-black tracking-tight">Module Performance Breakdown</h3>
-                        <p className="text-xs text-slate-400">Per-module attempt counts, average scores, and best scores</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                      {Object.entries(profileStats.moduleStats).map(([module, data]) => (
-                        <div key={module} className="p-4 rounded-2xl border border-violet-500/20 bg-slate-900/30 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 capitalize">{module}</span>
-                            <span className="text-[10px] font-mono text-violet-400 font-bold">{data.count}×</span>
-                          </div>
-                          <div className="space-y-2">
-                            <div>
-                              <div className="flex justify-between text-[11px] mb-1">
-                                <span className="text-slate-400">Average</span>
-                                <span className="font-bold text-white">{data.avg}%</span>
-                              </div>
-                              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full"
-                                  style={{ width: `${data.avg}%` }}
-                                />
-                              </div>
-                            </div>
-                            <div>
-                              <div className="flex justify-between text-[11px] mb-1">
-                                <span className="text-slate-400">Best</span>
-                                <span className="font-bold text-emerald-400">{data.best}%</span>
-                              </div>
-                              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
-                                  style={{ width: `${data.best}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
-                  <div className="p-6 border-b border-violet-500/20 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                        <Icon name="activity" className="w-4 h-4 text-cyan-400" glow />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-black tracking-tight">Performance Log History</h3>
-                        <p className="text-xs text-slate-400">
-                          {profileData.scores.length} recorded attempt{profileData.scores.length === 1 ? '' : 's'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  {profileData.scores.length === 0 ? (
-                    <div className="p-12 text-center text-slate-500 text-sm">
-                      No test attempts recorded yet.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto max-h-[500px]">
-                      <table className="w-full text-left border-collapse text-sm">
-                        <thead className="sticky top-0 bg-[#0d0d12] z-10">
-                          <tr className="border-b border-violet-500/20 bg-slate-900/60 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
-                            <th className="p-4">#</th>
-                            <th className="p-4">Date & Time</th>
-                            <th className="p-4">Module</th>
-                            <th className="p-4">Score</th>
-                            <th className="p-4">Trend</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-violet-500/10">
-                          {profileData.scores.map((s, idx) => {
-                            const prev = profileData.scores.slice(idx + 1).find(x => x.module_name === s.module_name)
-                            const diff = prev ? (s.score || 0) - (prev.score || 0) : null
-                            return (
-                              <tr key={s.id || idx} className="hover:bg-violet-500/[0.04] transition-colors">
-                                <td className="p-4 text-slate-500 font-mono text-xs">{profileData.scores.length - idx}</td>
-                                <td className="p-4 text-slate-400 text-xs">
-                                  {s.created_at ? new Date(s.created_at).toLocaleString() : 'N/A'}
-                                </td>
-                                <td className="p-4">
-                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
-                                    s.module_name === 'reading' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' :
-                                    s.module_name === 'listening' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                                    s.module_name === 'writing' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' :
-                                    s.module_name === 'speaking' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                                    'bg-sky-500/20 text-sky-300 border border-sky-500/30'
-                                  }`}>
-                                    {s.module_name}
-                                  </span>
-                                </td>
-                                <td className="p-4">
-                                  <span className={`font-black text-lg ${
-                                    (s.score || 0) >= 85 ? 'text-emerald-400' :
-                                    (s.score || 0) >= 70 ? 'text-amber-400' : 'text-rose-400'
-                                  }`}>
-                                    {s.score}%
-                                  </span>
-                                </td>
-                                <td className="p-4">
-                                  {diff !== null ? (
-                                    <span className={`inline-flex items-center gap-1.5 font-bold px-2.5 py-1 rounded-full text-[10px] ${
-                                      diff > 0 ? 'bg-emerald-500/10 text-emerald-400' :
-                                      diff < 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-500/10 text-slate-400'
-                                    }`}>
-                                      {diff > 0 ? '↑' : diff < 0 ? '↓' : '—'}
-                                      {diff > 0 ? `+${diff}%` : diff < 0 ? `${diff}%` : '0%'}
-                                    </span>
-                                  ) : (
-                                    <span className="text-slate-500 text-xs italic">First</span>
-                                  )}
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
-                  <div className="p-6 border-b border-violet-500/20 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                      <Icon name="shield" className="w-4 h-4 text-emerald-400" glow />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-black tracking-tight">Earned Certificates</h3>
-                      <p className="text-xs text-slate-400">
-                        {profileData.certificates.length} certificate{profileData.certificates.length === 1 ? '' : 's'} issued
+                    <div className="relative space-y-3">
+                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-[10px] font-bold uppercase tracking-widest text-violet-300">
+                        <Icon name="shield" className="w-3 h-3" glow />
+                        Command Center
+                      </span>
+                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                        Welcome back, <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Administrator</span>
+                      </h2>
+                      <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
+                        Oversee users, manage your question bank, publish training lessons, and analyze platform performance — all from one place.
                       </p>
                     </div>
                   </div>
-                  {profileData.certificates.length === 0 ? (
-                    <div className="p-12 text-center text-slate-500 text-sm">
-                      No certificates earned yet. Requires 80%+ on Full Exam.
-                    </div>
-                  ) : (
-                    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {profileData.certificates.map((cert, idx) => (
-                        <div
-                          key={cert.id || idx}
-                          className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 p-5 space-y-3"
+
+                  {/* Quick Stats Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {[
+                      { label: 'Users', value: stats.totalUsers, icon: 'users', gradient: 'from-violet-500 to-purple-500' },
+                      { label: 'Admins', value: stats.admins, icon: 'crown', gradient: 'from-amber-500 to-orange-500' },
+                      { label: 'Questions', value: stats.totalQuestions, icon: 'book', gradient: 'from-cyan-500 to-blue-500' },
+                      { label: 'Lessons', value: tutorialStats.total, icon: 'graduation-cap', gradient: 'from-emerald-500 to-teal-500' },
+                      { label: 'Attempts', value: platformStats.totalAttempts, icon: 'activity', gradient: 'from-fuchsia-500 to-pink-500' },
+                      { label: 'Ranked Users', value: rankings.length, icon: 'trophy', gradient: 'from-yellow-500 to-amber-500' },
+                    ].map((stat) => (
+                      <div key={stat.label} className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-4">
+                        <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl`} />
+                        <div className="relative space-y-2">
+                          <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
+                            <Icon name={stat.icon} className="w-4 h-4 text-white" glow />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{stat.label}</p>
+                            <p className="text-2xl font-black text-white">
+                              <AnimatedCounter value={stat.value} />
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Two-column quick panels */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Recent Users */}
+                    <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+                      <div className="p-5 border-b border-violet-500/20 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                            <Icon name="users" className="w-4 h-4 text-cyan-400" glow />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-black tracking-tight">Recent Users</h3>
+                            <p className="text-[11px] text-slate-400">Latest sign-ups</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setActiveTab('users')}
+                          className="text-[11px] font-bold text-violet-400 hover:text-violet-300 flex items-center gap-1"
                         >
-                          <div className="absolute -top-8 -right-8 w-24 h-24 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
-                          <div className="relative flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-                              <Icon name="trophy" className="w-5 h-5 text-white" glow />
+                          View all
+                          <Icon name="chevron-right" className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="divide-y divide-violet-500/10 max-h-[320px] overflow-y-auto">
+                        {users.slice(0, 5).map((u) => (
+                          <button
+                            key={u.id}
+                            onClick={() => openUserProfile(u)}
+                            className="w-full p-4 flex items-center gap-3 hover:bg-violet-500/[0.04] transition text-left"
+                          >
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                              u.is_admin ? 'bg-amber-500 text-white' : 'bg-violet-600 text-white'
+                            }`}>
+                              {(u.name || u.email || '?').charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Certified</p>
-                              <p className="text-xs font-bold text-white truncate">
-                                {cert.certificate_code || cert.id?.substring(0, 12) || 'N/A'}
-                              </p>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-white text-sm truncate">{u.name || 'Unnamed User'}</p>
+                              <p className="text-[11px] text-slate-500 font-mono truncate">{u.email}</p>
                             </div>
+                            {u.is_admin && (
+                              <Icon name="crown" className="w-4 h-4 text-amber-400 shrink-0" />
+                            )}
+                          </button>
+                        ))}
+                        {users.length === 0 && (
+                          <div className="p-8 text-center text-slate-500 text-xs">No users yet</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Top Performers */}
+                    <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+                      <div className="p-5 border-b border-violet-500/20 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                            <Icon name="trophy" className="w-4 h-4 text-amber-400" glow />
                           </div>
-                          <div className="relative space-y-1">
-                            <div className="flex justify-between text-xs">
-                              <span className="text-slate-400">Overall Score</span>
-                              <span className="font-black text-emerald-400">{cert.overall_score || 0}%</span>
-                            </div>
-                            <div className="flex justify-between text-xs">
-                              <span className="text-slate-400">Issued</span>
-                              <span className="text-slate-300 font-mono text-[11px]">
-                                {cert.created_at ? new Date(cert.created_at).toLocaleDateString() : 'N/A'}
-                              </span>
-                            </div>
+                          <div>
+                            <h3 className="text-sm font-black tracking-tight">Top Performers</h3>
+                            <p className="text-[11px] text-slate-400">Overall leaderboard</p>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
-                  <div className="p-6 border-b border-violet-500/20 flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center">
-                      <Icon name="message-square" className="w-4 h-4 text-rose-400" glow />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-black tracking-tight">Support Tickets</h3>
-                      <p className="text-xs text-slate-400">
-                        {profileData.tickets.length} ticket{profileData.tickets.length === 1 ? '' : 's'} submitted
-                      </p>
-                    </div>
-                  </div>
-                  {profileData.tickets.length === 0 ? (
-                    <div className="p-12 text-center text-slate-500 text-sm">
-                      No support tickets submitted.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse text-sm">
-                        <thead>
-                          <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
-                            <th className="p-4">Subject</th>
-                            <th className="p-4">Category</th>
-                            <th className="p-4">Priority</th>
-                            <th className="p-4">Status</th>
-                            <th className="p-4">Date</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-violet-500/10">
-                          {profileData.tickets.map((t, idx) => (
-                            <tr key={t.id || idx} className="hover:bg-violet-500/[0.04] transition-colors">
-                              <td className="p-4 font-bold text-white text-sm">{t.subject}</td>
-                              <td className="p-4 text-slate-400 text-xs capitalize">{t.category}</td>
-                              <td className="p-4">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                  t.priority === 'high' ? 'bg-rose-500/20 text-rose-300' :
-                                  t.priority === 'medium' ? 'bg-amber-500/20 text-amber-300' :
-                                  'bg-slate-500/20 text-slate-300'
-                                }`}>
-                                  {t.priority}
-                                </span>
-                              </td>
-                              <td className="p-4">
-                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                  t.status === 'open' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
-                                }`}>
-                                  {t.status}
-                                </span>
-                              </td>
-                              <td className="p-4 text-slate-400 text-xs">
-                                {t.created_at ? new Date(t.created_at).toLocaleDateString() : 'N/A'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </>
-        ) : (
-          <>
-            {/* HERO BANNER */}
-            <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6 sm:p-8">
-              <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-500/20 rounded-full blur-[100px] pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
-
-              <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                <div className="space-y-3 max-w-2xl">
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-[10px] font-bold uppercase tracking-widest text-violet-300">
-                    <Icon name="shield" className="w-3 h-3" glow />
-                    Command & Management Hub
-                  </span>
-                  <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-                    Welcome back, <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Administrator</span>
-                  </h2>
-                  <p className="text-sm text-slate-400 leading-relaxed">
-                    Oversee users, review the leaderboard, analyze platform usage, manage your question bank, and publish training lessons.
-                  </p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-                  <button
-                    onClick={handleRefresh}
-                    disabled={refreshing}
-                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-violet-500/30 hover:shadow-xl transition-all disabled:opacity-50"
-                  >
-                    <Icon name="refresh" className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                    <span>{refreshing ? 'Syncing...' : 'Refresh Data'}</span>
-                  </button>
-                  <a
-                    href="/"
-                    className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-violet-500/20 bg-slate-900/50 text-slate-300 hover:text-white font-bold text-xs transition-all"
-                  >
-                    <Icon name="home" className="w-4 h-4" />
-                    <span>Public Hub</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {/* METRIC CARDS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {[
-                { label: 'Total Users', value: stats.totalUsers, icon: 'users', gradient: 'from-violet-500 to-purple-500', trend: `${stats.admins} admins` },
-                { label: 'Question Bank', value: stats.totalQuestions, icon: 'book', gradient: 'from-cyan-500 to-blue-500', trend: `${stats.readingQuestions} reading / ${stats.listeningQuestions} listening` },
-                { label: 'Training Lessons', value: tutorialStats.total, icon: 'graduation-cap', gradient: 'from-emerald-500 to-teal-500', trend: `${tutorialStats.byLevel.advanced} advanced` },
-                { label: 'System Status', value: 100, displayValue: 'Online', icon: 'activity', gradient: 'from-amber-500 to-orange-500', trend: 'Operational' },
-              ].map((stat) => (
-                <div key={stat.label} className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5">
-                  <div className={`absolute -top-8 -right-8 w-32 h-32 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl`} />
-                  <div className="relative space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
-                        <Icon name={stat.icon} className="w-5 h-5 text-white" glow />
+                        <button
+                          onClick={() => setActiveTab('rankings')}
+                          className="text-[11px] font-bold text-violet-400 hover:text-violet-300 flex items-center gap-1"
+                        >
+                          View all
+                          <Icon name="chevron-right" className="w-3 h-3" />
+                        </button>
                       </div>
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">{stat.trend}</span>
+                      <div className="divide-y divide-violet-500/10 max-h-[320px] overflow-y-auto">
+                        {rankings.slice(0, 5).map((r) => (
+                          <button
+                            key={r.userId}
+                            onClick={() => {
+                              const u = users.find(x => x.id === r.userId)
+                              if (u) openUserProfile(u)
+                            }}
+                            className="w-full p-4 flex items-center gap-3 hover:bg-violet-500/[0.04] transition text-left"
+                          >
+                            <RankBadge rank={r.rank} />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-white text-sm truncate">{r.userName}</p>
+                              <p className="text-[11px] text-slate-500 font-mono truncate">{r.totalAttempts} attempts</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-lg font-black text-amber-400">{r.overallAverage}%</p>
+                            </div>
+                          </button>
+                        ))}
+                        {rankings.length === 0 && (
+                          <div className="p-8 text-center text-slate-500 text-xs">No rankings yet</div>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{stat.label}</p>
-                      <p className="text-3xl font-black text-white">{stat.displayValue || <AnimatedCounter value={stat.value} />}</p>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
+                    <h3 className="text-sm font-black tracking-tight mb-4 flex items-center gap-2">
+                      <Icon name="zap" className="w-4 h-4 text-violet-400" glow />
+                      Quick Actions
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <button
+                        onClick={openCreateQuestionModal}
+                        className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/30 hover:border-amber-400/60 transition-all text-left group"
+                      >
+                        <Icon name="plus" className="w-5 h-5 text-amber-400 mb-2" glow />
+                        <p className="text-xs font-bold text-white">New Question</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Add to bank</p>
+                      </button>
+                      <button
+                        onClick={openCreateTutorialModal}
+                        className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-emerald-500/30 hover:border-emerald-400/60 transition-all text-left group"
+                      >
+                        <Icon name="graduation-cap" className="w-5 h-5 text-emerald-400 mb-2" glow />
+                        <p className="text-xs font-bold text-white">New Lesson</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Publish training</p>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('rankings')}
+                        className="p-4 rounded-2xl bg-gradient-to-br from-yellow-500/10 to-amber-500/5 border border-yellow-500/30 hover:border-yellow-400/60 transition-all text-left group"
+                      >
+                        <Icon name="trophy" className="w-5 h-5 text-yellow-400 mb-2" glow />
+                        <p className="text-xs font-bold text-white">Leaderboard</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">View rankings</p>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('statistics')}
+                        className="p-4 rounded-2xl bg-gradient-to-br from-fuchsia-500/10 to-pink-500/5 border border-fuchsia-500/30 hover:border-fuchsia-400/60 transition-all text-left group"
+                      >
+                        <Icon name="bar-chart" className="w-5 h-5 text-fuchsia-400 mb-2" glow />
+                        <p className="text-xs font-bold text-white">Analytics</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Platform stats</p>
+                      </button>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
 
-            {/* TAB SWITCHER */}
-            <div className="flex border-b border-violet-500/20 gap-4 overflow-x-auto">
-              <button
-                onClick={() => setActiveTab('users')}
-                className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
-                  activeTab === 'users'
-                    ? 'border-violet-500 text-violet-300'
-                    : 'border-transparent text-slate-400 hover:text-white'
-                }`}
-              >
-                <Icon name="users" className="w-4 h-4" />
-                <span>User Management ({users.length})</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('questions')}
-                className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
-                  activeTab === 'questions'
-                    ? 'border-violet-500 text-violet-300'
-                    : 'border-transparent text-slate-400 hover:text-white'
-                }`}
-              >
-                <Icon name="book" className="w-4 h-4" />
-                <span>Question Bank CRUD ({questions.length})</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('tutorials')}
-                className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
-                  activeTab === 'tutorials'
-                    ? 'border-violet-500 text-violet-300'
-                    : 'border-transparent text-slate-400 hover:text-white'
-                }`}
-              >
-                <Icon name="graduation-cap" className="w-4 h-4" />
-                <span>Tutorials & Lessons ({tutorials.length})</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('rankings')}
-                className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
-                  activeTab === 'rankings'
-                    ? 'border-violet-500 text-violet-300'
-                    : 'border-transparent text-slate-400 hover:text-white'
-                }`}
-              >
-                <Icon name="trophy" className="w-4 h-4" />
-                <span>Rankings ({rankings.length})</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('statistics')}
-                className={`pb-3 px-4 font-bold text-sm flex items-center gap-2 border-b-2 transition-all whitespace-nowrap ${
-                  activeTab === 'statistics'
-                    ? 'border-violet-500 text-violet-300'
-                    : 'border-transparent text-slate-400 hover:text-white'
-                }`}
-              >
-                <Icon name="bar-chart" className="w-4 h-4" />
-                <span>Analytics & Statistics</span>
-              </button>
-            </div>
-
-            {/* TAB 1: USER MANAGEMENT VIEW */}
-            {activeTab === 'users' && (
-              <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
-                <div className="p-6 border-b border-violet-500/20 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              {/* ============ USERS TAB ============ */}
+              {activeTab === 'users' && (
+                <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+                  <div className="p-5 sm:p-6 border-b border-violet-500/20 space-y-4">
                     <div>
                       <h3 className="text-lg font-black tracking-tight">Registry Accounts</h3>
                       <p className="text-xs text-slate-400">Click a user to view their complete profile and performance history.</p>
                     </div>
-                  </div>
 
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1">
-                      <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search by name or email..."
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 p-1 rounded-xl border border-violet-500/20 bg-slate-900/50">
-                      {[{ key: 'all', label: 'All' }, { key: 'admin', label: 'Admins' }, { key: 'user', label: 'Users' }].map((opt) => (
-                        <button
-                          key={opt.key}
-                          onClick={() => setFilterRole(opt.key as any)}
-                          className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
-                            filterRole === opt.key ? 'bg-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-sm">
-                    <thead>
-                      <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
-                        <th className="p-4">User</th>
-                        <th className="p-4 hidden md:table-cell">Email</th>
-                        <th className="p-4">Role Control</th>
-                        <th className="p-4 hidden lg:table-cell">Joined</th>
-                        <th className="p-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-violet-500/10">
-                      {filteredUsers.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="p-12 text-center text-slate-500">No users match your filters.</td>
-                        </tr>
-                      ) : (
-                        filteredUsers.map((u) => (
-                          <tr
-                            key={u.id}
-                            onClick={() => openUserProfile(u)}
-                            className="hover:bg-violet-500/[0.06] transition-colors group cursor-pointer"
-                          >
-                            <td className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
-                                  u.is_admin ? 'bg-amber-500 text-white' : 'bg-violet-600 text-white'
-                                }`}>
-                                  {(u.name || u.email || '?').charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <p className="font-bold text-white text-sm group-hover:text-violet-300 transition-colors">
-                                    {u.name || 'Unnamed User'}
-                                  </p>
-                                  <p className="text-[11px] text-slate-500 font-mono md:hidden">{u.email}</p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-4 hidden md:table-cell text-slate-400 text-xs font-mono">{u.email}</td>
-                            <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => handleToggleAdmin(u.id, u.is_admin, u.email)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                                  u.is_admin
-                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 hover:bg-amber-500/30'
-                                    : 'bg-violet-500/10 text-violet-300 border-violet-500/20 hover:bg-violet-500/20'
-                                }`}
-                              >
-                                <Icon name={u.is_admin ? 'crown' : 'users'} className="w-3.5 h-3.5" />
-                                <span>{u.is_admin ? 'Admin' : 'User'}</span>
-                              </button>
-                            </td>
-                            <td className="p-4 hidden lg:table-cell text-xs text-slate-400">
-                              {u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}
-                            </td>
-                            <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => openUserProfile(u)}
-                                  className="px-3 py-1.5 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
-                                >
-                                  <Icon name="user-check" className="w-3.5 h-3.5" />
-                                  <span className="hidden sm:inline">Profile</span>
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteUser(u.id, u.email)}
-                                  className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold transition-all"
-                                >
-                                  <Icon name="trash" className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 2: QUESTION BANK CRUD VIEW */}
-            {activeTab === 'questions' && (
-              <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
-                <div className="p-6 border-b border-violet-500/20 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-black tracking-tight">Question Bank CRUD Manager</h3>
-                      <p className="text-xs text-slate-400">Create, Read, Update, and Delete reading and listening test questions stored in Supabase.</p>
-                    </div>
-                    <button
-                      onClick={openCreateQuestionModal}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-500/30 transition-all"
-                    >
-                      <Icon name="plus" className="w-4 h-4" />
-                      <span>Add New Question</span>
-                    </button>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-1">
-                      <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                      <input
-                        type="text"
-                        value={questionSearch}
-                        onChange={(e) => setQuestionSearch(e.target.value)}
-                        placeholder="Search by question text or test title..."
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 p-1 rounded-xl border border-violet-500/20 bg-slate-900/50">
-                      {[{ key: 'all', label: 'All Modules' }, { key: 'reading', label: 'Reading' }, { key: 'listening', label: 'Listening' }].map((opt) => (
-                        <button
-                          key={opt.key}
-                          onClick={() => setQuestionModuleFilter(opt.key as any)}
-                          className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
-                            questionModuleFilter === opt.key ? 'bg-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-sm">
-                    <thead>
-                      <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
-                        <th className="p-4">Module & Test</th>
-                        <th className="p-4">Question & Options</th>
-                        <th className="p-4">Correct Answer</th>
-                        <th className="p-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-violet-500/10">
-                      {filteredQuestions.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="p-12 text-center text-slate-500">
-                            No questions found. Click "Add New Question" to create one.
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredQuestions.map((q) => (
-                          <tr key={q.id} className="hover:bg-violet-500/[0.04] transition-colors">
-                            <td className="p-4 align-top">
-                              <div className="space-y-1">
-                                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                  q.module_id === 'reading' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                                }`}>
-                                  {q.module_id}
-                                </span>
-                                <p className="font-bold text-white text-xs">{q.test_title}</p>
-                              </div>
-                            </td>
-                            <td className="p-4 space-y-2">
-                              <p className="font-semibold text-slate-100 text-sm">{q.question_text}</p>
-                              <div className="flex flex-wrap gap-1">
-                                {Array.isArray(q.options) && q.options.map((opt: string, i: number) => (
-                                  <span key={i} className={`px-2 py-0.5 rounded text-[11px] ${opt === q.correct_answer ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold' : 'bg-slate-800 text-slate-400'}`}>
-                                    {opt}
-                                  </span>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="p-4 align-top text-emerald-400 font-mono text-xs font-bold">
-                              {q.correct_answer}
-                            </td>
-                            <td className="p-4 align-top text-right space-x-2">
-                              <button onClick={() => openEditQuestionModal(q)} className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold">
-                                Edit
-                              </button>
-                              <button onClick={() => handleDeleteQuestion(q.id)} className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold">
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: TUTORIALS & LESSONS */}
-            {activeTab === 'tutorials' && (
-              <div className="space-y-6">
-                {/* Tutorials Hero */}
-                <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-[#151520]/80 to-teal-500/5 backdrop-blur-xl p-6 sm:p-8">
-                  <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
-
-                  <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="space-y-3 max-w-2xl">
-                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
-                        <Icon name="graduation-cap" className="w-3 h-3" glow />
-                        Training & Learning Content
-                      </span>
-                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-                        Tutorials <span className="bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 bg-clip-text text-transparent">& Lessons</span>
-                      </h2>
-                      <p className="text-sm text-slate-400 leading-relaxed">
-                        Publish structured learning materials organized by difficulty level and order. Lessons are displayed sequentially to candidates for guided skill development.
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={openCreateTutorialModal}
-                      className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all shrink-0"
-                    >
-                      <Icon name="plus" className="w-4 h-4" />
-                      <span>Create New Lesson</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Level Breakdown Cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {(['beginner', 'intermediate', 'upper_intermediate', 'advanced'] as TutorialLevel[]).map((level) => {
-                    const meta = getLevelMeta(level)
-                    const count = tutorialStats.byLevel[level] || 0
-                    return (
-                      <div
-                        key={level}
-                        onClick={() => setTutorialLevelFilter(tutorialLevelFilter === level ? 'all' : level)}
-                        className={`relative overflow-hidden rounded-2xl border-2 backdrop-blur-xl p-4 cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
-                          tutorialLevelFilter === level
-                            ? `${meta.borderColor} ${meta.bgColor}/10`
-                            : 'border-violet-500/20 bg-[#151520]/70 hover:border-violet-400/40'
-                        }`}
-                      >
-                        <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${meta.gradient} opacity-10 rounded-full blur-2xl`} />
-                        <div className="relative space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg`}>
-                              <span className="text-base">{meta.emoji}</span>
-                            </div>
-                            <span className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor}`}>
-                              {tutorialLevelFilter === level ? 'Active' : 'Filter'}
-                            </span>
-                          </div>
-                          <div>
-                            <p className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor} mb-1`}>
-                              {meta.label}
-                            </p>
-                            <p className="text-2xl font-black text-white">{count}</p>
-                            <p className="text-[10px] text-slate-500 font-mono">
-                              lesson{count === 1 ? '' : 's'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Tutorials Table */}
-                <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
-                  <div className="p-6 border-b border-violet-500/20 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                          <Icon name="layers" className="w-4 h-4 text-emerald-400" glow />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-black tracking-tight">Lesson Library</h3>
-                          <p className="text-xs text-slate-400">
-                            {filteredTutorials.length} lesson{filteredTutorials.length === 1 ? '' : 's'} displayed
-                            {tutorialLevelFilter !== 'all' && ` · filtered to ${getLevelMeta(tutorialLevelFilter).label}`}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="relative flex-1 sm:max-w-xs">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
                         <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                         <input
                           type="text"
-                          value={tutorialSearch}
-                          onChange={(e) => setTutorialSearch(e.target.value)}
-                          placeholder="Search lessons..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search by name or email..."
                           className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400"
                         />
                       </div>
+                      <div className="flex items-center gap-1 p-1 rounded-xl border border-violet-500/20 bg-slate-900/50">
+                        {[{ key: 'all', label: 'All' }, { key: 'admin', label: 'Admins' }, { key: 'user', label: 'Users' }].map((opt) => (
+                          <button
+                            key={opt.key}
+                            onClick={() => setFilterRole(opt.key as any)}
+                            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                              filterRole === opt.key ? 'bg-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                          <th className="p-4">User</th>
+                          <th className="p-4 hidden md:table-cell">Email</th>
+                          <th className="p-4">Role</th>
+                          <th className="p-4 hidden lg:table-cell">Joined</th>
+                          <th className="p-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-violet-500/10">
+                        {filteredUsers.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="p-12 text-center text-slate-500">No users match your filters.</td>
+                          </tr>
+                        ) : (
+                          filteredUsers.map((u) => (
+                            <tr
+                              key={u.id}
+                              onClick={() => openUserProfile(u)}
+                              className="hover:bg-violet-500/[0.06] transition-colors group cursor-pointer"
+                            >
+                              <td className="p-4">
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+                                    u.is_admin ? 'bg-amber-500 text-white' : 'bg-violet-600 text-white'
+                                  }`}>
+                                    {(u.name || u.email || '?').charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-white text-sm group-hover:text-violet-300 transition-colors">
+                                      {u.name || 'Unnamed User'}
+                                    </p>
+                                    <p className="text-[11px] text-slate-500 font-mono md:hidden">{u.email}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="p-4 hidden md:table-cell text-slate-400 text-xs font-mono">{u.email}</td>
+                              <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={() => handleToggleAdmin(u.id, u.is_admin, u.email)}
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                                    u.is_admin
+                                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 hover:bg-amber-500/30'
+                                      : 'bg-violet-500/10 text-violet-300 border-violet-500/20 hover:bg-violet-500/20'
+                                  }`}
+                                >
+                                  <Icon name={u.is_admin ? 'crown' : 'users'} className="w-3.5 h-3.5" />
+                                  <span>{u.is_admin ? 'Admin' : 'User'}</span>
+                                </button>
+                              </td>
+                              <td className="p-4 hidden lg:table-cell text-xs text-slate-400">
+                                {u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}
+                              </td>
+                              <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => openUserProfile(u)}
+                                    className="px-3 py-1.5 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
+                                  >
+                                    <Icon name="user-check" className="w-3.5 h-3.5" />
+                                    <span className="hidden sm:inline">Profile</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteUser(u.id, u.email)}
+                                    className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold transition-all"
+                                  >
+                                    <Icon name="trash" className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ============ QUESTIONS TAB ============ */}
+              {activeTab === 'questions' && (
+                <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+                  <div className="p-5 sm:p-6 border-b border-violet-500/20 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-black tracking-tight">Question Bank</h3>
+                        <p className="text-xs text-slate-400">Create, Read, Update, and Delete reading and listening test questions.</p>
+                      </div>
+                      <button
+                        onClick={openCreateQuestionModal}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-lg shadow-violet-500/30 transition-all shrink-0"
+                      >
+                        <Icon name="plus" className="w-4 h-4" />
+                        <span>Add New Question</span>
+                      </button>
                     </div>
 
-                    {tutorialLevelFilter !== 'all' && (
-                      <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={questionSearch}
+                          onChange={(e) => setQuestionSearch(e.target.value)}
+                          placeholder="Search by question text or test title..."
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1 p-1 rounded-xl border border-violet-500/20 bg-slate-900/50">
+                        {[{ key: 'all', label: 'All' }, { key: 'reading', label: 'Reading' }, { key: 'listening', label: 'Listening' }].map((opt) => (
+                          <button
+                            key={opt.key}
+                            onClick={() => setQuestionModuleFilter(opt.key as any)}
+                            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                              questionModuleFilter === opt.key ? 'bg-violet-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                          <th className="p-4">Module & Test</th>
+                          <th className="p-4">Question & Options</th>
+                          <th className="p-4">Correct</th>
+                          <th className="p-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-violet-500/10">
+                        {filteredQuestions.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="p-12 text-center text-slate-500">
+                              No questions found. Click "Add New Question" to create one.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredQuestions.map((q) => (
+                            <tr key={q.id} className="hover:bg-violet-500/[0.04] transition-colors">
+                              <td className="p-4 align-top">
+                                <div className="space-y-1">
+                                  <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                    q.module_id === 'reading' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                  }`}>
+                                    {q.module_id}
+                                  </span>
+                                  <p className="font-bold text-white text-xs">{q.test_title}</p>
+                                </div>
+                              </td>
+                              <td className="p-4 space-y-2">
+                                <p className="font-semibold text-slate-100 text-sm">{q.question_text}</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {Array.isArray(q.options) && q.options.map((opt: string, i: number) => (
+                                    <span key={i} className={`px-2 py-0.5 rounded text-[11px] ${opt === q.correct_answer ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold' : 'bg-slate-800 text-slate-400'}`}>
+                                      {opt}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="p-4 align-top text-emerald-400 font-mono text-xs font-bold">
+                                {q.correct_answer}
+                              </td>
+                              <td className="p-4 align-top text-right space-x-2">
+                                <button onClick={() => openEditQuestionModal(q)} className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold">
+                                  Edit
+                                </button>
+                                <button onClick={() => handleDeleteQuestion(q.id)} className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold">
+                                  Delete
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ============ TUTORIALS TAB ============ */}
+              {activeTab === 'tutorials' && (
+                <div className="space-y-6">
+                  <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-[#151520]/80 to-teal-500/5 backdrop-blur-xl p-5 sm:p-8">
+                    <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent" />
+
+                    <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                      <div className="space-y-3 max-w-2xl">
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+                          <Icon name="graduation-cap" className="w-3 h-3" glow />
+                          Training Content
+                        </span>
+                        <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                          Tutorials <span className="bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 bg-clip-text text-transparent">& Lessons</span>
+                        </h2>
+                        <p className="text-sm text-slate-400 leading-relaxed">
+                          Publish structured learning materials organized by difficulty level and order.
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={openCreateTutorialModal}
+                        className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all shrink-0"
+                      >
+                        <Icon name="plus" className="w-4 h-4" />
+                        <span>Create New Lesson</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Level cards */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {(['beginner', 'intermediate', 'upper_intermediate', 'advanced'] as TutorialLevel[]).map((level) => {
+                      const meta = getLevelMeta(level)
+                      const count = tutorialStats.byLevel[level] || 0
+                      const isActive = tutorialLevelFilter === level
+                      return (
                         <button
-                          onClick={() => setTutorialLevelFilter('all')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
+                          key={level}
+                          onClick={() => setTutorialLevelFilter(isActive ? 'all' : level)}
+                          className={`relative overflow-hidden rounded-2xl border-2 backdrop-blur-xl p-4 cursor-pointer transition-all duration-300 hover:scale-[1.02] text-left ${
+                            isActive
+                              ? `${meta.borderColor} ${meta.bgColor}/10`
+                              : 'border-violet-500/20 bg-[#151520]/70 hover:border-violet-400/40'
+                          }`}
                         >
-                          <Icon name="x" className="w-3 h-3" />
-                          Clear "{getLevelMeta(tutorialLevelFilter).label}" filter
+                          <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${meta.gradient} opacity-10 rounded-full blur-2xl`} />
+                          <div className="relative space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg`}>
+                                <span className="text-base">{meta.emoji}</span>
+                              </div>
+                              {isActive && (
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor}`}>
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <p className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor} mb-1`}>
+                                {meta.label}
+                              </p>
+                              <p className="text-2xl font-black text-white">{count}</p>
+                              <p className="text-[10px] text-slate-500 font-mono">
+                                lesson{count === 1 ? '' : 's'}
+                              </p>
+                            </div>
+                          </div>
                         </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Lessons list */}
+                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+                    <div className="p-5 border-b border-violet-500/20 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                            <Icon name="layers" className="w-4 h-4 text-emerald-400" glow />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-black tracking-tight">Lesson Library</h3>
+                            <p className="text-xs text-slate-400">
+                              {filteredTutorials.length} lesson{filteredTutorials.length === 1 ? '' : 's'} displayed
+                            </p>
+                          </div>
+                        </div>
+                        <div className="relative flex-1 sm:max-w-xs">
+                          <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                          <input
+                            type="text"
+                            value={tutorialSearch}
+                            onChange={(e) => setTutorialSearch(e.target.value)}
+                            placeholder="Search lessons..."
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {filteredTutorials.length === 0 ? (
+                      <div className="p-12 text-center">
+                        <div className="inline-flex flex-col items-center gap-3">
+                          <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                            <Icon name="graduation-cap" className="w-8 h-8 text-emerald-400" glow />
+                          </div>
+                          <p className="text-slate-300 font-bold">No lessons found</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-violet-500/10">
+                        {filteredTutorials.map((t) => {
+                          const meta = getLevelMeta(t.level)
+                          const isExpanded = expandedTutorialId === t.id
+                          return (
+                            <div key={t.id} className="hover:bg-violet-500/[0.02] transition-colors">
+                              <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                                <div className={`w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg text-white font-black text-lg`}>
+                                  {t.order_index ?? '#'}
+                                </div>
+                                <div className="flex-1 min-w-0 space-y-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${meta.borderColor} ${meta.bgColor}/10 ${meta.textColor}`}>
+                                      <span>{meta.emoji}</span>
+                                      {meta.label}
+                                    </span>
+                                    <span className="text-[10px] font-mono text-slate-500">
+                                      Order #{t.order_index ?? 'N/A'}
+                                    </span>
+                                  </div>
+                                  <h4 className="text-base font-bold text-white truncate">{t.title || 'Untitled Lesson'}</h4>
+                                  <p className="text-xs text-slate-500 line-clamp-2">
+                                    {t.content ? t.content.substring(0, 140) + (t.content.length > 140 ? '...' : '') : 'No content preview.'}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <button
+                                    onClick={() => setExpandedTutorialId(isExpanded ? null : t.id)}
+                                    className="px-3 py-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-700 text-slate-300 border border-slate-700/60 text-xs font-bold transition-all"
+                                  >
+                                    <Icon name={isExpanded ? 'chevron-down' : 'chevron-right'} className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => openEditTutorialModal(t)}
+                                    className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold"
+                                  >
+                                    <Icon name="edit" className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteTutorial(t.id)}
+                                    className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold"
+                                  >
+                                    <Icon name="trash" className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                              {isExpanded && (
+                                <div className="px-5 pb-5">
+                                  <div className={`p-5 rounded-2xl border ${meta.borderColor} bg-slate-900/40 space-y-2`}>
+                                    <p className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor}`}>
+                                      Full Content
+                                    </p>
+                                    <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+                                      {t.content || 'No content provided.'}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
+                </div>
+              )}
 
-                  {filteredTutorials.length === 0 ? (
-                    <div className="p-12 text-center">
-                      <div className="inline-flex flex-col items-center gap-3">
-                        <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                          <Icon name="graduation-cap" className="w-8 h-8 text-emerald-400" glow />
-                        </div>
-                        <p className="text-slate-300 font-bold">
-                          {tutorialSearch.trim() || tutorialLevelFilter !== 'all'
-                            ? 'No matching lessons found'
-                            : 'No lessons published yet'}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {tutorialSearch.trim() || tutorialLevelFilter !== 'all'
-                            ? 'Try adjusting your search or level filter.'
-                            : 'Click "Create New Lesson" to publish your first training material.'}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-violet-500/10">
-                      {filteredTutorials.map((t) => {
-                        const meta = getLevelMeta(t.level)
-                        const isExpanded = expandedTutorialId === t.id
+              {/* ============ RANKINGS TAB ============ */}
+              {activeTab === 'rankings' && (
+                <div className="space-y-6">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[
+                      { key: 'overall', label: 'Overall', icon: 'trophy' },
+                      { key: 'listening', label: 'Listening', icon: 'headphones' },
+                      { key: 'reading', label: 'Reading', icon: 'book' },
+                      { key: 'writing', label: 'Writing', icon: 'pencil' },
+                      { key: 'speaking', label: 'Speaking', icon: 'mic' },
+                      { key: 'typing', label: 'Typing', icon: 'keyboard' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setRankingModuleFilter(opt.key as any)}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all border ${
+                          rankingModuleFilter === opt.key
+                            ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white border-violet-400/40 shadow-lg shadow-violet-500/30'
+                            : 'bg-slate-900/50 text-slate-400 border-violet-500/20 hover:text-white hover:border-violet-400/40'
+                        }`}
+                      >
+                        <Icon name={opt.icon as any} className="w-3.5 h-3.5" />
+                        <span>{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Podium */}
+                  {topThree.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                      {[1, 0, 2].map((podiumIdx) => {
+                        const r = topThree[podiumIdx]
+                        if (!r) return null
+                        const isFirst = r.rank === 1
+                        const isSecond = r.rank === 2
+                        const medalGradient = isFirst
+                          ? 'from-amber-400 via-yellow-500 to-orange-500'
+                          : isSecond
+                            ? 'from-slate-300 via-slate-400 to-slate-500'
+                            : 'from-amber-700 via-orange-700 to-amber-900'
+                        const medalEmoji = isFirst ? '🥇' : isSecond ? '🥈' : '🥉'
+                        const scaleClass = isFirst ? 'md:scale-105 md:z-10' : ''
+
                         return (
-                          <div key={t.id} className="hover:bg-violet-500/[0.02] transition-colors">
-                            <div className="p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-                              {/* Order Index */}
-                              <div className={`w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg text-white font-black text-lg`}>
-                                {t.order_index ?? '#'}
-                              </div>
+                          <div
+                            key={r.userId}
+                            onClick={() => {
+                              const u = users.find(x => x.id === r.userId)
+                              if (u) openUserProfile(u)
+                            }}
+                            className={`group relative overflow-hidden rounded-3xl border-2 ${
+                              isFirst ? 'border-amber-400/50' : isSecond ? 'border-slate-300/50' : 'border-amber-700/50'
+                            } bg-[#151520]/80 backdrop-blur-xl p-6 transition-all duration-300 hover:scale-[1.02] cursor-pointer ${scaleClass}`}
+                          >
+                            <div className={`absolute inset-0 bg-gradient-to-br ${medalGradient} opacity-[0.08]`} />
+                            <div className={`absolute -top-8 -right-8 w-40 h-40 bg-gradient-to-br ${medalGradient} opacity-20 rounded-full blur-3xl`} />
 
-                              {/* Title & Meta */}
-                              <div className="flex-1 min-w-0 space-y-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${meta.borderColor} ${meta.bgColor}/10 ${meta.textColor}`}>
-                                    <span>{meta.emoji}</span>
-                                    {meta.label}
-                                  </span>
-                                  <span className="text-[10px] font-mono text-slate-500">
-                                    Order #{t.order_index ?? 'N/A'}
-                                  </span>
-                                </div>
-                                <h4 className="text-base font-bold text-white truncate">{t.title || 'Untitled Lesson'}</h4>
-                                <p className="text-xs text-slate-500 line-clamp-2">
-                                  {t.content ? t.content.substring(0, 140) + (t.content.length > 140 ? '...' : '') : 'No content preview available.'}
+                            <div className="relative flex flex-col items-center text-center space-y-4">
+                              <div className="text-4xl">{medalEmoji}</div>
+                              <div className={`w-20 h-20 rounded-3xl bg-gradient-to-br ${medalGradient} flex items-center justify-center font-black text-3xl text-white shadow-2xl border-2 border-white/20`}>
+                                {(r.userName || '?').charAt(0).toUpperCase()}
+                              </div>
+                              <div className="space-y-1 w-full">
+                                <h3 className="text-lg font-black text-white truncate">{r.userName}</h3>
+                                <p className="text-xs text-slate-500 font-mono truncate">{r.userEmail}</p>
+                              </div>
+                              <div className={`w-full py-3 rounded-2xl border ${
+                                isFirst ? 'bg-amber-500/10 border-amber-500/30' : isSecond ? 'bg-slate-400/10 border-slate-400/30' : 'bg-orange-700/10 border-orange-700/30'
+                              }`}>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Score</p>
+                                <p className={`text-4xl font-black ${isFirst ? 'text-amber-300' : isSecond ? 'text-slate-200' : 'text-orange-300'}`}>
+                                  {r.displayScore ?? 0}%
                                 </p>
                               </div>
-
-                              {/* Actions */}
-                              <div className="flex items-center gap-2 shrink-0">
-                                <button
-                                  onClick={() => setExpandedTutorialId(isExpanded ? null : t.id)}
-                                  className="px-3 py-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-700 text-slate-300 border border-slate-700/60 text-xs font-bold transition-all flex items-center gap-1.5"
-                                >
-                                  <Icon name={isExpanded ? 'chevron-down' : 'chevron-right'} className="w-3.5 h-3.5" />
-                                  <span className="hidden sm:inline">{isExpanded ? 'Collapse' : 'Preview'}</span>
-                                </button>
-                                <button
-                                  onClick={() => openEditTutorialModal(t)}
-                                  className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
-                                >
-                                  <Icon name="edit" className="w-3.5 h-3.5" />
-                                  <span className="hidden sm:inline">Edit</span>
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteTutorial(t.id)}
-                                  className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold transition-all"
-                                >
-                                  <Icon name="trash" className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
                             </div>
-
-                            {/* Expanded Content Preview */}
-                            {isExpanded && (
-                              <div className="px-5 pb-5 animate-fadeIn">
-                                <div className={`p-5 rounded-2xl border ${meta.borderColor} bg-slate-900/40 space-y-2`}>
-                                  <p className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor}`}>
-                                    Full Lesson Content
-                                  </p>
-                                  <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
-                                    {t.content || 'No content provided for this lesson.'}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         )
                       })}
                     </div>
                   )}
-                </div>
 
-                {/* Info Card */}
-                <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-                      <Icon name="info" className="w-5 h-5 text-emerald-400" glow />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-bold text-white">About the Lesson Library</h4>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Lessons are stored in the <strong className="text-emerald-300">lessons</strong> table in Supabase.
-                        Each lesson has a <strong className="text-emerald-300">title</strong>, a difficulty <strong className="text-emerald-300">level</strong>
-                        {' '}(beginner / intermediate / upper_intermediate / advanced), an <strong className="text-emerald-300">order_index</strong> controlling sequential display,
-                        and full <strong className="text-emerald-300">content</strong> in the text field.
-                        Candidates access these lessons through the public hub for guided skill development.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 4: RANKINGS DASHBOARD */}
-            {activeTab === 'rankings' && (
-              <div className="space-y-6">
-                <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-[#151520]/80 to-amber-500/5 backdrop-blur-xl p-6 sm:p-8">
-                  <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-amber-500/20 rounded-full blur-[100px] pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-yellow-500/10 rounded-full blur-[100px] pointer-events-none" />
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
-
-                  <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="space-y-3 max-w-2xl">
-                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-bold uppercase tracking-widest text-amber-300">
-                        <Icon name="trophy" className="w-3 h-3" glow />
-                        Hall of Excellence
-                      </span>
-                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-                        Performance <span className="bg-gradient-to-r from-amber-300 via-yellow-300 to-orange-300 bg-clip-text text-transparent">Leaderboard</span>
-                      </h2>
-                      <p className="text-sm text-slate-400 leading-relaxed">
-                        Live rankings computed across all candidate attempts. Switch between overall performance and per-module leaderboards to identify top talent.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-                      <button
-                        onClick={handleRefresh}
-                        disabled={refreshing}
-                        className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-xs shadow-lg shadow-amber-500/30 hover:shadow-xl transition-all disabled:opacity-50"
-                      >
-                        <Icon name="refresh" className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                        <span>{refreshing ? 'Syncing...' : 'Refresh Rankings'}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {[
-                    { key: 'overall', label: 'Overall', icon: 'trophy' },
-                    { key: 'listening', label: 'Listening', icon: 'headphones' },
-                    { key: 'reading', label: 'Reading', icon: 'book' },
-                    { key: 'writing', label: 'Writing', icon: 'pencil' },
-                    { key: 'speaking', label: 'Speaking', icon: 'mic' },
-                    { key: 'typing', label: 'Typing', icon: 'keyboard' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.key}
-                      onClick={() => setRankingModuleFilter(opt.key as any)}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all border ${
-                        rankingModuleFilter === opt.key
-                          ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white border-violet-400/40 shadow-lg shadow-violet-500/30'
-                          : 'bg-slate-900/50 text-slate-400 border-violet-500/20 hover:text-white hover:border-violet-400/40'
-                      }`}
-                    >
-                      <Icon name={opt.icon === 'trophy' ? 'trophy' : opt.icon === 'book' ? 'book' : opt.icon === 'pencil' ? 'pencil' : opt.icon === 'mic' ? 'mic' : opt.icon === 'keyboard' ? 'keyboard' : 'headphones'} className="w-3.5 h-3.5" />
-                      <span>{opt.label}</span>
-                    </button>
-                  ))}
-                </div>
-
-                {topThree.length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    {[1, 0, 2].map((podiumIdx) => {
-                      const r = topThree[podiumIdx]
-                      if (!r) return null
-                      const isFirst = r.rank === 1
-                      const isSecond = r.rank === 2
-                      const medalGradient = isFirst
-                        ? 'from-amber-400 via-yellow-500 to-orange-500'
-                        : isSecond
-                          ? 'from-slate-300 via-slate-400 to-slate-500'
-                          : 'from-amber-700 via-orange-700 to-amber-900'
-                      const borderGlow = isFirst
-                        ? 'border-amber-400/50 shadow-amber-500/30'
-                        : isSecond
-                          ? 'border-slate-300/50 shadow-slate-400/20'
-                          : 'border-amber-700/50 shadow-amber-800/20'
-                      const scaleClass = isFirst ? 'md:scale-105 md:z-10' : ''
-                      const medalEmoji = isFirst ? '🥇' : isSecond ? '🥈' : '🥉'
-                      const rankLabel = isFirst ? 'Champion' : isSecond ? 'Runner-Up' : 'Third Place'
-
-                      return (
-                        <div
-                          key={r.userId}
-                          onClick={() => {
-                            const u = users.find(x => x.id === r.userId)
-                            if (u) openUserProfile(u)
-                          }}
-                          className={`group relative overflow-hidden rounded-3xl border-2 ${borderGlow} bg-[#151520]/80 backdrop-blur-xl p-6 transition-all duration-300 hover:scale-[1.02] cursor-pointer ${scaleClass}`}
-                        >
-                          <div className={`absolute inset-0 bg-gradient-to-br ${medalGradient} opacity-[0.08]`} />
-                          <div className={`absolute -top-8 -right-8 w-40 h-40 bg-gradient-to-br ${medalGradient} opacity-20 rounded-full blur-3xl`} />
-
-                          <div className="relative flex flex-col items-center text-center space-y-4">
-                            <div className="text-4xl">{medalEmoji}</div>
-                            <div className={`w-20 h-20 rounded-3xl bg-gradient-to-br ${medalGradient} flex items-center justify-center font-black text-3xl text-white shadow-2xl border-2 border-white/20`}>
-                              {(r.userName || r.userEmail || '?').charAt(0).toUpperCase()}
-                            </div>
-                            <div className="space-y-1 w-full">
-                              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
-                                isFirst
-                                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                                  : isSecond
-                                    ? 'bg-slate-400/10 border-slate-400/30 text-slate-300'
-                                    : 'bg-orange-700/10 border-orange-700/30 text-orange-300'
-                              }`}>
-                                <Icon name="award" className="w-3 h-3" />
-                                {rankLabel}
-                              </div>
-                              <h3 className="text-lg font-black text-white truncate">{r.userName}</h3>
-                              <p className="text-xs text-slate-500 font-mono truncate">{r.userEmail}</p>
-                            </div>
-                            <div className={`w-full py-3 rounded-2xl border ${
-                              isFirst ? 'bg-amber-500/10 border-amber-500/30' : isSecond ? 'bg-slate-400/10 border-slate-400/30' : 'bg-orange-700/10 border-orange-700/30'
-                            }`}>
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
-                                {rankingModuleFilter === 'overall' ? 'Overall Average' : `${rankingModuleFilter} Score`}
-                              </p>
-                              <p className={`text-4xl font-black ${isFirst ? 'text-amber-300' : isSecond ? 'text-slate-200' : 'text-orange-300'}`}>
-                                {r.displayScore ?? 0}%
-                              </p>
-                            </div>
-                            <div className="flex items-center justify-center gap-4 text-[10px] font-mono text-slate-400 w-full">
-                              <span className="flex items-center gap-1"><Icon name="hash" className="w-3 h-3" /> Rank #{r.rank}</span>
-                              <span className="flex items-center gap-1"><Icon name="activity" className="w-3 h-3" /> {r.totalAttempts} attempts</span>
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
-                <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
-                  <div className="p-6 border-b border-violet-500/20 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                          <Icon name="hash" className="w-4 h-4 text-amber-400" glow />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-black tracking-tight">
-                            {rankingModuleFilter === 'overall'
-                              ? 'Overall Ranking Table'
-                              : `${rankingModuleFilter.charAt(0).toUpperCase() + rankingModuleFilter.slice(1)} Module Ranking`}
-                          </h3>
-                          <p className="text-xs text-slate-400">
-                            {filteredRankings.length} participant{filteredRankings.length === 1 ? '' : 's'} with recorded scores
-                          </p>
-                        </div>
+                  {/* Ranking table */}
+                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+                    <div className="p-5 border-b border-violet-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-black tracking-tight">
+                          {rankingModuleFilter === 'overall' ? 'Overall Ranking' : `${rankingModuleFilter} Ranking`}
+                        </h3>
+                        <p className="text-xs text-slate-400">{filteredRankings.length} participants</p>
                       </div>
                       <div className="relative flex-1 sm:max-w-xs">
                         <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
@@ -2419,358 +2267,223 @@ export default function AdminDashboardPage() {
                         />
                       </div>
                     </div>
-                  </div>
 
-                  {filteredRankings.length === 0 ? (
-                    <div className="p-12 text-center">
-                      <div className="inline-flex flex-col items-center gap-3">
-                        <div className="w-14 h-14 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center">
-                          <Icon name="trophy" className="w-7 h-7 text-slate-500" />
-                        </div>
-                        <p className="text-slate-400 font-bold">
-                          {rankingSearch.trim() ? 'No matching candidates found' : 'No score records available yet'}
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse text-sm">
-                        <thead>
-                          <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
-                            <th className="p-4 w-20">Rank</th>
-                            <th className="p-4">Candidate</th>
-                            <th className="p-4">Module Score</th>
-                            <th className="p-4 hidden md:table-cell">Attempts</th>
-                            <th className="p-4 hidden lg:table-cell">Module Breakdown</th>
-                            <th className="p-4 text-right">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-violet-500/10">
-                          {filteredRankings.map((r) => {
-                            const u = users.find(x => x.id === r.userId)
-                            const score = r.displayScore
-                            const scoreColor = score === null
-                              ? 'text-slate-500'
-                              : score >= 85 ? 'text-emerald-400'
-                              : score >= 70 ? 'text-amber-400'
-                              : 'text-rose-400'
-                            return (
-                              <tr
-                                key={r.userId}
-                                onClick={() => u && openUserProfile(u)}
-                                className="hover:bg-violet-500/[0.06] transition-colors cursor-pointer group"
-                              >
-                                <td className="p-4"><RankBadge rank={r.rank} /></td>
-                                <td className="p-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
-                                      r.isAdmin
-                                        ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white'
-                                        : 'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
-                                    }`}>
-                                      {(r.userName || r.userEmail || '?').charAt(0).toUpperCase()}
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="font-bold text-white text-sm group-hover:text-violet-300 transition-colors truncate">
-                                        {r.userName}
-                                        {r.isAdmin && (
-                                          <span className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                            <Icon name="crown" className="w-2.5 h-2.5" />
-                                            Admin
-                                          </span>
-                                        )}
-                                      </p>
-                                      <p className="text-[11px] text-slate-500 font-mono truncate">{r.userEmail}</p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="p-4">
-                                  {score === null ? (
-                                    <span className="text-slate-500 italic text-xs">No data</span>
-                                  ) : (
-                                    <div className="flex items-center gap-2">
-                                      <span className={`font-black text-lg ${scoreColor}`}>{score}%</span>
-                                      {score >= 90 && <span className="text-lg">🔥</span>}
-                                      {score >= 80 && score < 90 && <span className="text-lg">⭐</span>}
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="p-4 hidden md:table-cell">
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-violet-500/10 text-violet-300 border border-violet-500/20">
-                                    <Icon name="activity" className="w-3 h-3" />{r.totalAttempts}
-                                  </span>
-                                </td>
-                                <td className="p-4 hidden lg:table-cell">
-                                  <div className="flex flex-wrap gap-1">
-                                    {Object.entries(r.moduleAverages).slice(0, 5).map(([mod, avg]) => (
-                                      <span key={mod} className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
-                                        mod === 'reading' ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' :
-                                        mod === 'listening' ? 'bg-purple-500/15 text-purple-300 border-purple-500/30' :
-                                        mod === 'writing' ? 'bg-violet-500/15 text-violet-300 border-violet-500/30' :
-                                        mod === 'speaking' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' :
-                                        'bg-sky-500/15 text-sky-300 border-sky-500/30'
+                    {filteredRankings.length === 0 ? (
+                      <div className="p-12 text-center text-slate-500 text-sm">No rankings yet.</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-sm">
+                          <thead>
+                            <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                              <th className="p-4 w-20">Rank</th>
+                              <th className="p-4">Candidate</th>
+                              <th className="p-4">Score</th>
+                              <th className="p-4 hidden md:table-cell">Attempts</th>
+                              <th className="p-4 hidden lg:table-cell">Modules</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-violet-500/10">
+                            {filteredRankings.map((r) => {
+                              const u = users.find(x => x.id === r.userId)
+                              const score = r.displayScore
+                              return (
+                                <tr
+                                  key={r.userId}
+                                  onClick={() => u && openUserProfile(u)}
+                                  className="hover:bg-violet-500/[0.06] transition-colors cursor-pointer"
+                                >
+                                  <td className="p-4"><RankBadge rank={r.rank} /></td>
+                                  <td className="p-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                                        r.isAdmin ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white' : 'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
                                       }`}>
-                                        {mod}: {avg}%
-                                      </span>
-                                    ))}
-                                  </div>
-                                </td>
-                                <td className="p-4 text-right">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      if (u) openUserProfile(u)
-                                    }}
-                                    className="px-3 py-1.5 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border border-violet-500/20 text-xs font-bold transition-all flex items-center gap-1.5 ml-auto"
-                                  >
-                                    <Icon name="user-check" className="w-3.5 h-3.5" />
-                                    <span className="hidden sm:inline">Profile</span>
-                                  </button>
-                                </td>
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-violet-500/20 flex items-center justify-center shrink-0">
-                      <Icon name="info" className="w-5 h-5 text-violet-400" glow />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-bold text-white">How Rankings Are Calculated</h4>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        Ranked by <strong className="text-violet-300">average score</strong> across all recorded attempts.
-                        {rankingModuleFilter === 'overall'
-                          ? ' Overall Ranking blends every module.'
-                          : ` Currently filtered to ${rankingModuleFilter} module scores only.`}
-                        {' '}Candidates with the same score are ranked alphabetically. Only users with recorded attempts appear in this leaderboard.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 5: ANALYTICS & STATISTICS */}
-            {activeTab === 'statistics' && (
-              <div className="space-y-6">
-
-                <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 via-[#151520]/80 to-blue-500/5 backdrop-blur-xl p-6 sm:p-8">
-                  <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-cyan-500/20 rounded-full blur-[100px] pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
-
-                  <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="space-y-3 max-w-2xl">
-                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-bold uppercase tracking-widest text-cyan-300">
-                        <Icon name="bar-chart" className="w-3 h-3" glow />
-                        Platform Analytics & Insights
-                      </span>
-                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-                        Module Usage <span className="bg-gradient-to-r from-cyan-300 via-sky-300 to-blue-300 bg-clip-text text-transparent">Statistics</span>
-                      </h2>
-                      <p className="text-sm text-slate-400 leading-relaxed">
-                        Discover which assessment modules are most used, how scores are distributed, and how activity trends over time across the entire platform.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                  {platformStats.mostUsed && (
-                    <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 backdrop-blur-xl p-5">
-                      <div className="absolute -top-8 -right-8 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl" />
-                      <div className="relative space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModuleMeta(platformStats.mostUsed.name).gradient} flex items-center justify-center shadow-lg`}>
-                            <Icon name={getModuleMeta(platformStats.mostUsed.name).icon} className="w-5 h-5 text-white" glow />
-                          </div>
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                            <Icon name="zap" className="w-2.5 h-2.5" glow />
-                            Most Used
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 mb-1">Top Module</p>
-                          <p className="text-xl font-black text-white capitalize">{platformStats.mostUsed.name}</p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            <span className="font-bold text-white">{platformStats.mostUsed.count}</span> attempts ({platformStats.mostUsed.percentage}% of total)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {platformStats.leastUsed && platformStats.leastUsed.name !== platformStats.mostUsed?.name && (
-                    <div className="relative overflow-hidden rounded-2xl border-2 border-slate-500/30 bg-gradient-to-br from-slate-500/10 to-slate-600/5 backdrop-blur-xl p-5">
-                      <div className="absolute -top-8 -right-8 w-32 h-32 bg-slate-500/20 rounded-full blur-2xl" />
-                      <div className="relative space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModuleMeta(platformStats.leastUsed.name).gradient} flex items-center justify-center shadow-lg`}>
-                            <Icon name={getModuleMeta(platformStats.leastUsed.name).icon} className="w-5 h-5 text-white" glow />
-                          </div>
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-slate-500/20 text-slate-300 border border-slate-500/30">
-                            Least Used
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-300 mb-1">Least Explored</p>
-                          <p className="text-xl font-black text-white capitalize">{platformStats.leastUsed.name}</p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            <span className="font-bold text-white">{platformStats.leastUsed.count}</span> attempts ({platformStats.leastUsed.percentage}% of total)
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {platformStats.highestAvg && (
-                    <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-orange-500/5 backdrop-blur-xl p-5">
-                      <div className="absolute -top-8 -right-8 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl" />
-                      <div className="relative space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModuleMeta(platformStats.highestAvg.name).gradient} flex items-center justify-center shadow-lg`}>
-                            <Icon name="trophy" className="w-5 h-5 text-white" glow />
-                          </div>
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                            <Icon name="award" className="w-2.5 h-2.5" glow />
-                            Easiest
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300 mb-1">Highest Avg Score</p>
-                          <p className="text-xl font-black text-white capitalize">{platformStats.highestAvg.name}</p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            Average of <span className="font-bold text-amber-300">{platformStats.highestAvg.average}%</span> across {platformStats.highestAvg.count} attempts
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {platformStats.lowestAvg && platformStats.lowestAvg.name !== platformStats.highestAvg?.name && (
-                    <div className="relative overflow-hidden rounded-2xl border-2 border-rose-500/40 bg-gradient-to-br from-rose-500/10 to-red-500/5 backdrop-blur-xl p-5">
-                      <div className="absolute -top-8 -right-8 w-32 h-32 bg-rose-500/20 rounded-full blur-2xl" />
-                      <div className="relative space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModuleMeta(platformStats.lowestAvg.name).gradient} flex items-center justify-center shadow-lg`}>
-                            <Icon name="alert-circle" className="w-5 h-5 text-white" glow />
-                          </div>
-                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                            <Icon name="trending-down" className="w-2.5 h-2.5" glow />
-                            Hardest
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-rose-300 mb-1">Lowest Avg Score</p>
-                          <p className="text-xl font-black text-white capitalize">{platformStats.lowestAvg.name}</p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            Average of <span className="font-bold text-rose-300">{platformStats.lowestAvg.average}%</span> across {platformStats.lowestAvg.count} attempts
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-lg">
-                      <Icon name="bar-chart" className="w-5 h-5 text-white" glow />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-black tracking-tight">Module Usage Distribution</h3>
-                      <p className="text-xs text-slate-400">
-                        Total attempts per module across all users — sorted from most to least used
-                      </p>
-                    </div>
-                  </div>
-
-                  {platformStats.moduleList.length === 0 ? (
-                    <div className="p-12 text-center text-slate-500 text-sm">
-                      No module data available yet. Statistics will appear once users start taking assessments.
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {platformStats.moduleList.map((mod, idx) => {
-                        const meta = getModuleMeta(mod.name)
-                        const maxCount = platformStats.moduleList[0]?.count || 1
-                        const barWidth = maxCount > 0 ? (mod.count / maxCount) * 100 : 0
-                        return (
-                          <div key={mod.name} className="space-y-2">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shrink-0 shadow-lg`}>
-                                  <Icon name={meta.icon} className="w-4 h-4 text-white" glow />
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-bold text-white text-sm capitalize">{mod.name}</p>
-                                    {idx === 0 && (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                        🔥 Top
-                                      </span>
+                                        {(r.userName || '?').charAt(0).toUpperCase()}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="font-bold text-white text-sm truncate">{r.userName}</p>
+                                        <p className="text-[11px] text-slate-500 font-mono truncate">{r.userEmail}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="p-4">
+                                    {score === null ? (
+                                      <span className="text-slate-500 italic text-xs">No data</span>
+                                    ) : (
+                                      <span className={`font-black text-lg ${
+                                        score >= 85 ? 'text-emerald-400' : score >= 70 ? 'text-amber-400' : 'text-rose-400'
+                                      }`}>{score}%</span>
                                     )}
-                                  </div>
-                                  <p className="text-[11px] text-slate-500 font-mono">
-                                    {mod.count} attempts · {mod.uniqueUsers} user{mod.uniqueUsers === 1 ? '' : 's'} · avg {mod.average}%
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <p className={`text-2xl font-black ${meta.textColor}`}>{mod.percentage}%</p>
-                                <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">share</p>
-                              </div>
-                            </div>
-
-                            <div className="relative h-3 bg-slate-800/60 rounded-full overflow-hidden">
-                              <div
-                                className={`absolute inset-y-0 left-0 bg-gradient-to-r ${meta.gradient} rounded-full transition-all duration-700 shadow-lg`}
-                                style={{ width: `${barWidth}%` }}
-                              />
-                              <div
-                                className="absolute inset-y-0 w-0.5 bg-white/60 rounded-full"
-                                style={{ left: `${Math.min(100, mod.best)}%` }}
-                                title={`Best: ${mod.best}%`}
-                              />
-                            </div>
-
-                            <div className="flex justify-between text-[10px] font-mono text-slate-500">
-                              <span>Best: <strong className={meta.textColor}>{mod.best}%</strong></span>
-                              <span>Worst: <strong className="text-rose-400">{mod.worst}%</strong></span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
+                                  </td>
+                                  <td className="p-4 hidden md:table-cell">
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                                      {r.totalAttempts}
+                                    </span>
+                                  </td>
+                                  <td className="p-4 hidden lg:table-cell">
+                                    <div className="flex flex-wrap gap-1">
+                                      {Object.entries(r.moduleAverages).slice(0, 3).map(([mod, avg]) => (
+                                        <span key={mod} className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-400">
+                                          {mod}: {avg}%
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
-                        <Icon name="pie-chart" className="w-5 h-5 text-white" glow />
+              {/* ============ STATISTICS TAB ============ */}
+              {activeTab === 'statistics' && (
+                <div className="space-y-6">
+                  {/* Summary cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                    {platformStats.mostUsed && (
+                      <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 backdrop-blur-xl p-5">
+                        <div className="absolute -top-8 -right-8 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl" />
+                        <div className="relative space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModuleMeta(platformStats.mostUsed.name).gradient} flex items-center justify-center shadow-lg`}>
+                              <Icon name={getModuleMeta(platformStats.mostUsed.name).icon} className="w-5 h-5 text-white" glow />
+                            </div>
+                            <span className="text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full px-2 py-1">Most Used</span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 mb-1">Top Module</p>
+                            <p className="text-xl font-black text-white capitalize">{platformStats.mostUsed.name}</p>
+                            <p className="text-xs text-slate-400 mt-1">
+                              <span className="font-bold text-white">{platformStats.mostUsed.count}</span> attempts
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-lg font-black tracking-tight">Score Distribution</h3>
-                        <p className="text-xs text-slate-400">
-                          How candidate scores are spread across ranges
-                        </p>
+                    )}
+
+                    {platformStats.highestAvg && (
+                      <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-orange-500/5 backdrop-blur-xl p-5">
+                        <div className="absolute -top-8 -right-8 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl" />
+                        <div className="relative space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModuleMeta(platformStats.highestAvg.name).gradient} flex items-center justify-center shadow-lg`}>
+                              <Icon name="trophy" className="w-5 h-5 text-white" glow />
+                            </div>
+                            <span className="text-[9px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full px-2 py-1">Easiest</span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300 mb-1">Highest Avg</p>
+                            <p className="text-xl font-black text-white capitalize">{platformStats.highestAvg.name}</p>
+                            <p className="text-xs text-slate-400 mt-1">
+                              <span className="font-bold text-amber-300">{platformStats.highestAvg.average}%</span> avg
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {platformStats.lowestAvg && (
+                      <div className="relative overflow-hidden rounded-2xl border-2 border-rose-500/40 bg-gradient-to-br from-rose-500/10 to-red-500/5 backdrop-blur-xl p-5">
+                        <div className="absolute -top-8 -right-8 w-32 h-32 bg-rose-500/20 rounded-full blur-2xl" />
+                        <div className="relative space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${getModuleMeta(platformStats.lowestAvg.name).gradient} flex items-center justify-center shadow-lg`}>
+                              <Icon name="alert-circle" className="w-5 h-5 text-white" glow />
+                            </div>
+                            <span className="text-[9px] font-bold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-full px-2 py-1">Hardest</span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-rose-300 mb-1">Lowest Avg</p>
+                            <p className="text-xl font-black text-white capitalize">{platformStats.lowestAvg.name}</p>
+                            <p className="text-xs text-slate-400 mt-1">
+                              <span className="font-bold text-rose-300">{platformStats.lowestAvg.average}%</span> avg
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="relative overflow-hidden rounded-2xl border-2 border-violet-500/40 bg-gradient-to-br from-violet-500/10 to-purple-500/5 backdrop-blur-xl p-5">
+                      <div className="absolute -top-8 -right-8 w-32 h-32 bg-violet-500/20 rounded-full blur-2xl" />
+                      <div className="relative space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-lg">
+                            <Icon name="activity" className="w-5 h-5 text-white" glow />
+                          </div>
+                          <span className="text-[9px] font-bold uppercase bg-violet-500/20 text-violet-300 border border-violet-500/30 rounded-full px-2 py-1">Total</span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-violet-300 mb-1">Total Attempts</p>
+                          <p className="text-3xl font-black text-white">{platformStats.totalAttempts}</p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {platformStats.totalUsersWithAttempts} unique users
+                          </p>
+                        </div>
                       </div>
                     </div>
+                  </div>
 
-                    {platformStats.totalAttempts === 0 ? (
-                      <div className="p-12 text-center text-slate-500 text-sm">No scores yet</div>
+                  {/* Module distribution */}
+                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
+                    <h3 className="text-base font-black tracking-tight mb-5 flex items-center gap-2">
+                      <Icon name="bar-chart" className="w-4 h-4 text-violet-400" glow />
+                      Module Usage Distribution
+                    </h3>
+
+                    {platformStats.moduleList.length === 0 ? (
+                      <div className="p-12 text-center text-slate-500 text-sm">No module data yet.</div>
                     ) : (
                       <div className="space-y-4">
-                        <div className="flex items-end justify-between gap-2 h-48 pb-2">
+                        {platformStats.moduleList.map((mod) => {
+                          const meta = getModuleMeta(mod.name)
+                          const maxCount = platformStats.moduleList[0]?.count || 1
+                          const barWidth = maxCount > 0 ? (mod.count / maxCount) * 100 : 0
+                          return (
+                            <div key={mod.name} className="space-y-2">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shrink-0 shadow-lg`}>
+                                    <Icon name={meta.icon} className="w-4 h-4 text-white" glow />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="font-bold text-white text-sm capitalize">{mod.name}</p>
+                                    <p className="text-[11px] text-slate-500 font-mono">
+                                      {mod.count} attempts · avg {mod.average}%
+                                    </p>
+                                  </div>
+                                </div>
+                                <p className={`text-xl font-black ${meta.textColor}`}>{mod.percentage}%</p>
+                              </div>
+                              <div className="relative h-2.5 bg-slate-800/60 rounded-full overflow-hidden">
+                                <div
+                                  className={`absolute inset-y-0 left-0 bg-gradient-to-r ${meta.gradient} rounded-full transition-all duration-700`}
+                                  style={{ width: `${barWidth}%` }}
+                                />
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Score distribution */}
+                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
+                    <h3 className="text-base font-black tracking-tight mb-5 flex items-center gap-2">
+                      <Icon name="pie-chart" className="w-4 h-4 text-amber-400" glow />
+                      Score Distribution
+                    </h3>
+
+                    {platformStats.totalAttempts === 0 ? (
+                      <div className="p-12 text-center text-slate-500 text-sm">No scores yet.</div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-end justify-between gap-2 h-40">
                           {platformStats.scoreBuckets.map((bucket) => {
                             const maxCount = Math.max(...platformStats.scoreBuckets.map(b => b.count), 1)
                             const heightPercent = (bucket.count / maxCount) * 100
@@ -2780,15 +2493,13 @@ export default function AdminDashboardPage() {
                                   <span className="text-xs font-black text-white">{bucket.count}</span>
                                 )}
                                 <div
-                                  className={`w-full bg-gradient-to-t ${bucket.color} rounded-t-lg transition-all duration-700 shadow-lg`}
+                                  className={`w-full bg-gradient-to-t ${bucket.color} rounded-t-lg transition-all duration-700`}
                                   style={{ height: `${Math.max(4, heightPercent)}%` }}
-                                  title={`${bucket.range}: ${bucket.count} attempts`}
                                 />
                               </div>
                             )
                           })}
                         </div>
-
                         <div className="flex items-end justify-between gap-2 border-t border-violet-500/20 pt-2">
                           {platformStats.scoreBuckets.map((bucket) => (
                             <div key={bucket.range} className="flex-1 text-center">
@@ -2796,199 +2507,66 @@ export default function AdminDashboardPage() {
                             </div>
                           ))}
                         </div>
-
-                        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-violet-500/20">
-                          <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Passing (≥80%)</p>
-                            <p className="text-2xl font-black text-white">
-                              {platformStats.scoreBuckets.slice(4).reduce((a, b) => a + b.count, 0)}
-                            </p>
-                            <p className="text-[10px] text-slate-500">
-                              {Math.round((platformStats.scoreBuckets.slice(4).reduce((a, b) => a + b.count, 0) / Math.max(platformStats.totalAttempts, 1)) * 100)}% of attempts
-                            </p>
-                          </div>
-                          <div className="p-3 rounded-xl bg-rose-500/5 border border-rose-500/20">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-rose-300">Needs Work (&lt;80%)</p>
-                            <p className="text-2xl font-black text-white">
-                              {platformStats.scoreBuckets.slice(0, 4).reduce((a, b) => a + b.count, 0)}
-                            </p>
-                            <p className="text-[10px] text-slate-500">
-                              {Math.round((platformStats.scoreBuckets.slice(0, 4).reduce((a, b) => a + b.count, 0) / Math.max(platformStats.totalAttempts, 1)) * 100)}% of attempts
-                            </p>
-                          </div>
-                        </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shadow-lg">
-                        <Icon name="activity" className="w-5 h-5 text-white" glow />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-black tracking-tight">30-Day Activity Timeline</h3>
-                        <p className="text-xs text-slate-400">
-                          Daily attempt volume across the platform
-                        </p>
-                      </div>
-                    </div>
-
-                    {platformStats.totalAttempts === 0 ? (
-                      <div className="p-12 text-center text-slate-500 text-sm">No activity yet</div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="flex items-end gap-[2px] h-40">
-                          {(() => {
-                            const maxCount = Math.max(...platformStats.activityTimeline.map(d => d.count), 1)
-                            return platformStats.activityTimeline.map((day) => {
-                              const heightPercent = maxCount > 0 ? (day.count / maxCount) * 100 : 0
-                              const isPeak = day.date === platformStats.peakDay.date && day.count > 0
-                              return (
-                                <div
-                                  key={day.date}
-                                  className="flex-1 group relative"
-                                  style={{ height: '100%' }}
-                                >
-                                  <div
-                                    className={`w-full rounded-sm transition-all duration-500 absolute bottom-0 ${
-                                      isPeak
-                                        ? 'bg-gradient-to-t from-amber-500 to-yellow-400 shadow-lg shadow-amber-500/50'
-                                        : day.count > 0
-                                          ? 'bg-gradient-to-t from-cyan-500 to-blue-400'
-                                          : 'bg-slate-800/60'
-                                    }`}
-                                    style={{ height: `${Math.max(2, heightPercent)}%` }}
-                                  />
-                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
-                                    <div className="px-2 py-1 rounded-lg bg-slate-950 border border-violet-500/30 text-[10px] font-mono whitespace-nowrap shadow-lg">
-                                      <p className="text-slate-400">{day.date}</p>
-                                      <p className="font-bold text-white">{day.count} attempt{day.count === 1 ? '' : 's'}</p>
-                                    </div>
-                                  </div>
+                  {/* Top performers by module */}
+                  {Object.keys(platformStats.topPerformersByModule).length > 0 && (
+                    <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
+                      <h3 className="text-base font-black tracking-tight mb-5 flex items-center gap-2">
+                        <Icon name="award" className="w-4 h-4 text-amber-400" glow />
+                        Top Performers Per Module
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        {Object.entries(platformStats.topPerformersByModule).map(([modName, performers]) => {
+                          const meta = getModuleMeta(modName)
+                          const top = performers[0]
+                          if (!top) return null
+                          const u = users.find(x => x.id === top.userId)
+                          return (
+                            <div
+                              key={modName}
+                              onClick={() => u && openUserProfile(u)}
+                              className={`group relative overflow-hidden rounded-2xl border ${meta.borderColor} bg-slate-900/30 backdrop-blur-xl p-4 space-y-3 cursor-pointer transition-all hover:scale-[1.02]`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg`}>
+                                  <Icon name={meta.icon} className="w-4 h-4 text-white" glow />
                                 </div>
-                              )
-                            })
-                          })()}
-                        </div>
-
-                        <div className="flex justify-between text-[10px] font-mono text-slate-500 border-t border-violet-500/20 pt-2">
-                          <span>{platformStats.activityTimeline[0]?.date || ''}</span>
-                          <span>{platformStats.activityTimeline[Math.floor(platformStats.activityTimeline.length / 2)]?.date || ''}</span>
-                          <span>Today</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-violet-500/20">
-                          <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300">Peak Day</p>
-                            <p className="text-xs font-mono text-white mt-1">{platformStats.peakDay.date || 'N/A'}</p>
-                            <p className="text-lg font-black text-amber-300">{platformStats.peakDay.count} attempts</p>
-                          </div>
-                          <div className="p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20">
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-300">Daily Average</p>
-                            <p className="text-xs font-mono text-white mt-1">Last 30 days</p>
-                            <p className="text-lg font-black text-cyan-300">
-                              {(platformStats.totalAttempts > 0
-                                ? platformStats.activityTimeline.reduce((a, b) => a + b.count, 0) / 30
-                                : 0
-                              ).toFixed(1)} attempts/day
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {Object.keys(platformStats.topPerformersByModule).length > 0 && (
-                  <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center shadow-lg">
-                        <Icon name="award" className="w-5 h-5 text-white" glow />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-black tracking-tight">Top Performers Per Module</h3>
-                        <p className="text-xs text-slate-400">
-                          The highest-scoring candidate in each assessment module
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                      {Object.entries(platformStats.topPerformersByModule).map(([modName, performers]) => {
-                        const meta = getModuleMeta(modName)
-                        const top = performers[0]
-                        if (!top) return null
-                        const u = users.find(x => x.id === top.userId)
-                        return (
-                          <div
-                            key={modName}
-                            onClick={() => u && openUserProfile(u)}
-                            className={`group relative overflow-hidden rounded-2xl border ${meta.borderColor} bg-slate-900/30 backdrop-blur-xl p-4 space-y-3 cursor-pointer transition-all duration-300 hover:scale-[1.02]`}
-                          >
-                            <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${meta.gradient} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`} />
-
-                            <div className="relative flex items-center justify-between">
-                              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${meta.gradient} flex items-center justify-center shadow-lg`}>
-                                <Icon name={meta.icon} className="w-4 h-4 text-white" glow />
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor}`}>
+                                  {meta.label}
+                                </span>
                               </div>
-                              <span className={`text-[10px] font-bold uppercase tracking-widest ${meta.textColor}`}>
-                                {meta.label}
-                              </span>
-                            </div>
-
-                            <div className="relative space-y-1">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center text-white font-black text-xs shadow-lg shrink-0">
-                                  {(top.userName || '?').charAt(0).toUpperCase()}
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="font-bold text-white text-xs truncate">{top.userName}</p>
-                                  <p className="text-[10px] text-slate-500 font-mono truncate">{top.attempts}× attempts</p>
-                                </div>
+                              <div className="space-y-1">
+                                <p className="font-bold text-white text-xs truncate">{top.userName}</p>
+                                <p className="text-[10px] text-slate-500 font-mono">{top.attempts}× attempts</p>
                               </div>
-                              <div className={`mt-2 py-2 rounded-xl ${meta.textColor} bg-slate-950/40 text-center`}>
-                                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Top Avg</p>
+                              <div className={`py-2 rounded-xl bg-slate-950/40 text-center`}>
                                 <p className={`text-2xl font-black ${meta.textColor}`}>{top.avg}%</p>
                               </div>
                             </div>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                <div className="relative overflow-hidden rounded-3xl border border-cyan-500/20 bg-[#151520]/70 backdrop-blur-xl p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center shrink-0">
-                      <Icon name="info" className="w-5 h-5 text-cyan-400" glow />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-bold text-white">About These Statistics</h4>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                        All analytics are computed live from the <strong className="text-cyan-300">module_scores</strong> table.
-                        Module usage counts every attempt, while the average/best/worst scores are calculated per module.
-                        The score distribution groups every attempt into ranges, and the 30-day timeline reveals how candidate activity trends over time.
-                        Refresh this page after users complete new assessments to see updated insights.
-                      </p>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
+        </main>
+      </div>
 
-      </main>
+      {/* ============ MODALS ============ */}
 
-      {/* QUESTION CREATE / EDIT MODAL */}
+      {/* QUESTION MODAL */}
       {showQuestionModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 overflow-y-auto">
-          <div className="relative w-full max-w-2xl rounded-3xl border border-violet-500/20 bg-[#151520] p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-2xl rounded-3xl border border-violet-500/20 bg-[#151520] p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-violet-500/20 pb-4">
               <h3 className="text-xl font-black text-white">
-                {editingQuestionId !== null ? '✏️ Edit Question Record' : '➕ Create New Question'}
+                {editingQuestionId !== null ? '✏️ Edit Question' : '➕ Create New Question'}
               </h3>
               <button onClick={() => setShowQuestionModal(false)} className="text-slate-400 hover:text-white font-bold">✕</button>
             </div>
@@ -3007,7 +2585,7 @@ export default function AdminDashboardPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-400 uppercase">Test Title / Batch</label>
+                  <label className="text-xs font-bold text-slate-400 uppercase">Test Title</label>
                   <input
                     type="text"
                     required
@@ -3100,10 +2678,10 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* TUTORIAL CREATE / EDIT MODAL */}
+      {/* TUTORIAL MODAL */}
       {showTutorialModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 overflow-y-auto">
-          <div className="relative w-full max-w-2xl rounded-3xl border border-emerald-500/20 bg-[#151520] p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full max-w-2xl rounded-3xl border border-emerald-500/20 bg-[#151520] p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-emerald-500/20 pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
@@ -3114,7 +2692,7 @@ export default function AdminDashboardPage() {
                     Lesson Editor
                   </span>
                   <h3 className="text-xl font-black text-white">
-                    {editingTutorialId !== null ? 'Edit Lesson Record' : 'Create New Lesson'}
+                    {editingTutorialId !== null ? 'Edit Lesson' : 'Create New Lesson'}
                   </h3>
                 </div>
               </div>
@@ -3122,7 +2700,6 @@ export default function AdminDashboardPage() {
             </div>
 
             <form onSubmit={handleSaveTutorial} className="space-y-5">
-              {/* Title */}
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase">Lesson Title</label>
                 <input
@@ -3135,7 +2712,6 @@ export default function AdminDashboardPage() {
                 />
               </div>
 
-              {/* Level + Order */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-400 uppercase">Difficulty Level</label>
@@ -3161,13 +2737,9 @@ export default function AdminDashboardPage() {
                     placeholder="e.g., 1"
                     className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-emerald-500/20 text-sm focus:outline-none focus:border-emerald-400"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1.5 font-mono">
-                    Controls the sequence in which lessons are displayed.
-                  </p>
                 </div>
               </div>
 
-              {/* Content */}
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase">Lesson Content</label>
                 <textarea
@@ -3175,7 +2747,7 @@ export default function AdminDashboardPage() {
                   required
                   value={tContent}
                   onChange={(e) => setTContent(e.target.value)}
-                  placeholder="Enter the full lesson content, instructions, or training material here..."
+                  placeholder="Enter the full lesson content..."
                   className="w-full mt-1.5 p-3 bg-slate-900 rounded-xl border border-emerald-500/20 text-sm focus:outline-none focus:border-emerald-400 leading-relaxed"
                 />
                 <p className="text-[10px] text-slate-500 mt-1.5 font-mono">
@@ -3183,7 +2755,6 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
 
-              {/* Actions */}
               <div className="flex justify-end gap-3 pt-4 border-t border-emerald-500/20">
                 <button
                   type="button"
@@ -3204,9 +2775,9 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* LOGOUT CONFIRMATION MODAL */}
+      {/* LOGOUT MODAL */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
           <div className="relative w-full max-w-md rounded-3xl border border-violet-500/20 bg-[#151520]/95 backdrop-blur-2xl p-8 shadow-2xl overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-rose-500 via-red-500 to-rose-500" />
             
@@ -3250,6 +2821,448 @@ export default function AdminDashboardPage() {
           animation: fadeIn 0.3s ease-out;
         }
       `}</style>
+    </div>
+  )
+}
+
+// ============================================
+// SIDEBAR ITEM COMPONENT
+// ============================================
+function SidebarItem({
+  item,
+  active,
+  collapsed,
+  onClick,
+}: {
+  item: {
+    key: string
+    label: string
+    icon: string
+    gradient: string
+    badge?: number
+  }
+  active: boolean
+  collapsed: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative w-full flex items-center ${
+        collapsed ? 'justify-center' : 'justify-start'
+      } gap-3 px-3 py-2.5 rounded-xl font-bold text-sm transition-all group ${
+        active
+          ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg`
+          : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+      }`}
+      title={collapsed ? item.label : undefined}
+    >
+      {active && !collapsed && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-white/60" />
+      )}
+      <Icon
+        name={item.icon}
+        className={`w-5 h-5 shrink-0 ${active ? 'text-white' : ''}`}
+        glow={active}
+      />
+      {!collapsed && (
+        <>
+          <span className="truncate flex-1 text-left">{item.label}</span>
+          {item.badge !== undefined && item.badge > 0 && (
+            <span
+              className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
+                active
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-800 text-slate-400 group-hover:bg-slate-700'
+              }`}
+            >
+              {item.badge}
+            </span>
+          )}
+        </>
+      )}
+      {collapsed && item.badge !== undefined && item.badge > 0 && (
+        <span
+          className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center ${
+            active ? 'bg-white text-violet-600' : 'bg-violet-500 text-white'
+          }`}
+        >
+          {item.badge > 99 ? '99+' : item.badge}
+        </span>
+      )}
+    </button>
+  )
+}
+
+// ============================================
+// USER PROFILE VIEW COMPONENT
+// ============================================
+function UserProfileView({
+  profileData,
+  profileStats,
+  profileLoading,
+  closeUserProfile,
+  handleToggleAdmin,
+  handleDeleteUser,
+  adminEmail,
+}: {
+  profileData: {
+    user: any
+    scores: any[]
+    certificates: any[]
+    tickets: any[]
+  }
+  profileStats: {
+    total: number
+    average: number
+    best: number
+    worst: number
+    certificates: number
+    tickets: number
+    moduleStats: Record<string, { count: number; avg: number; best: number }>
+  }
+  profileLoading: boolean
+  closeUserProfile: () => void
+  handleToggleAdmin: (userId: string, currentStatus: boolean, userEmail: string) => void
+  handleDeleteUser: (userId: string, userEmail: string) => void
+  adminEmail: string
+}) {
+  return (
+    <div className="space-y-6">
+      <button
+        onClick={closeUserProfile}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-slate-300 hover:text-white hover:border-violet-400/40 font-bold text-xs transition-all"
+      >
+        <Icon name="arrow-left" className="w-4 h-4" />
+        <span>Back to {profileData.user ? 'Current View' : 'Registry'}</span>
+      </button>
+
+      {/* Profile Hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6 sm:p-8">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-500/20 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/50 to-transparent" />
+
+        <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+            <div className="relative shrink-0">
+              <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-3xl flex items-center justify-center font-black text-3xl sm:text-4xl shadow-2xl border ${
+                profileData.user.is_admin
+                  ? 'bg-gradient-to-br from-amber-500 to-orange-500 border-amber-400/40 shadow-amber-500/30'
+                  : 'bg-gradient-to-br from-violet-600 to-purple-600 border-violet-400/40 shadow-violet-500/30'
+              }`}>
+                <span className="text-white drop-shadow-lg">
+                  {(profileData.user.name || profileData.user.email || '?').charAt(0).toUpperCase()}
+                </span>
+              </div>
+              {profileData.user.is_admin && (
+                <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-amber-400 border-4 border-[#151520] flex items-center justify-center shadow-lg">
+                  <Icon name="crown" className="w-4 h-4 text-white" />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
+                  profileData.user.is_admin
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                    : 'bg-violet-500/10 border-violet-500/30 text-violet-300'
+                }`}>
+                  <Icon name={profileData.user.is_admin ? 'crown' : 'users'} className="w-3 h-3" glow />
+                  {profileData.user.is_admin ? 'Administrator' : 'Standard User'}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Active
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight truncate">
+                {profileData.user.name || 'Unnamed User'}
+              </h2>
+              <div className="flex items-center gap-2 text-sm text-slate-400">
+                <Icon name="mail" className="w-3.5 h-3.5" />
+                <span className="font-mono truncate">{profileData.user.email}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <Icon name="clock" className="w-3 h-3" />
+                <span>
+                  Joined {profileData.user.created_at
+                    ? new Date(profileData.user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                    : 'N/A'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+            <button
+              onClick={() => handleToggleAdmin(profileData.user.id, profileData.user.is_admin, profileData.user.email)}
+              className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-xs border transition-all ${
+                profileData.user.is_admin
+                  ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30'
+                  : 'bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 border-violet-500/30'
+              }`}
+            >
+              <Icon name={profileData.user.is_admin ? 'crown' : 'user-check'} className="w-4 h-4" />
+              <span>{profileData.user.is_admin ? 'Demote to User' : 'Promote to Admin'}</span>
+            </button>
+            <button
+              onClick={() => handleDeleteUser(profileData.user.id, profileData.user.email)}
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-xs transition-all"
+            >
+              <Icon name="trash" className="w-4 h-4" />
+              <span>Delete Account</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {profileLoading ? (
+        <div className="text-center py-16">
+          <div className="inline-flex items-center gap-3 text-violet-400">
+            <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <span className="font-bold text-sm uppercase tracking-widest">Loading Profile Data...</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+            {[
+              { label: 'Attempts', value: profileStats.total, icon: 'activity', gradient: 'from-violet-500 to-purple-500' },
+              { label: 'Average', value: `${profileStats.average}%`, icon: 'trending', gradient: 'from-cyan-500 to-blue-500' },
+              { label: 'Best Score', value: `${profileStats.best}%`, icon: 'trophy', gradient: 'from-amber-500 to-orange-500' },
+              { label: 'Certificates', value: profileStats.certificates, icon: 'shield', gradient: 'from-emerald-500 to-teal-500' },
+              { label: 'Tickets', value: profileStats.tickets, icon: 'message-square', gradient: 'from-rose-500 to-pink-500' },
+            ].map((stat) => (
+              <div key={stat.label} className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-4">
+                <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl`} />
+                <div className="relative space-y-2">
+                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg`}>
+                    <Icon name={stat.icon} className="w-4 h-4 text-white" glow />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{stat.label}</p>
+                    <p className="text-2xl font-black text-white">
+                      {typeof stat.value === 'number' ? <AnimatedCounter value={stat.value} /> : stat.value}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Module Stats */}
+          {Object.keys(profileStats.moduleStats).length > 0 && (
+            <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                  <Icon name="grid" className="w-4 h-4 text-violet-400" glow />
+                </div>
+                <div>
+                  <h3 className="text-base font-black tracking-tight">Module Breakdown</h3>
+                  <p className="text-xs text-slate-400">Per-module attempts and scores</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                {Object.entries(profileStats.moduleStats).map(([module, data]) => (
+                  <div key={module} className="p-4 rounded-2xl border border-violet-500/20 bg-slate-900/30 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 capitalize">{module}</span>
+                      <span className="text-[10px] font-mono text-violet-400 font-bold">{data.count}×</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div>
+                        <div className="flex justify-between text-[11px] mb-1">
+                          <span className="text-slate-400">Average</span>
+                          <span className="font-bold text-white">{data.avg}%</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full" style={{ width: `${data.avg}%` }} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-[11px] mb-1">
+                          <span className="text-slate-400">Best</span>
+                          <span className="font-bold text-emerald-400">{data.best}%</span>
+                        </div>
+                        <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full" style={{ width: `${data.best}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Performance Log */}
+          <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+            <div className="p-5 border-b border-violet-500/20 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                <Icon name="activity" className="w-4 h-4 text-cyan-400" glow />
+              </div>
+              <div>
+                <h3 className="text-base font-black tracking-tight">Performance Log</h3>
+                <p className="text-xs text-slate-400">{profileData.scores.length} recorded attempts</p>
+              </div>
+            </div>
+            {profileData.scores.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 text-sm">No test attempts recorded yet.</div>
+            ) : (
+              <div className="overflow-x-auto max-h-[500px]">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead className="sticky top-0 bg-[#0d0d12] z-10">
+                    <tr className="border-b border-violet-500/20 bg-slate-900/60 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                      <th className="p-4">#</th>
+                      <th className="p-4">Date</th>
+                      <th className="p-4">Module</th>
+                      <th className="p-4">Score</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-violet-500/10">
+                    {profileData.scores.map((s, idx) => (
+                      <tr key={s.id || idx} className="hover:bg-violet-500/[0.04] transition-colors">
+                        <td className="p-4 text-slate-500 font-mono text-xs">{profileData.scores.length - idx}</td>
+                        <td className="p-4 text-slate-400 text-xs">
+                          {s.created_at ? new Date(s.created_at).toLocaleString() : 'N/A'}
+                        </td>
+                        <td className="p-4">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${
+                            s.module_name === 'reading' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' :
+                            s.module_name === 'listening' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                            s.module_name === 'writing' ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30' :
+                            s.module_name === 'speaking' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                            'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                          }`}>
+                            {s.module_name}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className={`font-black text-lg ${
+                            (s.score || 0) >= 85 ? 'text-emerald-400' :
+                            (s.score || 0) >= 70 ? 'text-amber-400' : 'text-rose-400'
+                          }`}>
+                            {s.score}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Certificates */}
+          <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+            <div className="p-5 border-b border-violet-500/20 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <Icon name="shield" className="w-4 h-4 text-emerald-400" glow />
+              </div>
+              <div>
+                <h3 className="text-base font-black tracking-tight">Earned Certificates</h3>
+                <p className="text-xs text-slate-400">{profileData.certificates.length} issued</p>
+              </div>
+            </div>
+            {profileData.certificates.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 text-sm">No certificates earned yet.</div>
+            ) : (
+              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {profileData.certificates.map((cert, idx) => (
+                  <div key={cert.id || idx} className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 p-5 space-y-3">
+                    <div className="relative flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
+                        <Icon name="trophy" className="w-5 h-5 text-white" glow />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Certified</p>
+                        <p className="text-xs font-bold text-white truncate">
+                          {cert.certificate_code || cert.id?.substring(0, 12) || 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-400">Overall</span>
+                        <span className="font-black text-emerald-400">{cert.overall_score || 0}%</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-400">Issued</span>
+                        <span className="text-slate-300 font-mono text-[11px]">
+                          {cert.created_at ? new Date(cert.created_at).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Tickets */}
+          <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+            <div className="p-5 border-b border-violet-500/20 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center">
+                <Icon name="message-square" className="w-4 h-4 text-rose-400" glow />
+              </div>
+              <div>
+                <h3 className="text-base font-black tracking-tight">Support Tickets</h3>
+                <p className="text-xs text-slate-400">{profileData.tickets.length} submitted</p>
+              </div>
+            </div>
+            {profileData.tickets.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 text-sm">No support tickets submitted.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                      <th className="p-4">Subject</th>
+                      <th className="p-4">Category</th>
+                      <th className="p-4">Priority</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-violet-500/10">
+                    {profileData.tickets.map((t, idx) => (
+                      <tr key={t.id || idx} className="hover:bg-violet-500/[0.04] transition-colors">
+                        <td className="p-4 font-bold text-white text-sm">{t.subject}</td>
+                        <td className="p-4 text-slate-400 text-xs capitalize">{t.category}</td>
+                        <td className="p-4">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            t.priority === 'high' ? 'bg-rose-500/20 text-rose-300' :
+                            t.priority === 'medium' ? 'bg-amber-500/20 text-amber-300' :
+                            'bg-slate-500/20 text-slate-300'
+                          }`}>
+                            {t.priority}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                            t.status === 'open' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
+                          }`}>
+                            {t.status}
+                          </span>
+                        </td>
+                        <td className="p-4 text-slate-400 text-xs">
+                          {t.created_at ? new Date(t.created_at).toLocaleDateString() : 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
