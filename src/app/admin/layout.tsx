@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { Analytics } from '@vercel/analytics/next'
 
 export default function AdminLayout({
   children,
@@ -82,6 +83,7 @@ export default function AdminLayout({
   return (
     <div className="admin-layout-wrapper">
       {children}
+      <Analytics />
     </div>
   )
 }
