@@ -3892,9 +3892,6 @@ export default function Home() {
                   <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.26 0 3.18 2.62 1.2 6.62l4.07 3.14c.95-2.85 3.6-4.96 6.73-4.96z"/>
                 </svg>
                 <span>Continue with Google</span>
-                {isSignUpMode && !hasAcceptedTerms && (
-                  <span className="ml-auto text-[10px] font-mono opacity-70">Accept terms first</span>
-                )}
               </button>
 
               <div className="text-center text-[10px] text-slate-500 leading-relaxed">
