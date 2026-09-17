@@ -537,9 +537,725 @@ function getLevelMeta(level: string): typeof LEVEL_META[TutorialLevel] {
 }
 
 // ============================================
-// TAB TYPE
+// TAB TYPE — ⬅️ NEW: added 'bpo'
 // ============================================
-type AdminTab = 'overview' | 'users' | 'questions' | 'tutorials' | 'rankings' | 'statistics'
+type AdminTab = 'overview' | 'users' | 'questions' | 'tutorials' | 'bpo' | 'rankings' | 'statistics'
+
+// ============================================
+// ⬅️ NEW: BPO SUB-SECTIONS MAP
+// ============================================
+type BPOSection =
+  | 'bpo_industry_overview'
+  | 'bpo_historical_timeline'
+  | 'bpo_companies'
+  | 'bpo_job_roles'
+  | 'bpo_application_steps'
+  | 'bpo_required_documents'
+  | 'bpo_success_tips'
+
+const BPO_SECTIONS: Array<{
+  key: BPOSection
+  label: string
+  description: string
+  icon: string
+  gradient: string
+  singular: boolean
+  orderField?: string
+  orderDirection?: 'asc' | 'desc'
+}> = [
+  {
+    key: 'bpo_industry_overview',
+    label: 'Industry Overview',
+    description: 'Main introductory content, key statistics, and "Why Philippines" points',
+    icon: 'info',
+    gradient: 'from-violet-500 to-purple-500',
+    singular: true,
+  },
+  {
+    key: 'bpo_historical_timeline',
+    label: 'Historical Timeline',
+    description: 'Eras and milestones of the Philippine BPO industry',
+    icon: 'clock',
+    gradient: 'from-amber-500 to-orange-500',
+    singular: false,
+    orderField: 'display_order',
+    orderDirection: 'asc',
+  },
+  {
+    key: 'bpo_companies',
+    label: 'BPO Companies',
+    description: 'Major employers with histories, services, and application notes',
+    icon: 'academic',
+    gradient: 'from-cyan-500 to-blue-500',
+    singular: false,
+    orderField: 'display_order',
+    orderDirection: 'asc',
+  },
+  {
+    key: 'bpo_job_roles',
+    label: 'Job Roles',
+    description: 'Career paths, requirements, and salary ranges',
+    icon: 'layers',
+    gradient: 'from-emerald-500 to-teal-500',
+    singular: false,
+    orderField: 'display_order',
+    orderDirection: 'asc',
+  },
+  {
+    key: 'bpo_application_steps',
+    label: 'Application Steps',
+    description: 'Step-by-step guide for applying to BPO jobs',
+    icon: 'file-text',
+    gradient: 'from-fuchsia-500 to-pink-500',
+    singular: false,
+    orderField: 'step_number',
+    orderDirection: 'asc',
+  },
+  {
+    key: 'bpo_required_documents',
+    label: 'Required Documents',
+    description: 'Checklist of documents needed for BPO applications',
+    icon: 'shield',
+    gradient: 'from-rose-500 to-red-500',
+    singular: false,
+    orderField: 'display_order',
+    orderDirection: 'asc',
+  },
+  {
+    key: 'bpo_success_tips',
+    label: 'Success Tips',
+    description: 'Categorized tips for before, during, and after applying',
+    icon: 'sparkles',
+    gradient: 'from-yellow-500 to-amber-500',
+    singular: false,
+    orderField: 'display_order',
+    orderDirection: 'asc',
+  },
+]
+
+// ============================================
+// ⬅️ NEW: FIELD DEFINITIONS PER BPO TABLE
+// ============================================
+type FieldType = 'text' | 'textarea' | 'number' | 'boolean' | 'array' | 'json' | 'select'
+
+interface FieldDef {
+  key: string
+  label: string
+  type: FieldType
+  required?: boolean
+  placeholder?: string
+  options?: string[]
+  helpText?: string
+  rows?: number
+}
+
+const BPO_FIELD_DEFS: Record<BPOSection, FieldDef[]> = {
+  bpo_industry_overview: [
+    { key: 'title', label: 'Title', type: 'text', required: true },
+    { key: 'introduction', label: 'Introduction', type: 'textarea', required: true, rows: 10, placeholder: 'Multi-line introduction with bullet points...' },
+    { key: 'key_statistics', label: 'Key Statistics (JSON)', type: 'json', placeholder: '{"totalRevenue": "$38 Billion", "directEmployment": "2M+ Filipinos"}', helpText: 'Valid JSON object with string or array values' },
+    { key: 'why_philippines', label: 'Why Philippines (JSON Array)', type: 'json', placeholder: '[{"advantage": "English Proficiency", "description": "..."}]', helpText: 'Array of objects with advantage + description' },
+  ],
+  bpo_historical_timeline: [
+    { key: 'period', label: 'Period', type: 'text', required: true, placeholder: 'e.g., 2000-2005' },
+    { key: 'title', label: 'Title', type: 'text', required: true, placeholder: 'e.g., Rapid Expansion' },
+    { key: 'description', label: 'Description', type: 'textarea', required: true, rows: 5 },
+    { key: 'display_order', label: 'Display Order', type: 'number', placeholder: '1' },
+  ],
+  bpo_companies: [
+    { key: 'slug', label: 'Slug (unique)', type: 'text', required: true, placeholder: 'e.g., accenture' },
+    { key: 'name', label: 'Company Name', type: 'text', required: true },
+    { key: 'founded', label: 'Founded', type: 'text', placeholder: 'e.g., 1989 (Global: 1955)' },
+    { key: 'headquarters', label: 'Headquarters', type: 'text' },
+    { key: 'philippines_presence', label: 'Philippines Presence', type: 'textarea', rows: 2 },
+    { key: 'description', label: 'Description', type: 'textarea', rows: 3 },
+    { key: 'history', label: 'History', type: 'textarea', rows: 6 },
+    { key: 'services', label: 'Services (array)', type: 'array', helpText: 'One service per line' },
+    { key: 'website', label: 'Website URL', type: 'text', placeholder: 'https://...' },
+    { key: 'application_notes', label: 'Application Notes', type: 'textarea', rows: 3 },
+    { key: 'logo_url', label: 'Logo URL', type: 'text', placeholder: 'https://...' },
+    { key: 'is_active', label: 'Active (visible to users)', type: 'boolean' },
+    { key: 'display_order', label: 'Display Order', type: 'number' },
+  ],
+  bpo_job_roles: [
+    { key: 'title', label: 'Role Title', type: 'text', required: true },
+    { key: 'description', label: 'Description', type: 'textarea', rows: 3 },
+    { key: 'requirements', label: 'Requirements (array)', type: 'array', helpText: 'One requirement per line' },
+    { key: 'salary_range', label: 'Salary Range', type: 'text', placeholder: '₱15,000 - ₱30,000 monthly' },
+    { key: 'skills', label: 'Key Skills (array)', type: 'array', helpText: 'One skill per line' },
+    { key: 'display_order', label: 'Display Order', type: 'number' },
+    { key: 'is_active', label: 'Active', type: 'boolean' },
+  ],
+  bpo_application_steps: [
+    { key: 'step_number', label: 'Step Number', type: 'number', required: true },
+    { key: 'title', label: 'Step Title', type: 'text', required: true },
+    { key: 'description', label: 'Description', type: 'textarea', rows: 4 },
+    { key: 'tips', label: 'Tips (array)', type: 'array', helpText: 'One tip per line' },
+  ],
+  bpo_required_documents: [
+    { key: 'name', label: 'Document Name', type: 'text', required: true },
+    { key: 'description', label: 'Description', type: 'textarea', rows: 3 },
+    { key: 'is_required', label: 'Required?', type: 'boolean' },
+    { key: 'notes', label: 'Notes', type: 'textarea', rows: 2 },
+    { key: 'display_order', label: 'Display Order', type: 'number' },
+  ],
+  bpo_success_tips: [
+    { key: 'category', label: 'Category', type: 'select', required: true, options: ['beforeApplying', 'duringInterview', 'onTheJob', 'healthAndWellness'] },
+    { key: 'tip', label: 'Tip', type: 'textarea', required: true, rows: 3 },
+    { key: 'display_order', label: 'Display Order', type: 'number' },
+  ],
+}
+
+// ============================================
+// ⬅️ NEW: BPO EDITOR COMPONENT
+// ============================================
+function BPOEditorView({ Icon }: { Icon: any }) {
+  const [activeSection, setActiveSection] = useState<BPOSection>('bpo_industry_overview')
+  const [records, setRecords] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [errorMsg, setErrorMsg] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [editingRecord, setEditingRecord] = useState<any | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
+
+  const currentSection = BPO_SECTIONS.find(s => s.key === activeSection)!
+  const fieldDefs = BPO_FIELD_DEFS[activeSection]
+
+  // ============================================
+  // LOAD RECORDS
+  // ============================================
+  const loadRecords = async () => {
+    setLoading(true)
+    setErrorMsg('')
+    try {
+      let query = supabase.from(activeSection).select('*')
+
+      if (currentSection.orderField) {
+        query = query.order(currentSection.orderField, {
+          ascending: currentSection.orderDirection !== 'desc',
+        })
+      } else if (!currentSection.singular) {
+        query = query.order('created_at', { ascending: false })
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      setRecords(data || [])
+    } catch (err: any) {
+      console.error(`Error loading ${activeSection}:`, err.message)
+      setErrorMsg(err.message || 'Failed to load records')
+      setRecords([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadRecords()
+    setEditingRecord(null)
+    setIsCreating(false)
+    setSearchQuery('')
+  }, [activeSection])
+
+  // ============================================
+  // SEARCH FILTER
+  // ============================================
+  const filteredRecords = useMemo(() => {
+    if (!searchQuery.trim()) return records
+    const q = searchQuery.toLowerCase()
+    return records.filter((rec) =>
+      Object.values(rec).some((val) => {
+        if (val === null || val === undefined) return false
+        if (typeof val === 'string') return val.toLowerCase().includes(q)
+        if (typeof val === 'number') return String(val).includes(q)
+        if (Array.isArray(val)) return val.join(' ').toLowerCase().includes(q)
+        return false
+      })
+    )
+  }, [records, searchQuery])
+
+  // ============================================
+  // OPEN CREATE / EDIT
+  // ============================================
+  const openCreate = () => {
+    const initial: any = {}
+    fieldDefs.forEach((f) => {
+      if (f.type === 'boolean') initial[f.key] = f.key === 'is_required' ? true : f.key === 'is_active' ? true : false
+      else if (f.type === 'number') initial[f.key] = 0
+      else if (f.type === 'array') initial[f.key] = []
+      else if (f.type === 'json') initial[f.key] = f.key === 'why_philippines' ? [] : {}
+      else if (f.type === 'select') initial[f.key] = f.options?.[0] || ''
+      else initial[f.key] = ''
+    })
+    setEditingRecord(initial)
+    setIsCreating(true)
+  }
+
+  const openEdit = (rec: any) => {
+    setEditingRecord({ ...rec })
+    setIsCreating(false)
+  }
+
+  const cancelEdit = () => {
+    setEditingRecord(null)
+    setIsCreating(false)
+    setErrorMsg('')
+  }
+
+  // ============================================
+  // SAVE
+  // ============================================
+  const handleSave = async () => {
+    if (!editingRecord) return
+    setSaving(true)
+    setErrorMsg('')
+
+    try {
+      // Strip internal fields
+      const { id, created_at, updated_at, ...payload } = editingRecord
+
+      // Validate required fields
+      for (const f of fieldDefs) {
+        if (f.required && !payload[f.key] && payload[f.key] !== 0) {
+          throw new Error(`Field "${f.label}" is required.`)
+        }
+      }
+
+      if (isCreating) {
+        const { error } = await supabase.from(activeSection).insert([payload])
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from(activeSection).update(payload).eq('id', id)
+        if (error) throw error
+      }
+
+      await loadRecords()
+      cancelEdit()
+    } catch (err: any) {
+      console.error('Save error:', err.message)
+      setErrorMsg(err.message || 'Failed to save record')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ============================================
+  // DELETE
+  // ============================================
+  const handleDelete = async (id: string, label: string) => {
+    if (!confirm(`Delete "${label}"? This cannot be undone.`)) return
+
+    try {
+      const { error } = await supabase.from(activeSection).delete().eq('id', id)
+      if (error) throw error
+      await loadRecords()
+    } catch (err: any) {
+      console.error('Delete error:', err.message)
+      alert('Delete failed: ' + err.message)
+    }
+  }
+
+  // ============================================
+  // FIELD VALUE CHANGE
+  // ============================================
+  const setFieldValue = (key: string, value: any) => {
+    setEditingRecord((prev: any) => ({ ...prev, [key]: value }))
+  }
+
+  // ============================================
+  // GET PRIMARY LABEL FOR A RECORD
+  // ============================================
+  const getRecordLabel = (rec: any): string => {
+    if (!rec) return 'Record'
+    return (
+      rec.title ||
+      rec.name ||
+      rec.period ||
+      rec.tip?.substring(0, 60) ||
+      rec.step_number?.toString() ||
+      rec.slug ||
+      rec.id?.substring(0, 8) ||
+      'Record'
+    )
+  }
+
+  // ============================================
+  // RENDER FIELD INPUT
+  // ============================================
+  const renderField = (f: FieldDef) => {
+    const value = editingRecord?.[f.key]
+
+    const baseInput =
+      'w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-violet-500/20 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400 transition-colors'
+
+    switch (f.type) {
+      case 'textarea':
+        return (
+          <textarea
+            value={value || ''}
+            onChange={(e) => setFieldValue(f.key, e.target.value)}
+            placeholder={f.placeholder}
+            rows={f.rows || 4}
+            className={`${baseInput} leading-relaxed font-mono text-[13px]`}
+          />
+        )
+
+      case 'number':
+        return (
+          <input
+            type="number"
+            value={value ?? 0}
+            onChange={(e) => setFieldValue(f.key, Number(e.target.value))}
+            placeholder={f.placeholder}
+            className={baseInput}
+          />
+        )
+
+      case 'boolean':
+        return (
+          <button
+            type="button"
+            onClick={() => setFieldValue(f.key, !value)}
+            className={`relative inline-flex items-center gap-3 px-4 py-3 rounded-xl border transition-all w-full ${
+              value
+                ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                : 'bg-slate-900 border-slate-700 text-slate-400'
+            }`}
+          >
+            <span className={`relative w-10 h-6 rounded-full transition-colors ${value ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${value ? 'translate-x-4' : ''}`} />
+            </span>
+            <span className="text-xs font-bold uppercase tracking-wider">
+              {value ? 'Enabled' : 'Disabled'}
+            </span>
+          </button>
+        )
+
+      case 'array':
+        return (
+          <textarea
+            value={Array.isArray(value) ? value.join('\n') : ''}
+            onChange={(e) =>
+              setFieldValue(f.key, e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))
+            }
+            placeholder={f.placeholder || 'One item per line'}
+            rows={5}
+            className={`${baseInput} leading-relaxed font-mono text-[13px]`}
+          />
+        )
+
+      case 'json':
+        return (
+          <textarea
+            value={typeof value === 'object' ? JSON.stringify(value, null, 2) : value || ''}
+            onChange={(e) => {
+              try {
+                setFieldValue(f.key, JSON.parse(e.target.value))
+              } catch {
+                setFieldValue(f.key, e.target.value) // store invalid JSON as string; will error on save
+              }
+            }}
+            placeholder={f.placeholder}
+            rows={6}
+            className={`${baseInput} leading-relaxed font-mono text-[13px]`}
+          />
+        )
+
+      case 'select':
+        return (
+          <select
+            value={value || ''}
+            onChange={(e) => setFieldValue(f.key, e.target.value)}
+            className={`${baseInput} cursor-pointer`}
+          >
+            {f.options?.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        )
+
+      default:
+        return (
+          <input
+            type="text"
+            value={value || ''}
+            onChange={(e) => setFieldValue(f.key, e.target.value)}
+            placeholder={f.placeholder}
+            className={baseInput}
+          />
+        )
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 via-[#151520]/80 to-blue-500/5 backdrop-blur-xl p-5 sm:p-8">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-cyan-500/20 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
+
+        <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-bold uppercase tracking-widest text-cyan-300">
+              <Icon name="database" className="w-3 h-3" glow />
+              BPO Industry Content
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+              BPO <span className="bg-gradient-to-r from-cyan-300 via-blue-300 to-violet-300 bg-clip-text text-transparent">Knowledge Base</span>
+            </h2>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Manage the BPO Industry Guide shown in the user learning module. Edit companies, timeline, application steps, documents, and tips.
+            </p>
+          </div>
+
+          <button
+            onClick={loadRecords}
+            disabled={loading}
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900/70 border border-cyan-500/30 hover:border-cyan-400/60 text-cyan-300 font-bold text-xs transition-all shrink-0 disabled:opacity-50"
+          >
+            <Icon name="refresh" className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span>{loading ? 'Syncing...' : 'Refresh'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Sub-section tabs */}
+      <div className="flex flex-wrap gap-2">
+        {BPO_SECTIONS.map((section) => {
+          const isActive = activeSection === section.key
+          return (
+            <button
+              key={section.key}
+              onClick={() => setActiveSection(section.key)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                isActive
+                  ? `bg-gradient-to-r ${section.gradient} text-white border-transparent shadow-lg`
+                  : 'bg-slate-900/50 text-slate-400 border-violet-500/20 hover:text-white hover:border-violet-400/40'
+              }`}
+            >
+              <Icon name={section.icon} className="w-3.5 h-3.5" />
+              <span>{section.label}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Info banner */}
+      <div className="p-4 rounded-2xl bg-violet-500/5 border border-violet-500/20 flex items-start gap-3">
+        <Icon name="info" className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" glow />
+        <div className="space-y-1">
+          <p className="text-xs font-bold text-violet-300 uppercase tracking-wider">{currentSection.label}</p>
+          <p className="text-[12px] text-slate-400 leading-relaxed">{currentSection.description}</p>
+        </div>
+      </div>
+
+      {errorMsg && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm flex items-center justify-between gap-3">
+          <span className="flex-1">{errorMsg}</span>
+          <button onClick={() => setErrorMsg('')} className="text-xs font-bold uppercase underline shrink-0">
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* ============ EDITING / CREATING VIEW ============ */}
+      {editingRecord && (
+        <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-[#151520]/90 backdrop-blur-xl p-5 sm:p-8">
+          <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${isCreating ? 'from-emerald-500 to-teal-500' : 'from-blue-500 to-cyan-500'} flex items-center justify-center shadow-lg`}>
+                <Icon name={isCreating ? 'plus' : 'edit'} className="w-5 h-5 text-white" glow />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                  {isCreating ? 'Create' : 'Edit'} Mode
+                </p>
+                <h3 className="text-lg font-black">{currentSection.label}</h3>
+              </div>
+            </div>
+            <button
+              onClick={cancelEdit}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/60 transition"
+              aria-label="Close editor"
+            >
+              <Icon name="x" className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5">
+            {fieldDefs.map((f) => (
+              <div key={f.key} className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                  {f.label}
+                  {f.required && <span className="text-rose-400">*</span>}
+                </label>
+                {renderField(f)}
+                {f.helpText && (
+                  <p className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5">
+                    <Icon name="info" className="w-3 h-3" />
+                    {f.helpText}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-emerald-500/20">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all disabled:opacity-50"
+            >
+              {saving ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Icon name="check" className="w-4 h-4" />
+                  <span>{isCreating ? 'Create Record' : 'Save Changes'}</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={cancelEdit}
+              disabled={saving}
+              className="flex-1 sm:flex-none px-6 py-3.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm hover:bg-slate-700 disabled:opacity-50 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ============ LIST VIEW ============ */}
+      {!editingRecord && (
+        <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+          <div className="p-5 border-b border-violet-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-black tracking-tight">{currentSection.label}</h3>
+              <p className="text-xs text-slate-400">
+                {filteredRecords.length} record{filteredRecords.length === 1 ? '' : 's'}
+                {searchQuery && ` (filtered from ${records.length})`}
+              </p>
+            </div>
+            <div className="flex gap-3 flex-col sm:flex-row">
+              <div className="relative flex-1 sm:w-64">
+                <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search records..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400"
+                />
+              </div>
+              <button
+                onClick={openCreate}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-violet-500/30 hover:shadow-xl transition-all shrink-0"
+              >
+                <Icon name="plus" className="w-4 h-4" />
+                <span>Add New</span>
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="p-12 text-center text-slate-400 text-sm">Loading records...</div>
+          ) : filteredRecords.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="inline-flex flex-col items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                  <Icon name="database" className="w-7 h-7 text-violet-400" glow />
+                </div>
+                <p className="text-slate-300 font-bold">
+                  {records.length === 0 ? 'No records yet' : 'No matches found'}
+                </p>
+                <p className="text-xs text-slate-500 max-w-sm">
+                  {records.length === 0
+                    ? `Click "Add New" to create the first record for ${currentSection.label}.`
+                    : 'Try adjusting your search query.'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="divide-y divide-violet-500/10 max-h-[600px] overflow-y-auto">
+              {filteredRecords.map((rec, idx) => {
+                const label = getRecordLabel(rec)
+                return (
+                  <div
+                    key={rec.id || idx}
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-violet-500/[0.04] transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className={`w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br ${currentSection.gradient} flex items-center justify-center text-white font-black text-sm`}>
+                        {idx + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-white truncate">{label}</p>
+                        <p className="text-[11px] text-slate-500 font-mono truncate">
+                          {rec.id}
+                        </p>
+                        {/* Meta preview */}
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {typeof rec.is_active === 'boolean' && (
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              rec.is_active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-500/15 text-slate-400'
+                            }`}>
+                              {rec.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                          )}
+                          {typeof rec.is_required === 'boolean' && (
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              rec.is_required ? 'bg-rose-500/15 text-rose-400' : 'bg-slate-500/15 text-slate-400'
+                            }`}>
+                              {rec.is_required ? 'Required' : 'Optional'}
+                            </span>
+                          )}
+                          {rec.category && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-violet-500/15 text-violet-300">
+                              {rec.category}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                      <button
+                        onClick={() => openEdit(rec)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold transition-all"
+                      >
+                        <Icon name="edit" className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(rec.id, label)}
+                        className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold transition-all"
+                      >
+                        <Icon name="trash" className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ============================================
 // MAIN ADMIN DASHBOARD
 // ============================================
@@ -611,6 +1327,19 @@ export default function AdminDashboardPage() {
   const [tContent, setTContent] = useState('')
   const [expandedTutorialId, setExpandedTutorialId] = useState<string | null>(null)
 
+  // ============================================
+  // ⬅️ NEW: BPO COUNTS STATE (for badge in sidebar)
+  // ============================================
+  const [bpoCounts, setBpoCounts] = useState<Record<BPOSection, number>>({
+    bpo_industry_overview: 0,
+    bpo_historical_timeline: 0,
+    bpo_companies: 0,
+    bpo_job_roles: 0,
+    bpo_application_steps: 0,
+    bpo_required_documents: 0,
+    bpo_success_tips: 0,
+  })
+
   const router = useRouter()
 
   // Live clock
@@ -665,6 +1394,28 @@ export default function AdminDashboardPage() {
       if (tutorialsError) throw tutorialsError
       if (tutorialsData) setTutorials(tutorialsData)
 
+      // ⬅️ NEW: Load BPO counts
+      const bpoTableNames: BPOSection[] = [
+        'bpo_industry_overview',
+        'bpo_historical_timeline',
+        'bpo_companies',
+        'bpo_job_roles',
+        'bpo_application_steps',
+        'bpo_required_documents',
+        'bpo_success_tips',
+      ]
+
+      const countResults = await Promise.all(
+        bpoTableNames.map((t) =>
+          supabase.from(t).select('*', { count: 'exact', head: true })
+        )
+      )
+
+      const counts: Record<string, number> = {}
+      bpoTableNames.forEach((name, i) => {
+        counts[name] = countResults[i].count ?? 0
+      })
+      setBpoCounts(counts as Record<BPOSection, number>)
     } catch (err: any) {
       console.error('Error loading admin dashboard data:', err)
       setErrorMsg('Failed to fetch data: ' + (err.message || 'Unknown error (Check RLS Policies or Table Name)'))
@@ -831,7 +1582,6 @@ export default function AdminDashboardPage() {
   // ============================================
   const handleUpdatePassword = async (userId: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
     try {
-      // Hash the password with bcrypt (cost 12)
       const salt = await bcrypt.genSalt(12)
       const passwordHash = await bcrypt.hash(newPassword, salt)
 
@@ -1375,8 +2125,13 @@ export default function AdminDashboardPage() {
   }, [allScores, users])
 
   // ============================================
-  // SIDEBAR NAV ITEMS
+  // SIDEBAR NAV ITEMS — ⬅️ NEW: added BPO item
   // ============================================
+  const totalBpoRecords = useMemo(
+    () => Object.values(bpoCounts).reduce((a, b) => a + b, 0),
+    [bpoCounts]
+  )
+
   const navItems: Array<{
     key: AdminTab
     label: string
@@ -1389,6 +2144,8 @@ export default function AdminDashboardPage() {
     { key: 'users', label: 'Users', icon: 'users', gradient: 'from-cyan-500 to-blue-500', badge: users.length, section: 'main' },
     { key: 'questions', label: 'Question Bank', icon: 'book', gradient: 'from-amber-500 to-orange-500', badge: questions.length, section: 'content' },
     { key: 'tutorials', label: 'Tutorials & Lessons', icon: 'graduation-cap', gradient: 'from-emerald-500 to-teal-500', badge: tutorials.length, section: 'content' },
+    // ⬅️ NEW: BPO Industry item
+    { key: 'bpo', label: 'BPO Industry', icon: 'database', gradient: 'from-cyan-500 to-blue-500', badge: totalBpoRecords, section: 'content' },
     { key: 'rankings', label: 'Rankings', icon: 'trophy', gradient: 'from-yellow-500 to-amber-500', badge: rankings.length, section: 'analytics' },
     { key: 'statistics', label: 'Analytics', icon: 'bar-chart', gradient: 'from-fuchsia-500 to-pink-500', section: 'analytics' },
   ]
@@ -1452,7 +2209,7 @@ export default function AdminDashboardPage() {
               <div className="min-w-0 transition-opacity duration-200">
                 <h1 className="text-sm font-black tracking-tight leading-none truncate">Admin Console</h1>
                 <p className="text-[10px] font-mono text-violet-400 uppercase tracking-widest mt-1 truncate">
-                  v3.1.0
+                  v3.2.0
                 </p>
               </div>
             )}
@@ -1646,6 +2403,7 @@ export default function AdminDashboardPage() {
                   {activeTab === 'users' && 'Manage user accounts & permissions'}
                   {activeTab === 'questions' && 'Create, edit, and delete questions'}
                   {activeTab === 'tutorials' && 'Publish and organize training lessons'}
+                  {activeTab === 'bpo' && 'Manage BPO industry knowledge base'}
                   {activeTab === 'rankings' && 'Leaderboard and top performers'}
                   {activeTab === 'statistics' && 'Platform analytics & insights'}
                 </p>
@@ -1718,20 +2476,21 @@ export default function AdminDashboardPage() {
                         Welcome back, <span className="bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">Administrator</span>
                       </h2>
                       <p className="text-sm text-slate-400 leading-relaxed max-w-2xl">
-                        Oversee users, manage your question bank, publish training lessons, and analyze platform performance — all from one place.
+                        Oversee users, manage your question bank, publish training lessons, curate BPO industry knowledge, and analyze platform performance — all from one place.
                       </p>
                     </div>
                   </div>
 
                   {/* Quick Stats Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
                     {[
                       { label: 'Users', value: stats.totalUsers, icon: 'users', gradient: 'from-violet-500 to-purple-500' },
                       { label: 'Admins', value: stats.admins, icon: 'crown', gradient: 'from-amber-500 to-orange-500' },
                       { label: 'Questions', value: stats.totalQuestions, icon: 'book', gradient: 'from-cyan-500 to-blue-500' },
                       { label: 'Lessons', value: tutorialStats.total, icon: 'graduation-cap', gradient: 'from-emerald-500 to-teal-500' },
+                      { label: 'BPO Items', value: totalBpoRecords, icon: 'database', gradient: 'from-cyan-500 to-blue-500' },
                       { label: 'Attempts', value: platformStats.totalAttempts, icon: 'activity', gradient: 'from-fuchsia-500 to-pink-500' },
-                      { label: 'Ranked Users', value: rankings.length, icon: 'trophy', gradient: 'from-yellow-500 to-amber-500' },
+                      { label: 'Ranked', value: rankings.length, icon: 'trophy', gradient: 'from-yellow-500 to-amber-500' },
                     ].map((stat) => (
                       <div key={stat.label} className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-4">
                         <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl`} />
@@ -1852,7 +2611,7 @@ export default function AdminDashboardPage() {
                       <Icon name="zap" className="w-4 h-4 text-violet-400" glow />
                       Quick Actions
                     </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                       <button
                         onClick={openCreateQuestionModal}
                         className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/30 hover:border-amber-400/60 transition-all text-left group"
@@ -1868,6 +2627,14 @@ export default function AdminDashboardPage() {
                         <Icon name="graduation-cap" className="w-5 h-5 text-emerald-400 mb-2" glow />
                         <p className="text-xs font-bold text-white">New Lesson</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">Publish training</p>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('bpo')}
+                        className="p-4 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/30 hover:border-cyan-400/60 transition-all text-left group"
+                      >
+                        <Icon name="database" className="w-5 h-5 text-cyan-400 mb-2" glow />
+                        <p className="text-xs font-bold text-white">BPO Content</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Manage knowledge</p>
                       </button>
                       <button
                         onClick={() => setActiveTab('rankings')}
@@ -2291,6 +3058,9 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
               )}
+
+              {/* ============ ⬅️ NEW: BPO TAB ============ */}
+              {activeTab === 'bpo' && <BPOEditorView Icon={Icon} />}
 
               {/* ============ RANKINGS TAB ============ */}
               {activeTab === 'rankings' && (
@@ -2950,6 +3720,7 @@ export default function AdminDashboardPage() {
     </div>
   )
 }
+
 // ============================================
 // SIDEBAR ITEM COMPONENT
 // ============================================
@@ -3020,7 +3791,7 @@ function SidebarItem({
 }
 
 // ============================================
-// USER PROFILE VIEW COMPONENT
+// USER PROFILE VIEW COMPONENT (unchanged)
 // ============================================
 function UserProfileView({
   profileData,
@@ -3116,7 +3887,6 @@ function UserProfileView({
     setPasswordError('')
     setPasswordSuccess('')
 
-    // Validation
     if (!newPassword.trim() || !confirmPassword.trim()) {
       setPasswordError('Please fill in both password fields.')
       return
@@ -3142,7 +3912,6 @@ function UserProfileView({
       setPasswordSuccess('Password updated successfully! The user can now sign in with the new password.')
       setNewPassword('')
       setConfirmPassword('')
-      // Auto-close after 2.5s
       setTimeout(() => {
         setShowPasswordModal(false)
         setPasswordSuccess('')
@@ -3288,11 +4057,8 @@ function UserProfileView({
             ))}
           </div>
 
-          {/* ============================================ */}
           {/* LEARNING PROGRESS SECTION */}
-          {/* ============================================ */}
           <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
-            {/* Header */}
             <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-lg">
@@ -3306,7 +4072,6 @@ function UserProfileView({
                 </div>
               </div>
 
-              {/* Progress ring */}
               <div className="flex items-center gap-3">
                 <div className="relative w-16 h-16">
                   <svg className="transform -rotate-90 w-16 h-16">
@@ -3333,7 +4098,6 @@ function UserProfileView({
               </div>
             </div>
 
-            {/* Level breakdown */}
             {learningProfileStats.totalLessons === 0 ? (
               <div className="p-8 text-center text-slate-500 text-sm border-t border-violet-500/10 pt-6">
                 No lessons have been published yet.
@@ -3344,7 +4108,6 @@ function UserProfileView({
               </div>
             ) : (
               <>
-                {/* Level cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
                   {(['beginner', 'intermediate', 'upper_intermediate', 'advanced'] as TutorialLevel[]).map((level) => {
                     const meta = getLevelMeta(level)
@@ -3383,7 +4146,6 @@ function UserProfileView({
                   })}
                 </div>
 
-                {/* Recently completed lessons */}
                 {learningProfileStats.recentlyCompleted.length > 0 && (
                   <div className="border-t border-violet-500/10 pt-6">
                     <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
@@ -3425,7 +4187,6 @@ function UserProfileView({
               </>
             )}
           </div>
-          {/* ============ END LEARNING PROGRESS SECTION ============ */}
 
           {/* Module Stats */}
           {Object.keys(profileStats.moduleStats).length > 0 && (
@@ -3635,13 +4396,10 @@ function UserProfileView({
         </>
       )}
 
-      {/* ============================================ */}
       {/* PASSWORD UPDATE MODAL */}
-      {/* ============================================ */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
           <div className="relative w-full max-w-md rounded-3xl border border-emerald-500/30 bg-[#151520] p-6 sm:p-8 shadow-2xl space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between border-b border-emerald-500/20 pb-4">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
@@ -3663,7 +4421,6 @@ function UserProfileView({
               </button>
             </div>
 
-            {/* Target user info */}
             <div className="p-3 rounded-xl bg-slate-900/40 border border-violet-500/20 flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
                 profileData.user.is_admin
@@ -3678,7 +4435,6 @@ function UserProfileView({
               </div>
             </div>
 
-            {/* Alerts */}
             {passwordError && (
               <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm flex items-start gap-2">
                 <Icon name="alert-circle" className="w-4 h-4 shrink-0 mt-0.5" glow />
@@ -3692,9 +4448,7 @@ function UserProfileView({
               </div>
             )}
 
-            {/* Form */}
             <form onSubmit={handlePasswordSubmit} className="space-y-5">
-              {/* New Password */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                   New Password
@@ -3724,7 +4478,6 @@ function UserProfileView({
                 </div>
               </div>
 
-              {/* Password strength */}
               {newPassword && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -3761,7 +4514,6 @@ function UserProfileView({
                 </div>
               )}
 
-              {/* Confirm Password */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                   Confirm Password
@@ -3807,7 +4559,6 @@ function UserProfileView({
                 )}
               </div>
 
-              {/* Info note */}
               <div className="p-3 rounded-xl bg-violet-500/5 border border-violet-500/20">
                 <p className="text-[11px] text-slate-400 leading-relaxed flex items-start gap-2">
                   <Icon name="info" className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
@@ -3817,7 +4568,6 @@ function UserProfileView({
                 </p>
               </div>
 
-              {/* Actions */}
               <div className="flex gap-3 pt-2 border-t border-emerald-500/20">
                 <button
                   type="button"
