@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import bcrypt from 'bcryptjs'
 import { supabase } from '@/lib/supabase'
 
 // ============================================
@@ -311,6 +312,34 @@ function Icon({ name, className = "w-5 h-5", glow = false }: IconProps) {
       return (
         <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.5l2.63 5.33 5.88.85-4.25 4.14 1 5.85L12 16.9l-5.26 2.77 1-5.85L3.5 9.68l5.87-.85L12 3.5z" />
+        </svg>
+      )
+    case 'key':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="8" cy="15" r="4" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M10.85 12.15L19 4m-3 0l3 3m-5 2l3 3" />
+        </svg>
+      )
+    case 'lock':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M7 11V7a5 5 0 0110 0v4" />
+        </svg>
+      )
+    case 'eye':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      )
+    case 'eye-off':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M1 1l22 22" />
         </svg>
       )
     default:
@@ -794,6 +823,29 @@ export default function AdminDashboardPage() {
     } catch (err: any) {
       console.error('Error deleting user:', err)
       alert('Deletion failed: ' + err.message)
+    }
+  }
+
+  // ============================================
+  // PASSWORD UPDATE HANDLER
+  // ============================================
+  const handleUpdatePassword = async (userId: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      // Hash the password with bcrypt (cost 12)
+      const salt = await bcrypt.genSalt(12)
+      const passwordHash = await bcrypt.hash(newPassword, salt)
+
+      const { error } = await supabase
+        .from('users')
+        .update({ password_hash: passwordHash })
+        .eq('id', userId)
+
+      if (error) throw error
+
+      return { success: true, message: 'Password updated successfully.' }
+    } catch (err: any) {
+      console.error('Error updating password:', err)
+      return { success: false, message: err.message || 'Failed to update password.' }
     }
   }
 
@@ -1641,6 +1693,7 @@ export default function AdminDashboardPage() {
               closeUserProfile={closeUserProfile}
               handleToggleAdmin={handleToggleAdmin}
               handleDeleteUser={handleDeleteUser}
+              handleUpdatePassword={handleUpdatePassword}
               adminEmail={adminEmail}
               learningProfileStats={learningProfileStats}
               tutorials={tutorials}
@@ -2976,6 +3029,7 @@ function UserProfileView({
   closeUserProfile,
   handleToggleAdmin,
   handleDeleteUser,
+  handleUpdatePassword,
   adminEmail,
   learningProfileStats,
   tutorials,
@@ -3001,6 +3055,7 @@ function UserProfileView({
   closeUserProfile: () => void
   handleToggleAdmin: (userId: string, currentStatus: boolean, userEmail: string) => void
   handleDeleteUser: (userId: string, userEmail: string) => void
+  handleUpdatePassword: (userId: string, newPassword: string) => Promise<{ success: boolean; message: string }>
   adminEmail: string
   learningProfileStats: {
     totalLessons: number
@@ -3011,6 +3066,92 @@ function UserProfileView({
   }
   tutorials: any[]
 }) {
+  // ============================================
+  // PASSWORD UPDATE MODAL STATE
+  // ============================================
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+  const [showPasswordValue, setShowPasswordValue] = useState(false)
+  const [showConfirmPasswordValue, setShowConfirmPasswordValue] = useState(false)
+
+  // Reset modal state when opened
+  useEffect(() => {
+    if (showPasswordModal) {
+      setNewPassword('')
+      setConfirmPassword('')
+      setPasswordError('')
+      setPasswordSuccess('')
+      setShowPasswordValue(false)
+      setShowConfirmPasswordValue(false)
+    }
+  }, [showPasswordModal])
+
+  // ============================================
+  // PASSWORD STRENGTH CALCULATOR
+  // ============================================
+  const passwordStrength = useMemo(() => {
+    if (!newPassword) return { score: 0, label: '', color: '', width: '0%' }
+    let score = 0
+    if (newPassword.length >= 8) score++
+    if (newPassword.length >= 12) score++
+    if (/[A-Z]/.test(newPassword)) score++
+    if (/[a-z]/.test(newPassword)) score++
+    if (/[0-9]/.test(newPassword)) score++
+    if (/[^A-Za-z0-9]/.test(newPassword)) score++
+
+    if (score <= 2) return { score, label: 'Weak', color: 'text-rose-400', bg: 'bg-rose-500', width: '25%' }
+    if (score <= 4) return { score, label: 'Fair', color: 'text-amber-400', bg: 'bg-amber-500', width: '60%' }
+    return { score, label: 'Strong', color: 'text-emerald-400', bg: 'bg-emerald-500', width: '100%' }
+  }, [newPassword])
+
+  // ============================================
+  // HANDLE PASSWORD SUBMIT
+  // ============================================
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordError('')
+    setPasswordSuccess('')
+
+    // Validation
+    if (!newPassword.trim() || !confirmPassword.trim()) {
+      setPasswordError('Please fill in both password fields.')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters long.')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.')
+      return
+    }
+
+    setIsUpdatingPassword(true)
+
+    const result = await handleUpdatePassword(profileData.user.id, newPassword)
+
+    setIsUpdatingPassword(false)
+
+    if (result.success) {
+      setPasswordSuccess('Password updated successfully! The user can now sign in with the new password.')
+      setNewPassword('')
+      setConfirmPassword('')
+      // Auto-close after 2.5s
+      setTimeout(() => {
+        setShowPasswordModal(false)
+        setPasswordSuccess('')
+      }, 2500)
+    } else {
+      setPasswordError(result.message)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <button
@@ -3080,6 +3221,13 @@ function UserProfileView({
           </div>
 
           <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold text-xs transition-all"
+            >
+              <Icon name="key" className="w-4 h-4" />
+              <span>Update Password</span>
+            </button>
             <button
               onClick={() => handleToggleAdmin(profileData.user.id, profileData.user.is_admin, profileData.user.email)}
               className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-xs border transition-all ${
@@ -3485,6 +3633,224 @@ function UserProfileView({
             )}
           </div>
         </>
+      )}
+
+      {/* ============================================ */}
+      {/* PASSWORD UPDATE MODAL */}
+      {/* ============================================ */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
+          <div className="relative w-full max-w-md rounded-3xl border border-emerald-500/30 bg-[#151520] p-6 sm:p-8 shadow-2xl space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                  <Icon name="key" className="w-5 h-5 text-white" glow />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 block">
+                    Security Update
+                  </span>
+                  <h3 className="text-lg font-black text-white">Update Password</h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="w-9 h-9 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/50 transition"
+                aria-label="Close"
+              >
+                <Icon name="x" className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Target user info */}
+            <div className="p-3 rounded-xl bg-slate-900/40 border border-violet-500/20 flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+                profileData.user.is_admin
+                  ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white'
+                  : 'bg-gradient-to-br from-violet-600 to-purple-600 text-white'
+              }`}>
+                {(profileData.user.name || profileData.user.email || '?').charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-white truncate">{profileData.user.name || 'Unnamed User'}</p>
+                <p className="text-[11px] text-slate-400 font-mono truncate">{profileData.user.email}</p>
+              </div>
+            </div>
+
+            {/* Alerts */}
+            {passwordError && (
+              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm flex items-start gap-2">
+                <Icon name="alert-circle" className="w-4 h-4 shrink-0 mt-0.5" glow />
+                <span>{passwordError}</span>
+              </div>
+            )}
+            {passwordSuccess && (
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm flex items-start gap-2">
+                <Icon name="check" className="w-4 h-4 shrink-0 mt-0.5" glow />
+                <span>{passwordSuccess}</span>
+              </div>
+            )}
+
+            {/* Form */}
+            <form onSubmit={handlePasswordSubmit} className="space-y-5">
+              {/* New Password */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  New Password
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <Icon name="lock" className="w-4 h-4 text-slate-500" />
+                  </div>
+                  <input
+                    type={showPasswordValue ? 'text' : 'password'}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password (min 8 chars)"
+                    className="w-full pl-10 pr-12 py-3.5 bg-slate-900 rounded-xl border border-emerald-500/20 text-sm focus:outline-none focus:border-emerald-400 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordValue(!showPasswordValue)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-300 transition"
+                    aria-label={showPasswordValue ? 'Hide password' : 'Show password'}
+                  >
+                    <Icon name={showPasswordValue ? 'eye-off' : 'eye'} className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Password strength */}
+              {newPassword && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      Strength
+                    </span>
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${passwordStrength.color}`}>
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${passwordStrength.bg} rounded-full transition-all duration-300`}
+                      style={{ width: passwordStrength.width }}
+                    />
+                  </div>
+                  <ul className="grid grid-cols-2 gap-1 text-[10px] font-mono text-slate-500">
+                    <li className={newPassword.length >= 8 ? 'text-emerald-400' : ''}>
+                      {newPassword.length >= 8 ? '✓' : '○'} 8+ characters
+                    </li>
+                    <li className={/[A-Z]/.test(newPassword) ? 'text-emerald-400' : ''}>
+                      {/[A-Z]/.test(newPassword) ? '✓' : '○'} Uppercase
+                    </li>
+                    <li className={/[a-z]/.test(newPassword) ? 'text-emerald-400' : ''}>
+                      {/[a-z]/.test(newPassword) ? '✓' : '○'} Lowercase
+                    </li>
+                    <li className={/[0-9]/.test(newPassword) ? 'text-emerald-400' : ''}>
+                      {/[0-9]/.test(newPassword) ? '✓' : '○'} Number
+                    </li>
+                    <li className={/[^A-Za-z0-9]/.test(newPassword) ? 'text-emerald-400' : ''}>
+                      {/[^A-Za-z0-9]/.test(newPassword) ? '✓' : '○'} Symbol
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {/* Confirm Password */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <Icon name="lock" className="w-4 h-4 text-slate-500" />
+                  </div>
+                  <input
+                    type={showConfirmPasswordValue ? 'text' : 'password'}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                    className={`w-full pl-10 pr-12 py-3.5 bg-slate-900 rounded-xl border text-sm focus:outline-none transition-colors ${
+                      confirmPassword && newPassword !== confirmPassword
+                        ? 'border-rose-500/50 focus:border-rose-400'
+                        : confirmPassword && newPassword === confirmPassword
+                        ? 'border-emerald-500/50 focus:border-emerald-400'
+                        : 'border-emerald-500/20 focus:border-emerald-400'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPasswordValue(!showConfirmPasswordValue)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-300 transition"
+                    aria-label={showConfirmPasswordValue ? 'Hide password' : 'Show password'}
+                  >
+                    <Icon name={showConfirmPasswordValue ? 'eye-off' : 'eye'} className="w-4 h-4" />
+                  </button>
+                </div>
+                {confirmPassword && newPassword === confirmPassword && (
+                  <p className="text-[11px] text-emerald-400 flex items-center gap-1 font-mono">
+                    <Icon name="check" className="w-3 h-3" /> Passwords match
+                  </p>
+                )}
+                {confirmPassword && newPassword !== confirmPassword && (
+                  <p className="text-[11px] text-rose-400 flex items-center gap-1 font-mono">
+                    <Icon name="x" className="w-3 h-3" /> Passwords do not match
+                  </p>
+                )}
+              </div>
+
+              {/* Info note */}
+              <div className="p-3 rounded-xl bg-violet-500/5 border border-violet-500/20">
+                <p className="text-[11px] text-slate-400 leading-relaxed flex items-start gap-2">
+                  <Icon name="info" className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
+                  <span>
+                    The password is hashed with <strong className="text-slate-200">bcrypt (cost 12)</strong> before being stored. The user will need to sign in again with the new password.
+                  </span>
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2 border-t border-emerald-500/20">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(false)}
+                  disabled={isUpdatingPassword}
+                  className="flex-1 py-3.5 px-6 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm hover:bg-slate-700 disabled:opacity-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingPassword || !newPassword || !confirmPassword}
+                  className="flex-1 py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/30 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+                >
+                  {isUpdatingPassword ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      <span>Updating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="check" className="w-4 h-4" />
+                      <span>Update Password</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   )
