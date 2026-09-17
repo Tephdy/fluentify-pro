@@ -1,4 +1,5 @@
 'use client';
+import bcrypt from 'bcryptjs';
 
 import { 
   ModuleType, 
@@ -2566,8 +2567,11 @@ export default function Home() {
 
         const { data, error } = await supabase
           .from('users')
-          .upsert({ email: googleEmail, name: googleName }, { onConflict: 'email' })
-          .select();
+          .upsert(
+            { email: googleEmail, name: googleName },
+            { onConflict: 'email' }
+          )
+          .select('id, name, email, is_admin');
 
         if (error) {
           console.error('Error syncing user to database:', error.message);
@@ -2575,10 +2579,11 @@ export default function Home() {
         }
 
         if (data && data.length > 0) {
-          const currentUserId = (data[0] as any).id;
-          setUserId(currentUserId);
+          const row = data[0] as any;
+          setUserId(row.id);
           setUserName(googleName);
           setEmail(googleEmail || '');
+          setIsAdmin(!!row.is_admin);
           setIsLoggedIn(true);
         }
       }
@@ -2699,61 +2704,117 @@ export default function Home() {
       return;
     }
 
+    if (isSignUpMode && password.length < 8) {
+      setAuthError('Password must be at least 8 characters long.');
+      return;
+    }
+
     setAuthError('');
     const derivedName = email.split('@')[0];
     const finalName = userName.trim() || derivedName.charAt(0).toUpperCase() + derivedName.slice(1);
     setUserName(finalName);
 
     try {
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
+      const normalizedEmail = email.trim().toLowerCase();
 
-      if (isSignUpMode && existingUser) {
-        setAuthError('An account with this email already exists. Please sign in.');
-        return;
-      }
+      // ============================================
+      // SIGN UP FLOW
+      // ============================================
+      if (isSignUpMode) {
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', normalizedEmail)
+          .maybeSingle();
 
-      if (!isSignUpMode && !existingUser) {
-        setAuthError('No account found with this email. Please sign up first.');
-        return;
-      }
+        if (existingUser) {
+          setAuthError('An account with this email already exists. Please sign in.');
+          return;
+        }
 
-      let currentUserId = existingUser?.id;
+        // Hash the password before storing
+        const salt = await bcrypt.genSalt(12);
+        const passwordHash = await bcrypt.hash(password, salt);
 
-      if (isSignUpMode && !existingUser) {
         const { data, error } = await supabase
           .from('users')
-          .insert([{ email: email, name: finalName }])
-          .select();
+          .insert([{
+            email: normalizedEmail,
+            name: finalName,
+            password_hash: passwordHash,
+          }])
+          .select()
+          .single();
 
         if (error) {
           console.error('Sign up error:', error.message);
-          setAuthError('Failed to create account.');
+          setAuthError('Failed to create account. Please try again.');
           return;
         }
-        if (data && data.length > 0) {
-          currentUserId = (data[0] as any).id;
+
+        if (data) {
+          setUserId(data.id);
+          localStorage.setItem('cally_user_email', normalizedEmail);
+          localStorage.setItem('cally_user_name', finalName);
+          localStorage.setItem('cally_user_id', data.id);
+          setHasAcceptedTerms(false);
+          setIsLoggedIn(true);
         }
+        return;
       }
 
-      if (currentUserId) {
-        setUserId(currentUserId);
-        localStorage.setItem('cally_user_email', email);
-        localStorage.setItem('cally_user_name', finalName);
-        localStorage.setItem('cally_user_id', currentUserId);
-        setHasAcceptedTerms(false);
-        setIsLoggedIn(true);
+      // ============================================
+      // SIGN IN FLOW
+      // ============================================
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('id, name, email, password_hash')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Login lookup error:', error.message);
+        setAuthError('An error occurred during sign in. Please try again.');
+        return;
       }
+
+      if (!user) {
+        setAuthError('Invalid email or password.');
+        return;
+      }
+
+      if (!user.password_hash) {
+        setAuthError(
+          'This account was created before password authentication was enabled. Please sign up again with a new password or use Google sign in.'
+        );
+        return;
+      }
+
+      const passwordMatches = await bcrypt.compare(password, user.password_hash);
+      if (!passwordMatches) {
+        setAuthError('Invalid email or password.');
+        return;
+      }
+
+      setUserId(user.id);
+      setUserName(user.name || finalName);
+      localStorage.setItem('cally_user_email', user.email);
+      localStorage.setItem('cally_user_name', user.name || finalName);
+      localStorage.setItem('cally_user_id', user.id);
+      setIsLoggedIn(true);
     } catch (err) {
-      console.error('Unexpected error:', err);
-      setAuthError('An unexpected error occurred.');
+      console.error('Unexpected auth error:', err);
+      setAuthError('An unexpected error occurred. Please try again.');
     }
   };
 
   const handleGoogleLogin = async () => {
+    // Block Google signup if the user hasn't accepted Terms & Privacy
+    if (isSignUpMode && !hasAcceptedTerms) {
+      setAuthError('Please read and agree to the Terms of Service and Privacy Policy before continuing with Google signup.');
+      return;
+    }
+
     setAuthError('');
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -3734,11 +3795,18 @@ export default function Home() {
                   <input
                     type="password"
                     required
+                    minLength={isSignUpMode ? 8 : undefined}
+                    autoComplete={isSignUpMode ? 'new-password' : 'current-password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     className="w-full px-4 py-3.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
                   />
+                  {isSignUpMode && (
+                    <p className="text-[10px] text-slate-500 leading-relaxed">
+                      Minimum 8 characters. Use a mix of letters, numbers, and symbols.
+                    </p>
+                  )}
                 </div>
 
                 {isSignUpMode && (
@@ -3813,7 +3881,9 @@ export default function Home() {
 
               <button
                 onClick={handleGoogleLogin}
-                className="w-full flex items-center justify-center gap-3 rounded-xl border border-violet-500/20 bg-slate-900/50 py-4 font-bold text-sm text-white transition-all duration-300 hover:bg-slate-800/50 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                disabled={isSignUpMode && !hasAcceptedTerms}
+                className="w-full flex items-center justify-center gap-3 rounded-xl border border-violet-500/20 bg-slate-900/50 py-4 font-bold text-sm text-white transition-all duration-300 hover:bg-slate-800/50 hover:scale-[1.02] active:scale-[0.98] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-slate-900/50"
+                title={isSignUpMode && !hasAcceptedTerms ? 'Please accept the Terms of Service and Privacy Policy first' : 'Continue with Google'}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-8.87z"/>
@@ -3821,7 +3891,10 @@ export default function Home() {
                   <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.62H1.2C.43 8.19 0 9.95 0 12s.43 3.81 1.2 5.38l4.07-3.14z"/>
                   <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.26 0 3.18 2.62 1.2 6.62l4.07 3.14c.95-2.85 3.6-4.96 6.73-4.96z"/>
                 </svg>
-                Continue with Google
+                <span>Continue with Google</span>
+                {isSignUpMode && !hasAcceptedTerms && (
+                  <span className="ml-auto text-[10px] font-mono opacity-70">Accept terms first</span>
+                )}
               </button>
 
               <div className="text-center text-[10px] text-slate-500 leading-relaxed">
@@ -3873,7 +3946,16 @@ export default function Home() {
               </div>
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-400">Password</label>
-                <input type="password" required value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="••••••••" className="mt-1.5 w-full px-4 py-3.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                <input
+                  type="password"
+                  required
+                  minLength={isSignUpMode ? 8 : undefined}
+                  autoComplete={isSignUpMode ? 'new-password' : 'current-password'}
+                  value={password}
+                  onChange={(e)=>setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="mt-1.5 w-full px-4 py-3.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                />
               </div>
 
               {isSignUpMode && (
@@ -3935,8 +4017,20 @@ export default function Home() {
               <div className="flex-1 border-t border-violet-500/20"/>
             </div>
             
-            <button onClick={handleGoogleLogin} className="w-full py-4 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white font-bold text-sm transition hover:bg-slate-800/50">
-              Continue with Google
+            <button
+              onClick={handleGoogleLogin}
+              disabled={isSignUpMode && !hasAcceptedTerms}
+              className="w-full py-4 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white font-bold text-sm transition hover:bg-slate-800/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-900/50 flex items-center justify-center gap-3"
+              title={isSignUpMode && !hasAcceptedTerms ? 'Please accept the Terms of Service and Privacy Policy first' : 'Continue with Google'}
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-8.87z"/>
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.2v3.14C3.18 21.38 7.26 24 12 24z"/>
+                <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.62H1.2C.43 8.19 0 9.95 0 12s.43 3.81 1.2 5.38l4.07-3.14z"/>
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.26 0 3.18 2.62 1.2 6.62l4.07 3.14c.95-2.85 3.6-4.96 6.73-4.96z"/>
+              </svg>
+              <span>Continue with Google</span>
+              
             </button>
 
             <div className="mt-4 text-center text-[10px] text-slate-500 leading-relaxed">
@@ -3969,7 +4063,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Section 1 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">1</span>
@@ -3986,7 +4079,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 2 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">2</span>
@@ -4023,7 +4115,6 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Section 3 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">3</span>
@@ -4055,7 +4146,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 4 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">4</span>
@@ -4101,7 +4191,6 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Section 5 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">5</span>
@@ -4121,7 +4210,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 6 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">6</span>
@@ -4149,7 +4237,6 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Section 7 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">7</span>
@@ -4205,7 +4292,6 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Section 8 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">8</span>
@@ -4224,7 +4310,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 9 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">9</span>
@@ -4235,7 +4320,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 10 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">10</span>
@@ -4250,7 +4334,6 @@ export default function Home() {
               </ul>
             </section>
 
-            {/* Section 11 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">11</span>
@@ -4261,7 +4344,6 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Section 12 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">12</span>
@@ -4298,7 +4380,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Section 1 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">1</span>
@@ -4318,7 +4399,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 2 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">2</span>
@@ -4339,7 +4419,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 3 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">3</span>
@@ -4353,7 +4432,6 @@ export default function Home() {
               </ul>
             </section>
 
-            {/* Section 4 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">4</span>
@@ -4376,7 +4454,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 5 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">5</span>
@@ -4396,7 +4473,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 6 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">6</span>
@@ -4410,7 +4486,6 @@ export default function Home() {
               </ul>
             </section>
 
-            {/* Section 7 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">7</span>
@@ -4424,7 +4499,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 8 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">8</span>
@@ -4438,7 +4512,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 9 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">9</span>
@@ -4452,7 +4525,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 10 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">10</span>
@@ -4466,7 +4538,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 11 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">11</span>
@@ -4480,7 +4551,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 12 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">12</span>
@@ -4497,7 +4567,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 13 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">13</span>
@@ -4508,7 +4577,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 14 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">14</span>
@@ -4527,7 +4595,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 15 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">15</span>
@@ -4538,7 +4605,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 16 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">16</span>
@@ -4552,7 +4618,6 @@ export default function Home() {
               </p>
             </section>
 
-            {/* Section 17 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">17</span>
@@ -4567,7 +4632,6 @@ export default function Home() {
               </ul>
             </section>
 
-            {/* Section 18 */}
             <section className="space-y-3">
               <h4 className="text-base font-black text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">18</span>
@@ -4931,7 +4995,8 @@ export default function Home() {
                 </div>
               </div>
             )}
-                        {appMode === 'dashboard' && !selectedModule && activeTab === 'support' && (
+
+            {appMode === 'dashboard' && !selectedModule && activeTab === 'support' && (
               <div className="space-y-6 animate-fadeIn">
                 <div className={`border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${themeClasses.border}`}>
                   <div>
@@ -6257,8 +6322,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* Legal Modals (logged in state — abbreviated) */}
-      {/* Privacy Policy Modal */}
+      {/* Privacy Policy Modal (logged-in state) */}
       <LegalModal
         isOpen={showPrivacyModal}
         onClose={() => setShowPrivacyModal(false)}
@@ -6274,7 +6338,6 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Section 1 */}
           <section className="space-y-3">
             <h4 className="text-base font-black text-white flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">1</span>
@@ -6287,297 +6350,55 @@ export default function Home() {
               <p className="text-slate-300">📧 tephdytech@gmail.com</p>
             </div>
             <p className="text-xs text-slate-400">
-              Where applicable, TephdyTech has designated an EU representative under Article 27 GDPR. Contact details are available upon request via dpo@tephdytech.com. This Policy applies to all personal information collected through the Service, including website, mobile applications, assessment modules, and support channels.
+              Where applicable, TephdyTech has designated an EU representative under Article 27 GDPR. Contact details are available upon request via dpo@tephdytech.com.
             </p>
           </section>
 
-          {/* Section 2 */}
           <section className="space-y-3">
             <h4 className="text-base font-black text-white flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">2</span>
               Personal Information We Collect
             </h4>
             <p className="font-semibold text-slate-200">We collect the following categories of personal information:</p>
-
-            <div className="space-y-3">
-              <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                <p className="text-xs font-bold uppercase tracking-wider text-violet-400 mb-1">Information You Provide</p>
-                <ul className="space-y-2 pl-4 text-sm">
-                  <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Account Information:</strong> Full name, email address, hashed password, and profile details.</span></li>
-                  <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Data:</strong> Test responses, scores, module attempts, completion times, and proficiency ratings.</span></li>
-                  <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Audio Recordings:</strong> Voice samples recorded during Speaking assessments, used solely for AI-based evaluation and deleted after processing.</span></li>
-                  <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Support Communications:</strong> Ticket subject, message content, category, and priority.</span></li>
-                </ul>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                <p className="text-xs font-bold uppercase tracking-wider text-violet-400 mb-1">Information Collected Automatically</p>
-                <ul className="space-y-2 pl-4 text-sm">
-                  <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Technical Data:</strong> IP address, browser type, device identifiers, operating system, and session integrity logs.</span></li>
-                  <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Usage Data:</strong> Pages visited, features used, time spent, and click patterns.</span></li>
-                  <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Location Data:</strong> General geographic location derived from IP address.</span></li>
-                </ul>
-              </div>
-
-              <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
-                <p className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-1">Sensitive Personal Information (CPRA)</p>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  Under the CPRA, the following are classified as <strong className="text-slate-100">sensitive personal information</strong> and receive heightened protections: <strong className="text-slate-100">Audio Recordings</strong> (voice samples for AI evaluation) and <strong className="text-slate-100">Account Login Credentials</strong>. We collect sensitive personal information only for the specific purposes disclosed in Section 3 and do not use it beyond those purposes.
-                </p>
-              </div>
-            </div>
+            <ul className="space-y-2 pl-4 text-sm">
+              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Account Information:</strong> Full name, email address, hashed password, and profile details.</span></li>
+              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Data:</strong> Test responses, scores, module attempts, completion times, and proficiency ratings.</span></li>
+              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Audio Recordings:</strong> Voice samples recorded during Speaking assessments, used solely for AI-based evaluation and deleted after processing.</span></li>
+              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Technical Data:</strong> IP address, browser type, device identifiers, operating system, and session integrity logs.</span></li>
+            </ul>
           </section>
 
-          {/* Section 3 */}
           <section className="space-y-3">
             <h4 className="text-base font-black text-white flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">3</span>
-              Purposes and Legal Bases for Processing
+              How We Use Your Information
             </h4>
-
-            <p className="text-xs font-bold uppercase tracking-wider text-violet-400">GDPR Legal Bases (Article 6)</p>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Account Creation & Management:</strong> Performance of a contract.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Delivery & Scoring:</strong> Performance of a contract.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Audio Evaluation (Speaking Module):</strong> Explicit consent, obtained before recording.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Service Improvement & Analytics:</strong> Legitimate interests, balanced against your rights.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Legal Compliance:</strong> Legal obligation.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Marketing Communications:</strong> Consent.</span></li>
-            </ul>
-
-            <p className="text-xs font-bold uppercase tracking-wider text-violet-400 pt-2">CCPA/CPRA Business Purposes</p>
             <ul className="space-y-2 pl-4 text-sm">
               <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Service Delivery:</strong> To provide, operate, and maintain the assessment and certification platform.</span></li>
               <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Evaluation:</strong> To process and score your module responses using AI and rule-based engines.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Authentication & Security:</strong> To verify identity, prevent fraud, and protect against unauthorized access.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Customer Support:</strong> To respond to inquiries and manage support tickets.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Service Improvement:</strong> To analyze usage patterns and enhance functionality.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Legal Compliance:</strong> To comply with applicable laws and legal processes.</span></li>
+              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Authentication:</strong> To verify identity and protect against unauthorized access.</span></li>
+              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Improvement:</strong> To analyze usage patterns and improve the Service's functionality and user experience.</span></li>
             </ul>
-
-            <p className="text-xs text-slate-400 pt-2">
-              We do not use your personal information for automated decision-making or profiling that produces legal or similarly significant effects without your explicit consent and appropriate safeguards.
-            </p>
           </section>
 
-          {/* Section 4 */}
           <section className="space-y-3">
             <h4 className="text-base font-black text-white flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">4</span>
-              How We Share and Disclose Personal Information
+              Your Rights
             </h4>
-
-            <p className="text-sm">We may disclose personal information to the following categories of third parties:</p>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Service Providers / Processors:</strong> Cloud hosting, database management, analytics, email delivery.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">AI Evaluation Providers:</strong> Speech evaluation and writing assessment.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Payment Processors:</strong> (If applicable) for premium services.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Legal & Regulatory Authorities:</strong> As required by law.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Professional Advisors:</strong> Legal, audit, and insurance purposes.</span></li>
-            </ul>
-
-            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 space-y-2">
-              <p className="text-sm font-bold text-emerald-400">We do not sell your personal information.</p>
-              <p className="text-sm font-bold text-emerald-400">We do not share your personal information for cross-context behavioral advertising.</p>
-              <p className="text-xs text-slate-400">
-                Under the CPRA, "sharing" means disclosing personal information to a third party for cross-context behavioral advertising, whether for monetary or other valuable consideration. TephdyTech does not engage in such sharing.
-              </p>
-            </div>
-
-            <p className="text-xs font-bold uppercase tracking-wider text-violet-400 pt-2">CCPA/CPRA Disclosure — Past 12 Months</p>
-            <div className="overflow-x-auto rounded-xl border border-slate-700/50">
-              <table className="w-full text-xs">
-                <thead className="bg-slate-800/60">
-                  <tr className="text-slate-300">
-                    <th className="text-left p-2 font-bold">Category of PI</th>
-                    <th className="text-left p-2 font-bold">Sold?</th>
-                    <th className="text-left p-2 font-bold">Shared?</th>
-                    <th className="text-left p-2 font-bold">Disclosed?</th>
-                  </tr>
-                </thead>
-                <tbody className="text-slate-400">
-                  <tr className="border-t border-slate-700/50"><td className="p-2">Identifiers</td><td className="p-2">No</td><td className="p-2">No</td><td className="p-2">Yes</td></tr>
-                  <tr className="border-t border-slate-700/50"><td className="p-2">Personal Records</td><td className="p-2">No</td><td className="p-2">No</td><td className="p-2">Yes</td></tr>
-                  <tr className="border-t border-slate-700/50"><td className="p-2">Audio Recordings</td><td className="p-2">No</td><td className="p-2">No</td><td className="p-2">Yes</td></tr>
-                  <tr className="border-t border-slate-700/50"><td className="p-2">Internet Activity</td><td className="p-2">No</td><td className="p-2">No</td><td className="p-2">Yes</td></tr>
-                  <tr className="border-t border-slate-700/50"><td className="p-2">Sensitive PI</td><td className="p-2">No</td><td className="p-2">No</td><td className="p-2">Yes (limited)</td></tr>
-                </tbody>
-              </table>
-            </div>
+            <p className="text-sm">
+              Under GDPR, CCPA/CPRA, CalOPPA, and the Philippine Data Privacy Act, you have rights to access, correct, delete, restrict processing, and port your data. To exercise these rights, contact <span className="font-mono text-violet-300">tephdytech@gmail.com</span>.
+            </p>
           </section>
 
-          {/* Section 5 */}
           <section className="space-y-3">
             <h4 className="text-base font-black text-white flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">5</span>
-              International Data Transfers
-            </h4>
-            <p>
-              Your personal information may be transferred to, stored, and processed in countries outside your country of residence, including the <strong className="text-slate-200">United States</strong> and the <strong className="text-slate-200">Philippines</strong>.
-            </p>
-            <p className="text-xs font-bold uppercase tracking-wider text-violet-400 pt-1">GDPR Transfer Safeguards (Chapter V)</p>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Standard Contractual Clauses (SCCs)</strong> approved by the European Commission.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Adequacy Decisions</strong> where applicable.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Additional technical and organizational measures</strong> to ensure an essentially equivalent level of protection.</span></li>
-            </ul>
-            <p className="text-xs text-slate-400">
-              Where personal information of Philippine citizens or residents is processed, we comply with <strong className="text-slate-300">Republic Act No. 10173</strong> (Data Privacy Act of 2012) and its Implementing Rules and Regulations.
-            </p>
-          </section>
-
-          {/* Section 6 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">6</span>
-              Data Retention
-            </h4>
-            <p className="text-sm">We retain personal information only as long as necessary to fulfill the purposes for which it was collected, or as required by law.</p>
-            <div className="overflow-x-auto rounded-xl border border-slate-700/50">
-              <table className="w-full text-xs">
-                <thead className="bg-slate-800/60">
-                  <tr className="text-slate-300">
-                    <th className="text-left p-2 font-bold">Category</th>
-                    <th className="text-left p-2 font-bold">Retention Period</th>
-                    <th className="text-left p-2 font-bold">Rationale</th>
-                  </tr>
-                </thead>
-                <tbody className="text-slate-400">
-                  <tr className="border-t border-slate-700/50"><td className="p-2">Account Information</td><td className="p-2">Account + 3 years</td><td className="p-2">Legal compliance</td></tr>
-                  <tr className="border-t border-slate-700/50"><td className="p-2">Assessment Data</td><td className="p-2">Account + 5 years</td><td className="p-2">Certification verification</td></tr>
-                  <tr className="border-t border-slate-700/50"><td className="p-2">Audio Recordings</td><td className="p-2">30 days post-eval</td><td className="p-2">Purpose fulfilled after scoring</td></tr>
-                  <tr className="border-t border-slate-700/50"><td className="p-2">Support Tickets</td><td className="p-2">3 years post-resolution</td><td className="p-2">Customer service records</td></tr>
-                  <tr className="border-t border-slate-700/50"><td className="p-2">Server Logs</td><td className="p-2">90 days</td><td className="p-2">Security monitoring</td></tr>
-                  <tr className="border-t border-slate-700/50"><td className="p-2">Analytics Data</td><td className="p-2">26 months</td><td className="p-2">Service improvement</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* Section 7 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">7</span>
-              Your Rights
-            </h4>
-
-            <div className="p-4 rounded-xl bg-violet-500/5 border border-violet-500/20 space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-violet-400">GDPR Rights (EEA/UK Data Subjects)</p>
-              <ul className="space-y-1 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Right to be Informed — Know how we collect and use your data.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Right of Access — Obtain a copy of your personal data.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Right to Rectification — Correct inaccurate or incomplete data.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Right to Erasure — Request deletion of your data.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Right to Restrict Processing — Limit how we use your data.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Right to Data Portability — Receive your data in a machine-readable format.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Right to Object — Object to processing based on legitimate interests.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Rights related to Automated Decision-Making.</span></li>
-              </ul>
-              <p className="text-xs text-slate-400 pt-1">
-                Contact <span className="font-mono text-violet-300">dpo@tephdytech.com</span>. We will respond within <strong className="text-slate-300">one month</strong>, extendable by two months for complex requests. You may withdraw consent at any time and lodge a complaint with your local Data Protection Authority.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-violet-500/5 border border-violet-500/20 space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-violet-400">CCPA/CPRA Rights (California Residents)</p>
-              <ul className="space-y-1 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Right to Know</strong> — Categories and specific pieces of PI collected.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Right to Delete</strong> — Request deletion of personal information.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Right to Correct</strong> — Request correction of inaccurate PI.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Right to Opt Out of Sale/Sharing</strong> — Not applicable; we do not sell or share.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Right to Limit Use of Sensitive PI.</strong></span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Right to Non-Discrimination</strong> — We will not discriminate for exercising your rights.</span></li>
-              </ul>
-              <p className="text-xs text-slate-400 pt-1">
-                Submit requests via your account settings or <span className="font-mono text-violet-300">privacy@tephdytech.com</span>. We respond within <strong className="text-slate-300">45 days</strong>, extendable by an additional 45 days with notice. Authorized agents may submit requests with written permission. We honor <strong className="text-slate-300">Global Privacy Control (GPC)</strong> signals.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-violet-500/5 border border-violet-500/20 space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-violet-400">CalOPPA Disclosures (California)</p>
-              <ul className="space-y-1 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Do Not Track (DNT):</strong> We do not currently honor browser DNT signals. Use GPC or contact us to opt out of tracking.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Third-Party Tracking:</strong> Analytics providers may collect data across sites; we do not authorize use for unrelated purposes.</span></li>
-                <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Review & Amendment:</strong> You may review, update, or delete your PI via your account or by contacting us.</span></li>
-              </ul>
-            </div>
-
-            <div className="p-4 rounded-xl bg-violet-500/5 border border-violet-500/20 space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-violet-400">Philippine DPA Rights</p>
-              <p className="text-sm">
-                Under the Data Privacy Act of 2012, data subjects have rights including: right to be informed, right to object, right to access, right to rectification, right to erasure or blocking, right to damages, right to data portability, and the right to lodge a complaint with the <strong className="text-slate-200">National Privacy Commission (NPC)</strong>.
-              </p>
-            </div>
-          </section>
-
-          {/* Section 8 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">8</span>
-              Security Measures
-            </h4>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Encryption:</strong> Data encrypted in transit (TLS/SSL) and at rest.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Access Controls:</strong> Role-based limitations and authentication requirements.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Pseudonymization:</strong> Personal identifiers separated from assessment data where feasible.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Regular Audits:</strong> Security assessments and vulnerability testing.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Employee Training:</strong> Privacy and security training for all personnel.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Incident Response:</strong> Documented procedures for detecting and responding to breaches.</span></li>
-            </ul>
-            <p className="text-xs text-slate-400">
-              <strong className="text-slate-300">Data Breach Notification:</strong> In the event of a personal data breach posing a risk to your rights and freedoms, we will notify affected data subjects and relevant supervisory authorities within <strong className="text-slate-300">72 hours</strong> as required by applicable law.
-            </p>
-          </section>
-
-          {/* Section 9 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">9</span>
-              Children's Privacy
-            </h4>
-            <p>
-              The Service is not intended for individuals under the age of <strong className="text-slate-200">16</strong> (or <strong className="text-slate-200">13</strong> where applicable under COPPA). We do not knowingly collect personal information from children. If you believe we have collected information from a child, please contact us immediately at <span className="font-mono text-violet-300">tephdytech@gmail.com</span>.
-            </p>
-          </section>
-
-          {/* Section 10 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">10</span>
-              Changes to This Privacy Policy
-            </h4>
-            <p>
-              We may update this Policy to reflect changes in our practices, technology, legal requirements, or other factors.
-            </p>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Material Changes:</strong> We will notify you via email or prominent notice at least <strong className="text-slate-200">30 days</strong> before changes take effect.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Non-Material Changes:</strong> We will update the "Last Updated" date and post the revised Policy.</span></li>
-            </ul>
-          </section>
-
-          {/* Section 11 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">11</span>
               Contact Us
             </h4>
             <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-2 font-mono text-xs">
               <p className="text-slate-300">📧 tephdytech@gmail.com — General Privacy Inquiries</p>
             </div>
-          </section>
-
-          {/* Section 12 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">12</span>
-              Additional Jurisdiction-Specific Disclosures
-            </h4>
-            <p className="text-sm">
-              <strong className="text-slate-200">California "Shine the Light" Law:</strong> California residents may request information about our disclosure of personal information to third parties for direct marketing purposes. We do not disclose personal information to third parties for their direct marketing purposes.
-            </p>
-            <p className="text-sm">
-              <strong className="text-slate-200">Notice at Collection (CCPA/CPRA):</strong> At or before the point of collection, we provide notice of categories of PI collected, purposes, whether PI is sold or shared, and retention periods. This Policy serves as our Notice at Collection.
-            </p>
           </section>
 
           <div className="pt-4 border-t border-violet-500/20">
@@ -6588,7 +6409,7 @@ export default function Home() {
         </div>
       </LegalModal>
 
-      {/* Terms of Service Modal */}
+      {/* Terms of Service Modal (logged-in state) */}
       <LegalModal
         isOpen={showTermsModal}
         onClose={() => setShowTermsModal(false)}
@@ -6600,288 +6421,61 @@ export default function Home() {
               Effective Date: September 15, 2026 · Last Updated: September 16, 2026
             </p>
             <p className="text-slate-300 text-sm leading-relaxed">
-              These Terms of Service ("Terms") constitute a legally binding agreement between you ("User," "you," or "your") and <strong className="text-slate-100">TephdyTech</strong> ("TephdyTech," "we," "us," or "our") governing your access to and use of the <strong className="text-slate-100">Cally Assessment Hub</strong> platform, including its website, mobile applications, assessment modules, and related services (collectively, the "Service"). By accessing or using the Service, you agree to be bound by these Terms. <strong className="text-slate-100">If you do not agree with any part of these Terms, you must not use the Service.</strong>
+              These Terms of Service ("Terms") constitute a legally binding agreement between you ("User," "you," or "your") and <strong className="text-slate-100">TephdyTech</strong> ("TephdyTech," "we," "us," or "our") governing your access to and use of the <strong className="text-slate-100">Cally Assessment Hub</strong> platform (the "Service").
             </p>
           </div>
 
-          {/* Section 1 */}
           <section className="space-y-3">
             <h4 className="text-base font-black text-white flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">1</span>
               Acceptance of Terms
             </h4>
-            <p>
-              By registering for an account, accessing, or using the Service, you represent and warrant that:
-            </p>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>You are at least <strong className="text-slate-200">16 years of age</strong> (or 13 where permitted under applicable local law and with parental consent);</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>You have the legal capacity to enter into a binding agreement;</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>You will comply with these Terms and all applicable laws and regulations; and</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>All information you provide is accurate, current, and complete.</span></li>
-            </ul>
-            <p className="text-xs text-slate-400">
-              If you are using the Service on behalf of an organization, you represent that you have authority to bind that organization to these Terms.
+            <p className="text-sm">
+              By registering for an account, accessing, or using the Service, you agree to be bound by these Terms. You represent that you are at least <strong className="text-slate-200">16 years of age</strong> (or 13 where permitted under applicable local law and with parental consent) and have the legal capacity to enter into a binding agreement.
             </p>
           </section>
 
-          {/* Section 2 */}
           <section className="space-y-3">
             <h4 className="text-base font-black text-white flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">2</span>
-              Description of the Service
-            </h4>
-            <p>
-              The Cally Assessment Hub is a professional BPO readiness and certification platform that provides:
-            </p>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Practice modules in Listening, Reading, Writing, Speaking, Typing, and Learning;</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>AI-assisted and rule-based scoring of assessment responses;</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Performance tracking and historical improvement logs;</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>A full examination pathway leading to a verifiable Certificate of Achievement; and</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Support ticketing and user account management.</span></li>
-            </ul>
-            <p className="text-xs text-slate-400">
-              We reserve the right to modify, suspend, or discontinue any part of the Service at any time, with or without notice, subject to applicable law.
-            </p>
-          </section>
-
-          {/* Section 3 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">3</span>
-              User Accounts and Responsibilities
-            </h4>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Account Security:</strong> You are responsible for maintaining the confidentiality of your login credentials and for all activities occurring under your account.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Accurate Information:</strong> You agree to provide truthful, accurate, and current registration details and to keep them updated.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Unauthorized Use:</strong> You must notify us immediately at <span className="font-mono text-violet-300">tephdytech@gmail.com</span> of any unauthorized access or security breach.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Single-User License:</strong> Your account is personal and non-transferable. Sharing accounts or credentials is strictly prohibited.</span></li>
-            </ul>
-          </section>
-
-          {/* Section 4 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">4</span>
               Acceptable Use Policy
             </h4>
-            <p className="text-sm">You agree <strong className="text-rose-400">NOT</strong> to:</p>
             <ul className="space-y-2 pl-4 text-sm">
               <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Cheat, use automated scripts, bots, or employ AI assistance during official timed assessments.</span></li>
               <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Copy, distribute, sell, sublicense, or reverse-engineer assessment content, questions, or answer keys.</span></li>
               <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Share certificates under a false identity or misrepresent your credentials to third parties.</span></li>
               <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Attempt to bypass anti-cheat, fullscreen, or integrity-monitoring mechanisms.</span></li>
-              <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Upload malware, viruses, or any harmful code that may disrupt the Service.</span></li>
-              <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Interfere with or disrupt the integrity or performance of the Service or its servers.</span></li>
-              <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Harass, threaten, or abuse other users, staff, or support personnel.</span></li>
               <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Use the Service for any unlawful, fraudulent, or unauthorized purpose.</span></li>
-              <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Scrape, harvest, or data-mine any content or user information from the Service.</span></li>
             </ul>
-            <p className="text-xs text-slate-400">
-              Violation of this policy may result in immediate suspension or termination of your account, invalidation of any certificates, and possible legal action.
+          </section>
+
+          <section className="space-y-3">
+            <h4 className="text-base font-black text-white flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">3</span>
+              Assessment Integrity
+            </h4>
+            <p className="text-sm">
+              During official timed assessments, fullscreen mode is enforced, tab-switching is logged, clipboard operations are disabled, and integrity violations may affect your final score or certification eligibility.
             </p>
           </section>
 
-          {/* Section 5 */}
+          <section className="space-y-3">
+            <h4 className="text-base font-black text-white flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">4</span>
+              Certificates
+            </h4>
+            <p className="text-sm">
+              A Certificate of Achievement is issued only upon achieving a cumulative score of <strong className="text-slate-200">80% or higher</strong> across all five (5) full-examination modules. Certificates demonstrate assessed competency only and do not constitute a guarantee of employment.
+            </p>
+          </section>
+
           <section className="space-y-3">
             <h4 className="text-base font-black text-white flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">5</span>
-              Assessment Integrity and Anti-Cheat
-            </h4>
-            <p className="text-sm">
-              During official timed assessments, the Service enforces the following integrity measures:
-            </p>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Fullscreen Enforcement:</strong> You must remain in fullscreen mode for the duration of the assessment.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Tab-Switch Detection:</strong> Leaving the assessment window will be logged as an integrity violation.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Clipboard Restrictions:</strong> Copy, cut, paste, and select-all functions are disabled.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Violation Logging:</strong> Integrity events are recorded and may affect your final score or certification eligibility.</span></li>
-            </ul>
-            <p className="text-xs text-slate-400">
-              By proceeding with an official assessment, you consent to these monitoring measures for the sole purpose of ensuring assessment integrity.
-            </p>
-          </section>
-
-          {/* Section 6 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">6</span>
-              Certificates and Eligibility
-            </h4>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Eligibility:</strong> A Certificate of Achievement is issued only upon achieving a cumulative score of <strong className="text-slate-200">80% or higher</strong> across all five (5) full-examination modules.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Verification:</strong> Each certificate is assigned a unique Certificate ID for electronic validation.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">No Guarantee of Employment:</strong> Certificates demonstrate assessed competency only and do not constitute a guarantee of employment, promotion, or professional outcome.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Revocation:</strong> We reserve the right to revoke any certificate obtained through fraud, misrepresentation, or breach of these Terms.</span></li>
-            </ul>
-          </section>
-
-          {/* Section 7 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">7</span>
-              Intellectual Property Rights
-            </h4>
-            <p className="text-sm">
-              All content, features, functionality, source code, assessment materials, questions, branding, logos, and design elements of the Service are the exclusive property of <strong className="text-slate-200">TephdyTech</strong> or its licensors and are protected by copyright, trademark, and other intellectual property laws.
-            </p>
-            <p className="text-sm">
-              You are granted a limited, non-exclusive, non-transferable, revocable license to access and use the Service strictly for personal, non-commercial assessment purposes. You may <strong className="text-slate-200">not</strong> reproduce, distribute, create derivative works from, publicly display, or commercially exploit any part of the Service without our prior written consent.
-            </p>
-          </section>
-
-          {/* Section 8 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">8</span>
-              User-Generated Content
-            </h4>
-            <p className="text-sm">
-              You retain ownership of any content you submit to the Service (e.g., written responses, audio recordings). By submitting content, you grant TephdyTech a worldwide, non-exclusive, royalty-free license to process, store, and use that content <strong className="text-slate-200">solely for the purpose of delivering, scoring, and improving the Service</strong>, in accordance with our Privacy Policy.
-            </p>
-            <p className="text-sm">
-              You represent and warrant that you own or have the necessary rights to any content you submit and that such content does not infringe the rights of any third party.
-            </p>
-          </section>
-
-          {/* Section 9 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">9</span>
-              Privacy and Data Protection
-            </h4>
-            <p className="text-sm">
-              Our collection, use, and protection of your personal information is governed by our <strong className="text-slate-200">Privacy Policy</strong>, which is incorporated into these Terms by reference. By using the Service, you consent to the practices described therein.
-            </p>
-            <p className="text-xs text-slate-400">
-              Where GDPR, CCPA/CPRA, CalOPPA, or the Philippine Data Privacy Act apply, you retain all statutory rights described in the Privacy Policy.
-            </p>
-          </section>
-
-          {/* Section 10 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">10</span>
-              Payments, Fees, and Refunds
-            </h4>
-            <p className="text-sm">
-              Certain features of the Service may be offered for a fee. All fees are stated in the applicable currency and are exclusive of taxes unless otherwise stated. Payments are processed by third-party payment processors subject to their own terms.
-            </p>
-            <p className="text-sm">
-              Except where required by applicable law (including EU consumer protection rules on digital content), all fees are <strong className="text-slate-200">non-refundable</strong>. EU/UK consumers may have a 14-day right of withdrawal for digital services unless they expressly consent to immediate performance and waive that right.
-            </p>
-          </section>
-
-          {/* Section 11 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">11</span>
-              Disclaimers
-            </h4>
-            <p className="text-sm">
-              THE SERVICE IS PROVIDED ON AN <strong className="text-slate-200">"AS IS"</strong> AND <strong className="text-slate-200">"AS AVAILABLE"</strong> BASIS WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
-            </p>
-            <p className="text-sm">
-              We do not warrant that: (a) the Service will be uninterrupted, error-free, or secure; (b) assessment results will be accurate or meet your expectations; or (c) any errors in the Service will be corrected. AI-based evaluations are assistive tools and may not reflect every nuance of human language proficiency.
-            </p>
-          </section>
-
-          {/* Section 12 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">12</span>
-              Limitation of Liability
-            </h4>
-            <p className="text-sm">
-              TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, TEPHDYTECH AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL, ARISING FROM OR RELATED TO YOUR USE OF THE SERVICE.
-            </p>
-            <p className="text-sm">
-              OUR TOTAL AGGREGATE LIABILITY ARISING FROM OR RELATING TO THESE TERMS SHALL NOT EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID TO US IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM, OR (B) ONE HUNDRED U.S. DOLLARS (US$100).
-            </p>
-            <p className="text-xs text-slate-400">
-              Nothing in these Terms excludes or limits liability for death or personal injury caused by negligence, fraud, or any liability that cannot be excluded under applicable law (including mandatory EU/UK consumer rights).
-            </p>
-          </section>
-
-          {/* Section 13 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">13</span>
-              Indemnification
-            </h4>
-            <p className="text-sm">
-              You agree to indemnify, defend, and hold harmless TephdyTech and its affiliates, officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, and expenses (including reasonable legal fees) arising out of or in any way connected with: (a) your use of the Service; (b) your violation of these Terms; or (c) your violation of any third-party rights.
-            </p>
-          </section>
-
-          {/* Section 14 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">14</span>
-              Suspension and Termination
-            </h4>
-            <p className="text-sm">
-              We reserve the right to suspend or terminate your account, with or without notice, if you:
-            </p>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Breach any provision of these Terms;</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Engage in fraudulent, abusive, or unlawful activity; or</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span>Pose a security or legal risk to TephdyTech or other users.</span></li>
-            </ul>
-            <p className="text-sm">
-              You may terminate your account at any time through your account settings or by contacting <span className="font-mono text-violet-300">tephdytech@gmail.com</span>. Upon termination, your right to use the Service ceases immediately. Provisions that by their nature should survive termination (e.g., IP rights, disclaimers, indemnification, limitation of liability) shall so survive.
-            </p>
-          </section>
-
-          {/* Section 15 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">15</span>
-              Modifications to the Terms
-            </h4>
-            <p className="text-sm">
-              We may update these Terms from time to time. Material changes will be communicated via email or prominent notice on the Service at least <strong className="text-slate-200">30 days</strong> before they take effect. Continued use of the Service after the effective date constitutes acceptance of the revised Terms.
-            </p>
-          </section>
-
-          {/* Section 16 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">16</span>
-              Governing Law and Dispute Resolution
-            </h4>
-            <p className="text-sm">
-              These Terms shall be governed by and construed in accordance with the laws of the <strong className="text-slate-200">Republic of the Philippines</strong>, without regard to its conflict-of-law principles. Any dispute arising out of or relating to these Terms shall be subject to the exclusive jurisdiction of the competent courts of <strong className="text-slate-200">[City], Philippines</strong>, unless mandatory consumer protection laws in your country of residence provide otherwise.
-            </p>
-            <p className="text-xs text-slate-400">
-              EU/UK consumers retain the right to bring proceedings in the courts of their country of residence. Prior to formal proceedings, parties agree to attempt good-faith resolution via written notice to <span className="font-mono text-violet-300">tephdytech@gmail.com</span>.
-            </p>
-          </section>
-
-          {/* Section 17 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">17</span>
-              General Provisions
-            </h4>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Entire Agreement:</strong> These Terms, together with the Privacy Policy, constitute the entire agreement between you and TephdyTech.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Severability:</strong> If any provision is found unenforceable, the remaining provisions remain in full force.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">No Waiver:</strong> Failure to enforce any right does not constitute a waiver of that right.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Assignment:</strong> You may not assign these Terms without our written consent; we may assign freely.</span></li>
-              <li className="flex gap-3"><span className="text-violet-400 font-bold">•</span><span><strong className="text-slate-200">Force Majeure:</strong> We are not liable for delays caused by events beyond our reasonable control.</span></li>
-            </ul>
-          </section>
-
-          {/* Section 18 */}
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center text-xs font-black">18</span>
               Contact Information
             </h4>
             <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 space-y-2 font-mono text-xs">
               <p className="text-slate-300">📧 tephdytech@gmail.com — Legal, Support & Privacy Inquiries</p>
-              <p className="text-slate-400 pt-2">TephdyTech · Legal Department</p>
             </div>
           </section>
 
