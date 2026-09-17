@@ -1955,6 +1955,7 @@ export default function Home() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [authError, setAuthError] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -2074,6 +2075,7 @@ export default function Home() {
     setIsLoggingOut(true);
     setTimeout(() => {
       setIsLoggedIn(false);
+      setIsAdmin(false);
       setIsMobileMenuOpen(false);
       setShowLogoutModal(false);
       setIsLoggingOut(false);
@@ -2369,6 +2371,36 @@ export default function Home() {
 
   useEffect(() => {
     refreshUserStats();
+  }, [userId]);
+
+  // ============================================
+  // CHECK ADMIN STATUS
+  // ============================================
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!userId) {
+        setIsAdmin(false);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('is_admin')
+          .eq('id', userId)
+          .single();
+
+        if (error) {
+          console.error('Error checking admin status:', error.message);
+          setIsAdmin(false);
+          return;
+        }
+        setIsAdmin(!!data?.is_admin);
+      } catch (err) {
+        console.error('Admin check failed:', err);
+        setIsAdmin(false);
+      }
+    };
+    checkAdminStatus();
   }, [userId]);
 
   // ============================================
@@ -4071,6 +4103,18 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            {/* Admin Button — only visible to admins */}
+            {isAdmin && (
+              <a
+                href="/admin"
+                className={`hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all border shadow-lg ${themeClasses.accentSoft} hover:scale-[1.02] active:scale-[0.98] cursor-pointer`}
+                title="Open Admin Dashboard"
+              >
+                <Icon name="settings" className="w-4 h-4" glow />
+                <span>Admin Panel</span>
+              </a>
+            )}
+
             <div className="relative">
               <button
                 onClick={() => setShowThemeMenu(!showThemeMenu)}
@@ -4113,7 +4157,7 @@ export default function Home() {
               </div>
               <div className="flex flex-col">
                 <span className="truncate max-w-[120px] font-bold">{userName || 'Candidate'}</span>
-                <span className={`text-[10px] ${themeClasses.textMuted}`}>Candidate</span>
+                <span className={`text-[10px] ${themeClasses.textMuted}`}>{isAdmin ? 'Administrator' : 'Candidate'}</span>
               </div>
             </div>
 
@@ -4215,6 +4259,16 @@ export default function Home() {
             <Icon name="academic" className="w-5 h-5" glow />
             <span>Take Full Exam</span>
           </button>
+
+          {isAdmin && (
+            <a
+              href="/admin"
+              className={`w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-sm px-4 py-4 rounded-2xl shadow-lg shadow-amber-500/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2`}
+            >
+              <Icon name="settings" className="w-5 h-5" glow />
+              <span>Admin Dashboard</span>
+            </a>
+          )}
 
           <div className={`mt-auto pt-5 border-t ${themeClasses.border} space-y-3`}>
             <button
@@ -5271,7 +5325,7 @@ export default function Home() {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold truncate">{userName || 'Candidate'}</p>
-                <p className={`text-[10px] ${themeClasses.textMuted}`}>Candidate</p>
+                <p className={`text-[10px] ${themeClasses.textMuted}`}>{isAdmin ? 'Administrator' : 'Candidate'}</p>
               </div>
             </div>
 
@@ -5352,6 +5406,17 @@ export default function Home() {
                 <Icon name="academic" className="w-5 h-5" glow />
                 <span>Take Full Exam</span>
               </button>
+
+              {isAdmin && (
+                <a
+                  href="/admin"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-sm px-4 py-4 rounded-2xl shadow-xl shadow-amber-500/30 transition-all duration-300 hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 mt-3"
+                >
+                  <Icon name="settings" className="w-5 h-5" glow />
+                  <span>Admin Dashboard</span>
+                </a>
+              )}
             </div>
 
             <div className={`mt-auto pt-6 border-t ${themeClasses.border} space-y-3`}>
