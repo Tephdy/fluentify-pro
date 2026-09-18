@@ -4632,22 +4632,32 @@ export default function Home() {
     }
   };
 
-  const handleScoreFinalized = async (finalPct: number) => {
+  const handleScoreFinalized = async (
+    finalPct: number,
+    extraData?: { wpm?: number; accuracy?: number }
+  ) => {
     setScore(finalPct);
     setIsSubmitted(true);
     setShowScorePopup(true);
 
     if (userId && selectedModule) {
+      // Build the insert payload
+      const insertPayload: any = {
+        user_id: userId,
+        module_name: selectedModule,
+        score: finalPct,
+        created_at: new Date().toISOString(),
+      };
+
+      // ⬇️ NEW: Save typing-specific metrics when available
+      if (selectedModule === 'typing' && extraData) {
+        if (typeof extraData.wpm === 'number') insertPayload.wpm = extraData.wpm;
+        if (typeof extraData.accuracy === 'number') insertPayload.accuracy = extraData.accuracy;
+      }
+
       const { data, error } = await supabase
         .from('module_scores')
-        .insert([
-          { 
-            user_id: userId, 
-            module_name: selectedModule, 
-            score: finalPct,
-            created_at: new Date().toISOString()
-          }
-        ])
+        .insert([insertPayload])
         .select();
       
       if (error) {
@@ -4890,30 +4900,30 @@ export default function Home() {
   };
 
   const handleTypingChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const val = e.target.value;
-    if (isTypingCompleted) return;
-    if (!startTime) setStartTime(Date.now());
-    setUserInput(val);
+  const val = e.target.value;
+  if (isTypingCompleted) return;
+  if (!startTime) setStartTime(Date.now());
+  setUserInput(val);
 
-    let correctChars = 0;
-    for (let i = 0; i < val.length; i++) {
-      if (val[i] === typingPassage[i]) correctChars++;
-    }
-    const acc = val.length > 0 ? Math.round((correctChars / val.length) * 100) : 100;
-    setAccuracy(acc);
+  let correctChars = 0;
+  for (let i = 0; i < val.length; i++) {
+    if (val[i] === typingPassage[i]) correctChars++;
+  }
+  const acc = val.length > 0 ? Math.round((correctChars / val.length) * 100) : 100;
+  setAccuracy(acc);
 
-    if (val.length >= typingPassage.length) {
-      setIsTypingCompleted(true);
-      const duration = Math.max((Date.now() - (startTime || Date.now())) / 60000, 0.05);
-      const words = val.trim().split(/\s+/).length;
-      const finalWpm = Math.round(words / duration);
-      setWpm(finalWpm);
+  if (val.length >= typingPassage.length) {
+    setIsTypingCompleted(true);
+    const duration = Math.max((Date.now() - (startTime || Date.now())) / 60000, 0.05);
+    const words = val.trim().split(/\s+/).length;
+    const finalWpm = Math.round(words / duration);
+    setWpm(finalWpm);
 
-      const typingScore = Math.min(Math.max(finalWpm * 1.2, 50), 100);
-      const finalRounded = Math.round(typingScore);
-      handleScoreFinalized(finalRounded);
-    }
-  };
+    const typingScore = Math.min(Math.max(finalWpm * 1.2, 50), 100);
+    const finalRounded = Math.round(typingScore);
+    handleScoreFinalized(finalRounded, { wpm: finalWpm, accuracy: acc });
+  }
+};
 
   const overallExamAverage = Math.round(
     Object.values(examScores).reduce((a, b) => a + b, 0) / 5
@@ -6701,21 +6711,46 @@ export default function Home() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                  {[
+                {/* Compute typing stats inline */}
+                {(() => {
+                  const typingScores = userScores.filter(s => s.module_name === 'typing' && typeof s.wpm === 'number' && s.wpm > 0);
+                  const typingAvgWpm = typingScores.length > 0
+                    ? Math.round(typingScores.reduce((a, s) => a + (s.wpm || 0), 0) / typingScores.length)
+                    : 0;
+                  const typingBestWpm = typingScores.length > 0
+                    ? Math.max(...typingScores.map(s => s.wpm || 0))
+                    : 0;
+
+                  const statCards = [
                     { label: 'Total Test Attempts', value: userScores.length, sub: 'Logged practice and exam sessions', color: 'text-indigo-400' },
                     { label: 'Historical Average Score', value: `${userScores.length > 0 ? Math.round(userScores.reduce((acc, curr) => acc + (curr.score || 0), 0) / userScores.length) : 0}%`, sub: 'Average across all recorded attempts', color: 'text-cyan-400' },
                     { label: 'Best Performance', value: `${userScores.length > 0 ? Math.max(...userScores.map(item => item.score || 0)) : 0}%`, sub: 'Highest score achieved in a single log', color: 'text-emerald-400' },
-                  ].map((stat) => (
-                    <div key={stat.label} className={`p-6 rounded-xl border ${themeClasses.card}`}>
-                      <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
-                        {stat.label}
-                      </span>
-                      <h3 className={`text-3xl font-black mt-2 ${stat.color}`}>{stat.value}</h3>
-                      <p className={`text-[11px] mt-1 ${themeClasses.textMuted}`}>{stat.sub}</p>
+                  ];
+
+                  // ⬇️ NEW: Add typing stats card if the user has typing attempts
+                  if (typingScores.length > 0) {
+                    statCards.push({
+                      label: 'Typing Speed (Avg WPM)',
+                      value: `${typingAvgWpm}`,
+                      sub: `Best: ${typingBestWpm} WPM · ${typingScores.length} attempt${typingScores.length === 1 ? '' : 's'}`,
+                      color: 'text-sky-400',
+                    });
+                  }
+
+                  return (
+                    <div className={`grid grid-cols-1 sm:grid-cols-3 ${typingScores.length > 0 ? 'lg:grid-cols-4' : ''} gap-5`}>
+                      {statCards.map((stat) => (
+                        <div key={stat.label} className={`p-6 rounded-xl border ${themeClasses.card}`}>
+                          <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                            {stat.label}
+                          </span>
+                          <h3 className={`text-3xl font-black mt-2 ${stat.color}`}>{stat.value}</h3>
+                          <p className={`text-[11px] mt-1 ${themeClasses.textMuted}`}>{stat.sub}</p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()}
 
                 <div className={`rounded-xl border p-6 sm:p-8 space-y-5 ${themeClasses.card}`}>
                   <h3 className="text-lg font-bold">Attempt Progress Timeline & Dates</h3>
@@ -6738,6 +6773,10 @@ export default function Home() {
                             <th className="pb-4 px-4">Date Taken</th>
                             <th className="pb-4 px-4">Module</th>
                             <th className="pb-4 px-4">Score</th>
+                            {/* ⬇️ NEW: WPM column header (only if user has typing attempts) */}
+                            {userScores.some(s => s.module_name === 'typing') && (
+                              <th className="pb-4 px-4">WPM</th>
+                            )}
                             <th className="pb-4 px-4">Status / Improvement</th>
                           </tr>
                         </thead>
@@ -6746,12 +6785,28 @@ export default function Home() {
                             const formattedDate = log.created_at ? new Date(log.created_at).toLocaleString() : new Date().toLocaleString();
                             const previousAttempt = userScores.slice(index + 1).find(item => item.module_name === log.module_name);
                             const diff = previousAttempt ? log.score - previousAttempt.score : null;
+                            const hasTypingScores = userScores.some(s => s.module_name === 'typing');
 
                             return (
                               <tr key={log.id || index} className={`transition ${themeClasses.cardHover}`}>
                                 <td className={`py-4 px-4 font-medium ${themeClasses.textMuted}`}>{formattedDate}</td>
                                 <td className="py-4 px-4 font-bold capitalize">{log.module_name}</td>
                                 <td className={`py-4 px-4 font-black ${themeClasses.accent}`}>{log.score}%</td>
+                                {/* ⬇️ NEW: WPM cell (only if user has typing attempts) */}
+                                {hasTypingScores && (
+                                  <td className="py-4 px-4">
+                                    {log.module_name === 'typing' && typeof log.wpm === 'number' ? (
+                                      <span className={`font-black ${
+                                        log.wpm >= 60 ? 'text-emerald-400' :
+                                        log.wpm >= 40 ? 'text-amber-400' : 'text-rose-400'
+                                      }`}>
+                                        {log.wpm}
+                                      </span>
+                                    ) : (
+                                      <span className={`text-xs ${themeClasses.textMuted}`}>—</span>
+                                    )}
+                                  </td>
+                                )}
                                 <td className="py-4 px-4">
                                   {diff !== null ? (
                                     <span className={`inline-flex items-center gap-2 font-bold px-3 py-1.5 rounded-full text-[11px] ${
@@ -7683,6 +7738,21 @@ export default function Home() {
             }`}>
               <span className="text-6xl font-black">{score}%</span>
             </div>
+
+            {/* ⬇️ NEW: Show WPM & Accuracy breakdown when typing module completes */}
+            {selectedModule === 'typing' && wpm > 0 && (
+              <div className="flex items-center justify-center gap-4 py-3 rounded-xl border border-sky-500/30 bg-sky-500/10">
+                <div className="text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-sky-300">WPM</p>
+                  <p className="text-3xl font-black text-white">{wpm}</p>
+                </div>
+                <div className="w-px h-10 bg-sky-500/30" />
+                <div className="text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Accuracy</p>
+                  <p className="text-3xl font-black text-white">{accuracy}%</p>
+                </div>
+              </div>
+            )}
 
             {score !== null && score <= 70 && (
               <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-xs italic font-medium leading-relaxed">

@@ -3413,73 +3413,125 @@ export default function AdminDashboardPage() {
   // RANKINGS COMPUTATION
   // ============================================
   const rankings = useMemo(() => {
-    const userScoreMap = new Map<string, {
-      userId: string
-      userName: string
-      userEmail: string
-      isAdmin: boolean
-      scoresByModule: Record<string, number[]>
-      totalScore: number
-      totalAttempts: number
-    }>()
+  const userScoreMap = new Map<string, {
+    userId: string
+    userName: string
+    userEmail: string
+    isAdmin: boolean
+    scoresByModule: Record<string, number[]>
+    wpmByModule: Record<string, number[]>
+    accuracyByModule: Record<string, number[]>
+    totalScore: number
+    totalAttempts: number
+  }>()
 
-    allScores.forEach((s) => {
-      const uid = s.user_id
-      if (!uid) return
-      if (!userScoreMap.has(uid)) {
-        const u = users.find(x => x.id === uid)
-        userScoreMap.set(uid, {
-          userId: uid,
-          userName: u?.name || 'Unknown User',
-          userEmail: u?.email || 'N/A',
-          isAdmin: u?.is_admin || false,
-          scoresByModule: {},
-          totalScore: 0,
-          totalAttempts: 0,
-        })
-      }
-      const entry = userScoreMap.get(uid)!
-      const mod = s.module_name || 'unknown'
-      if (!entry.scoresByModule[mod]) entry.scoresByModule[mod] = []
-      entry.scoresByModule[mod].push(s.score || 0)
-      entry.totalScore += s.score || 0
-      entry.totalAttempts += 1
-    })
-
-    const list = Array.from(userScoreMap.values()).map((u) => {
-      const moduleAverages: Record<string, number> = {}
-      Object.keys(u.scoresByModule).forEach((mod) => {
-        const arr = u.scoresByModule[mod]
-        moduleAverages[mod] = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+  allScores.forEach((s) => {
+    const uid = s.user_id
+    if (!uid) return
+    if (!userScoreMap.has(uid)) {
+      const u = users.find(x => x.id === uid)
+      userScoreMap.set(uid, {
+        userId: uid,
+        userName: u?.name || 'Unknown User',
+        userEmail: u?.email || 'N/A',
+        isAdmin: u?.is_admin || false,
+        scoresByModule: {},
+        wpmByModule: {},
+        accuracyByModule: {},
+        totalScore: 0,
+        totalAttempts: 0,
       })
+    }
+    const entry = userScoreMap.get(uid)!
+    const mod = s.module_name || 'unknown'
+    if (!entry.scoresByModule[mod]) entry.scoresByModule[mod] = []
+    entry.scoresByModule[mod].push(s.score || 0)
 
-      const overallAverage = u.totalAttempts > 0
-        ? Math.round(u.totalScore / u.totalAttempts)
-        : 0
-
-      return {
-        ...u,
-        moduleAverages,
-        overallAverage,
+    // ⬇️ NEW: Track WPM + accuracy for typing module
+    if (mod === 'typing') {
+      if (typeof s.wpm === 'number' && s.wpm > 0) {
+        if (!entry.wpmByModule[mod]) entry.wpmByModule[mod] = []
+        entry.wpmByModule[mod].push(s.wpm)
       }
+      if (typeof s.accuracy === 'number' && s.accuracy > 0) {
+        if (!entry.accuracyByModule[mod]) entry.accuracyByModule[mod] = []
+        entry.accuracyByModule[mod].push(s.accuracy)
+      }
+    }
+
+    entry.totalScore += s.score || 0
+    entry.totalAttempts += 1
+  })
+
+  const list = Array.from(userScoreMap.values()).map((u) => {
+    const moduleAverages: Record<string, number> = {}
+    Object.keys(u.scoresByModule).forEach((mod) => {
+      const arr = u.scoresByModule[mod]
+      moduleAverages[mod] = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
     })
 
-    const sorted = [...list].sort((a, b) => {
-      const getScore = (x: typeof a) => {
-        if (rankingModuleFilter === 'overall') return x.overallAverage
-        return x.moduleAverages[rankingModuleFilter] ?? -1
-      }
-      return getScore(b) - getScore(a)
+    // ⬇️ NEW: Compute per-module WPM stats
+    const moduleWpmAvg: Record<string, number> = {}
+    const moduleWpmBest: Record<string, number> = {}
+    const moduleAccuracyAvg: Record<string, number> = {}
+
+    Object.keys(u.wpmByModule).forEach((mod) => {
+      const arr = u.wpmByModule[mod]
+      moduleWpmAvg[mod] = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+      moduleWpmBest[mod] = Math.max(...arr)
+    })
+    Object.keys(u.accuracyByModule).forEach((mod) => {
+      const arr = u.accuracyByModule[mod]
+      moduleAccuracyAvg[mod] = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
     })
 
-    return sorted.map((u, idx) => ({
+    const overallAverage = u.totalAttempts > 0
+      ? Math.round(u.totalScore / u.totalAttempts)
+      : 0
+
+    return {
       ...u,
-      rank: idx + 1,
-      displayScore: rankingModuleFilter === 'overall'
-        ? u.overallAverage
+      moduleAverages,
+      moduleWpmAvg,
+      moduleWpmBest,
+      moduleAccuracyAvg,
+      overallAverage,
+    }
+  })
+
+  const sorted = [...list].sort((a, b) => {
+    // ⬇️ NEW: For typing, rank by best WPM instead of score
+    if (rankingModuleFilter === 'typing') {
+      const aWpm = a.moduleWpmBest.typing ?? -1
+      const bWpm = b.moduleWpmBest.typing ?? -1
+      return bWpm - aWpm
+    }
+    const getScore = (x: typeof a) => {
+      if (rankingModuleFilter === 'overall') return x.overallAverage
+      return x.moduleAverages[rankingModuleFilter] ?? -1
+    }
+    return getScore(b) - getScore(a)
+  })
+
+  return sorted.map((u, idx) => ({
+    ...u,
+    rank: idx + 1,
+    // ⬇️ NEW: displayScore carries WPM for typing, score for others
+    displayScore: rankingModuleFilter === 'overall'
+      ? u.overallAverage
+      : rankingModuleFilter === 'typing'
+        ? (u.moduleWpmBest.typing ?? null)
         : (u.moduleAverages[rankingModuleFilter] ?? null),
-    }))
-  }, [allScores, users, rankingModuleFilter])
+    displayScoreUnit: rankingModuleFilter === 'typing' ? 'wpm' : 'percent',
+    // ⬇️ NEW: Sub-metrics to show as small badges
+    displayAccuracy: rankingModuleFilter === 'typing'
+      ? (u.moduleAccuracyAvg.typing ?? null)
+      : null,
+    displayAvgWpm: rankingModuleFilter === 'typing'
+      ? (u.moduleWpmAvg.typing ?? null)
+      : null,
+  }))
+}, [allScores, users, rankingModuleFilter])
 
   const filteredRankings = useMemo(() => {
     if (!rankingSearch.trim()) return rankings
@@ -3499,28 +3551,52 @@ export default function AdminDashboardPage() {
 
   // Profile Stats
   const profileStats = useMemo(() => {
-    const scores = profileData.scores
-    const total = scores.length
-    const average = total > 0 ? Math.round(scores.reduce((a, c) => a + (c.score || 0), 0) / total) : 0
-    const best = total > 0 ? Math.max(...scores.map(s => s.score || 0)) : 0
-    const worst = total > 0 ? Math.min(...scores.map(s => s.score || 0)) : 0
-    const certificates = profileData.certificates.length
-    const tickets = profileData.tickets.length
-    
-    const moduleStats: Record<string, { count: number; avg: number; best: number }> = {}
-    scores.forEach(s => {
-      const m = s.module_name || 'unknown'
-      if (!moduleStats[m]) moduleStats[m] = { count: 0, avg: 0, best: 0 }
-      moduleStats[m].count++
-      moduleStats[m].avg += s.score || 0
-      moduleStats[m].best = Math.max(moduleStats[m].best, s.score || 0)
-    })
-    Object.keys(moduleStats).forEach(m => {
-      moduleStats[m].avg = Math.round(moduleStats[m].avg / moduleStats[m].count)
-    })
-    
-    return { total, average, best, worst, certificates, tickets, moduleStats }
-  }, [profileData])
+  const scores = profileData.scores
+  const total = scores.length
+  const average = total > 0 ? Math.round(scores.reduce((a, c) => a + (c.score || 0), 0) / total) : 0
+  const best = total > 0 ? Math.max(...scores.map(s => s.score || 0)) : 0
+  const worst = total > 0 ? Math.min(...scores.map(s => s.score || 0)) : 0
+  const certificates = profileData.certificates.length
+  const tickets = profileData.tickets.length
+  
+  const moduleStats: Record<string, { count: number; avg: number; best: number }> = {}
+  scores.forEach(s => {
+    const m = s.module_name || 'unknown'
+    if (!moduleStats[m]) moduleStats[m] = { count: 0, avg: 0, best: 0 }
+    moduleStats[m].count++
+    moduleStats[m].avg += s.score || 0
+    moduleStats[m].best = Math.max(moduleStats[m].best, s.score || 0)
+  })
+  Object.keys(moduleStats).forEach(m => {
+    moduleStats[m].avg = Math.round(moduleStats[m].avg / moduleStats[m].count)
+  })
+
+  // ⬇️ NEW: Compute typing-specific WPM/accuracy stats
+  const typingScores = scores.filter(
+    s => s.module_name === 'typing' && typeof s.wpm === 'number' && s.wpm > 0
+  )
+  const typingStats = typingScores.length > 0 ? {
+    count: typingScores.length,
+    avgWpm: Math.round(typingScores.reduce((a, s) => a + (s.wpm || 0), 0) / typingScores.length),
+    bestWpm: Math.max(...typingScores.map(s => s.wpm || 0)),
+    worstWpm: Math.min(...typingScores.map(s => s.wpm || 0)),
+    avgAccuracy: Math.round(
+      typingScores.reduce((a, s) => a + (s.accuracy || 0), 0) / typingScores.length
+    ),
+    bestAccuracy: Math.max(...typingScores.map(s => s.accuracy || 0)),
+    // ⬇️ Bonus: WPM trend (first vs latest)
+    wpmTrend: typingScores.length >= 2
+      ? (() => {
+          const sorted = [...typingScores].sort(
+            (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          )
+          return (sorted[sorted.length - 1].wpm || 0) - (sorted[0].wpm || 0)
+        })()
+      : null,
+  } : null
+  
+  return { total, average, best, worst, certificates, tickets, moduleStats, typingStats }
+}, [profileData])
 
   // LEARNING PROGRESS STATS
   const learningProfileStats = useMemo(() => {
@@ -4664,7 +4740,7 @@ export default function AdminDashboardPage() {
                       { key: 'reading', label: 'Reading', icon: 'book' },
                       { key: 'writing', label: 'Writing', icon: 'pencil' },
                       { key: 'speaking', label: 'Speaking', icon: 'mic' },
-                      { key: 'typing', label: 'Typing', icon: 'keyboard' },
+                      { key: 'typing', label: 'Typing (WPM)', icon: 'keyboard' },
                     ].map((opt) => (
                       <button
                         key={opt.key}
@@ -4695,6 +4771,7 @@ export default function AdminDashboardPage() {
                             : 'from-amber-700 via-orange-700 to-amber-900'
                         const medalEmoji = isFirst ? '🥇' : isSecond ? '🥈' : '🥉'
                         const scaleClass = isFirst ? 'md:scale-105 md:z-10' : ''
+                        const isTypingRanking = rankingModuleFilter === 'typing'
 
                         return (
                           <div
@@ -4722,18 +4799,37 @@ export default function AdminDashboardPage() {
                               <div className={`w-full py-3 rounded-2xl border ${
                                 isFirst ? 'bg-amber-500/10 border-amber-500/30' : isSecond ? 'bg-slate-400/10 border-slate-400/30' : 'bg-orange-700/10 border-orange-700/30'
                               }`}>
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Score</p>
-                                <p className={`text-4xl font-black ${isFirst ? 'text-amber-300' : isSecond ? 'text-slate-200' : 'text-orange-300'}`}>
-                                  {r.displayScore ?? 0}%
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+                                  {isTypingRanking ? 'Best WPM' : 'Score'}
                                 </p>
+                                <p className={`text-4xl font-black ${isFirst ? 'text-amber-300' : isSecond ? 'text-slate-200' : 'text-orange-300'}`}>
+                                  {r.displayScore ?? 0}{isTypingRanking ? '' : '%'}
+                                </p>
+                                {isTypingRanking && (
+                                  <p className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                                    words per minute
+                                  </p>
+                                )}
                               </div>
+
+                              {/* ⬇️ NEW: Show accuracy sub-badge for typing rankings */}
+                              {isTypingRanking && r.displayAccuracy !== null && (
+                                <div className="w-full flex items-center justify-center gap-3 text-[10px] font-mono">
+                                  <span className="text-slate-500">
+                                    Avg: <span className="text-slate-300 font-bold">{r.displayAvgWpm ?? '—'} WPM</span>
+                                  </span>
+                                  <span className="text-slate-600">·</span>
+                                  <span className="text-slate-500">
+                                    Acc: <span className="text-emerald-300 font-bold">{r.displayAccuracy}%</span>
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         )
                       })}
                     </div>
                   )}
-
                   <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
                     <div className="p-5 border-b border-violet-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
@@ -4759,66 +4855,113 @@ export default function AdminDashboardPage() {
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse text-sm">
-                          <thead>
-                            <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
-                              <th className="p-4 w-20">Rank</th>
-                              <th className="p-4">Candidate</th>
-                              <th className="p-4">Score</th>
-                              <th className="p-4 hidden md:table-cell">Attempts</th>
-                              <th className="p-4 hidden lg:table-cell">Modules</th>
-                            </tr>
-                          </thead>
+                         <thead>
+                          <tr className="border-b border-violet-500/20 bg-slate-900/30 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                            <th className="p-4 w-20">Rank</th>
+                            <th className="p-4">Candidate</th>
+                            <th className="p-4">{rankingModuleFilter === 'typing' ? 'Best WPM' : 'Score'}</th>
+                            {rankingModuleFilter === 'typing' && (
+                              <th className="p-4 hidden sm:table-cell">Accuracy</th>
+                            )}
+                            <th className="p-4 hidden md:table-cell">Attempts</th>
+                            <th className="p-4 hidden lg:table-cell">{rankingModuleFilter === 'typing' ? 'Details' : 'Modules'}</th>
+                          </tr>
+                        </thead>
                           <tbody className="divide-y divide-violet-500/10">
-                            {filteredRankings.map((r) => {
-                              const u = users.find(x => x.id === r.userId)
-                              const score = r.displayScore
-                              return (
-                                <tr
-                                  key={r.userId}
-                                  onClick={() => u && openUserProfile(u)}
-                                  className="hover:bg-violet-500/[0.06] transition-colors cursor-pointer"
-                                >
-                                  <td className="p-4"><RankBadge rank={r.rank} /></td>
-                                  <td className="p-4">
-                                    <div className="flex items-center gap-3">
-                                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
-                                        r.isAdmin ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white' : 'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
-                                      }`}>
-                                        {(r.userName || '?').charAt(0).toUpperCase()}
-                                      </div>
-                                      <div className="min-w-0">
-                                        <p className="font-bold text-white text-sm truncate">{r.userName}</p>
-                                        <p className="text-[11px] text-slate-500 font-mono truncate">{r.userEmail}</p>
-                                      </div>
+                          {filteredRankings.map((r) => {
+                            const u = users.find(x => x.id === r.userId)
+                            const score = r.displayScore
+                            const isTypingRanking = rankingModuleFilter === 'typing'
+
+                            return (
+                              <tr
+                                key={r.userId}
+                                onClick={() => u && openUserProfile(u)}
+                                className="hover:bg-violet-500/[0.06] transition-colors cursor-pointer"
+                              >
+                                <td className="p-4"><RankBadge rank={r.rank} /></td>
+                                <td className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                                      r.isAdmin ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white' : 'bg-gradient-to-br from-violet-500 to-purple-500 text-white'
+                                    }`}>
+                                      {(r.userName || '?').charAt(0).toUpperCase()}
                                     </div>
-                                  </td>
-                                  <td className="p-4">
-                                    {score === null ? (
-                                      <span className="text-slate-500 italic text-xs">No data</span>
-                                    ) : (
+                                    <div className="min-w-0">
+                                      <p className="font-bold text-white text-sm truncate">{r.userName}</p>
+                                      <p className="text-[11px] text-slate-500 font-mono truncate">{r.userEmail}</p>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="p-4">
+                                  {score === null ? (
+                                    <span className="text-slate-500 italic text-xs">No data</span>
+                                  ) : isTypingRanking ? (
+                                    // ⬇️ NEW: Show WPM with color-coded thresholds
+                                    <div className="flex flex-col">
                                       <span className={`font-black text-lg ${
-                                        score >= 85 ? 'text-emerald-400' : score >= 70 ? 'text-amber-400' : 'text-rose-400'
-                                      }`}>{score}%</span>
+                                        score >= 60 ? 'text-emerald-400' : score >= 40 ? 'text-amber-400' : 'text-rose-400'
+                                      }`}>
+                                        {score}
+                                      </span>
+                                      <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">WPM</span>
+                                    </div>
+                                  ) : (
+                                    <span className={`font-black text-lg ${
+                                      score >= 85 ? 'text-emerald-400' : score >= 70 ? 'text-amber-400' : 'text-rose-400'
+                                    }`}>{score}%</span>
+                                  )}
+                                </td>
+                                {/* ⬇️ NEW: Accuracy column (only shown when typing ranking) */}
+                                {isTypingRanking && (
+                                  <td className="p-4 hidden sm:table-cell">
+                                    {r.displayAccuracy !== null ? (
+                                      <span className={`font-bold text-sm ${
+                                        r.displayAccuracy >= 95 ? 'text-emerald-400' :
+                                        r.displayAccuracy >= 85 ? 'text-amber-400' : 'text-rose-400'
+                                      }`}>
+                                        {r.displayAccuracy}%
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-600 text-xs">—</span>
                                     )}
                                   </td>
-                                  <td className="p-4 hidden md:table-cell">
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-violet-500/10 text-violet-300 border border-violet-500/20">
-                                      {r.totalAttempts}
-                                    </span>
-                                  </td>
-                                  <td className="p-4 hidden lg:table-cell">
-                                    <div className="flex flex-wrap gap-1">
-                                      {Object.entries(r.moduleAverages).slice(0, 3).map(([mod, avg]) => (
+                                )}
+                                <td className="p-4 hidden md:table-cell">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-violet-500/10 text-violet-300 border border-violet-500/20">
+                                    {r.totalAttempts}
+                                  </span>
+                                </td>
+                                <td className="p-4 hidden lg:table-cell">
+                                  <div className="flex flex-wrap gap-1">
+                                    {isTypingRanking ? (
+                                      // ⬇️ NEW: For typing ranking, show WPM per typing attempts
+                                      <>
+                                        {r.displayAvgWpm !== null && (
+                                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-sky-500/15 text-sky-300 border border-sky-500/30">
+                                            Avg: {r.displayAvgWpm} WPM
+                                          </span>
+                                        )}
+                                        {r.moduleAverages.typing !== undefined && (
+                                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-400">
+                                            Score: {r.moduleAverages.typing}%
+                                          </span>
+                                        )}
+                                      </>
+                                    ) : (
+                                      // Otherwise, existing module badges
+                                      Object.entries(r.moduleAverages).slice(0, 3).map(([mod, avg]) => (
                                         <span key={mod} className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-slate-400">
                                           {mod}: {avg}%
                                         </span>
-                                      ))}
-                                    </div>
-                                  </td>
-                                </tr>
-                              )
-                            })}
-                          </tbody>
+                                      ))
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
                         </table>
                       </div>
                     )}
@@ -5400,14 +5543,23 @@ function UserProfileView({
     completedLessonIds?: string[]
   }
   profileStats: {
-    total: number
-    average: number
-    best: number
-    worst: number
-    certificates: number
-    tickets: number
-    moduleStats: Record<string, { count: number; avg: number; best: number }>
-  }
+  total: number
+  average: number
+  best: number
+  worst: number
+  certificates: number
+  tickets: number
+  moduleStats: Record<string, { count: number; avg: number; best: number }>
+  typingStats: {
+    count: number
+    avgWpm: number
+    bestWpm: number
+    worstWpm: number
+    avgAccuracy: number
+    bestAccuracy: number
+    wpmTrend: number | null
+  } | null
+}
   profileLoading: boolean
   closeUserProfile: () => void
   handleToggleAdmin: (userId: string, currentStatus: boolean, userEmail: string) => void
@@ -5606,13 +5758,21 @@ function UserProfileView({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Stats Grid */}
+          <div className={`grid grid-cols-2 gap-4 ${
+            profileStats.typingStats ? 'lg:grid-cols-4 xl:grid-cols-7' : 'lg:grid-cols-5'
+          }`}>
             {[
               { label: 'Attempts', value: profileStats.total, icon: 'activity', gradient: 'from-violet-500 to-purple-500' },
               { label: 'Average', value: `${profileStats.average}%`, icon: 'trending', gradient: 'from-cyan-500 to-blue-500' },
               { label: 'Best Score', value: `${profileStats.best}%`, icon: 'trophy', gradient: 'from-amber-500 to-orange-500' },
               { label: 'Certificates', value: profileStats.certificates, icon: 'shield', gradient: 'from-emerald-500 to-teal-500' },
               { label: 'Tickets', value: profileStats.tickets, icon: 'message-square', gradient: 'from-rose-500 to-pink-500' },
+              // ⬇️ NEW: Show WPM cards only when typing stats exist
+              ...(profileStats.typingStats ? [
+                { label: 'Avg WPM', value: profileStats.typingStats.avgWpm, icon: 'keyboard', gradient: 'from-sky-500 to-blue-500' },
+                { label: 'Best WPM', value: profileStats.typingStats.bestWpm, icon: 'zap', gradient: 'from-amber-500 to-orange-500' },
+              ] : []),
             ].map((stat) => (
               <div key={stat.label} className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-4">
                 <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl`} />
@@ -5630,7 +5790,6 @@ function UserProfileView({
               </div>
             ))}
           </div>
-
           <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
             <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
               <div className="flex items-center gap-3">
@@ -5771,6 +5930,78 @@ function UserProfileView({
                   <h3 className="text-base font-black tracking-tight">Module Breakdown</h3>
                   <p className="text-xs text-slate-400">Per-module attempts and scores</p>
                 </div>
+                {/* Typing Performance — only shown if user has typing records */}
+                  {profileStats.typingStats && (
+                    <div className="relative overflow-hidden rounded-3xl border border-sky-500/30 bg-gradient-to-br from-sky-500/10 via-[#151520]/80 to-blue-500/5 backdrop-blur-xl p-5 sm:p-6">
+                      <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-sky-500/20 rounded-full blur-[100px] pointer-events-none" />
+                      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-400/50 to-transparent" />
+
+                      <div className="relative flex items-center justify-between gap-4 mb-5 flex-wrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-blue-500 flex items-center justify-center shadow-lg">
+                            <Icon name="keyboard" className="w-5 h-5 text-white" glow />
+                          </div>
+                          <div>
+                            <h3 className="text-base font-black tracking-tight">Typing Performance</h3>
+                            <p className="text-xs text-slate-400">
+                              Based on {profileStats.typingStats.count} typing attempt{profileStats.typingStats.count === 1 ? '' : 's'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* WPM Trend indicator */}
+                        {profileStats.typingStats.wpmTrend !== null && (
+                          <div className={`px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                            profileStats.typingStats.wpmTrend > 0
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                              : profileStats.typingStats.wpmTrend < 0
+                                ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                                : 'bg-slate-500/10 text-slate-400 border-slate-500/30'
+                          }`}>
+                            {profileStats.typingStats.wpmTrend > 0 ? (
+                              <>
+                                <Icon name="trending" className="w-3 h-3" />
+                                <span>+{profileStats.typingStats.wpmTrend} WPM since first</span>
+                              </>
+                            ) : profileStats.typingStats.wpmTrend < 0 ? (
+                              <>
+                                <Icon name="trending-down" className="w-3 h-3" />
+                                <span>{profileStats.typingStats.wpmTrend} WPM since first</span>
+                              </>
+                            ) : (
+                              <>
+                                <Icon name="scale" className="w-3 h-3" />
+                                <span>No change</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="p-4 rounded-2xl border border-sky-500/30 bg-slate-900/40 space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-sky-300">Average WPM</p>
+                          <p className="text-3xl font-black text-white">{profileStats.typingStats.avgWpm}</p>
+                          <p className="text-[10px] text-slate-500 font-mono">words per minute</p>
+                        </div>
+                        <div className="p-4 rounded-2xl border border-emerald-500/30 bg-slate-900/40 space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Best WPM</p>
+                          <p className="text-3xl font-black text-white">{profileStats.typingStats.bestWpm}</p>
+                          <p className="text-[10px] text-slate-500 font-mono">personal record</p>
+                        </div>
+                        <div className="p-4 rounded-2xl border border-amber-500/30 bg-slate-900/40 space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-300">Avg Accuracy</p>
+                          <p className="text-3xl font-black text-white">{profileStats.typingStats.avgAccuracy}%</p>
+                          <p className="text-[10px] text-slate-500 font-mono">typing precision</p>
+                        </div>
+                        <div className="p-4 rounded-2xl border border-violet-500/30 bg-slate-900/40 space-y-2">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-violet-300">Best Accuracy</p>
+                          <p className="text-3xl font-black text-white">{profileStats.typingStats.bestAccuracy}%</p>
+                          <p className="text-[10px] text-slate-500 font-mono">peak precision</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 {Object.entries(profileStats.moduleStats).map(([module, data]) => (
@@ -5820,12 +6051,19 @@ function UserProfileView({
             ) : (
               <div className="overflow-x-auto max-h-[500px]">
                 <table className="w-full text-left border-collapse text-sm">
-                  <thead className="sticky top-0 bg-[#0d0d12] z-10">
+                 <thead className="sticky top-0 bg-[#0d0d12] z-10">
                     <tr className="border-b border-violet-500/20 bg-slate-900/60 text-slate-400 font-bold text-[10px] uppercase tracking-widest">
                       <th className="p-4">#</th>
                       <th className="p-4">Date</th>
                       <th className="p-4">Module</th>
                       <th className="p-4">Score</th>
+                      {/* ⬇️ NEW: WPM + Accuracy columns (only if typing stats exist) */}
+                      {profileStats.typingStats && (
+                        <>
+                          <th className="p-4">WPM</th>
+                          <th className="p-4">Accuracy</th>
+                        </>
+                      )}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-violet-500/10">
@@ -5854,6 +6092,35 @@ function UserProfileView({
                             {s.score}%
                           </span>
                         </td>
+                        {/* ⬇️ NEW: WPM + Accuracy values (only if typing stats exist) */}
+                        {profileStats.typingStats && (
+                          <>
+                            <td className="p-4">
+                              {s.module_name === 'typing' && typeof s.wpm === 'number' ? (
+                                <span className={`font-black text-lg ${
+                                  s.wpm >= 60 ? 'text-emerald-400' :
+                                  s.wpm >= 40 ? 'text-amber-400' : 'text-rose-400'
+                                }`}>
+                                  {s.wpm}
+                                </span>
+                              ) : (
+                                <span className="text-slate-600 text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="p-4">
+                              {s.module_name === 'typing' && typeof s.accuracy === 'number' ? (
+                                <span className={`font-bold text-sm ${
+                                  s.accuracy >= 95 ? 'text-emerald-400' :
+                                  s.accuracy >= 85 ? 'text-amber-400' : 'text-rose-400'
+                                }`}>
+                                  {s.accuracy}%
+                                </span>
+                              ) : (
+                                <span className="text-slate-600 text-xs">—</span>
+                              )}
+                            </td>
+                          </>
+                        )}
                       </tr>
                     ))}
                   </tbody>
