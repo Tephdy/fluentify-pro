@@ -342,6 +342,12 @@ function Icon({ name, className = "w-5 h-5", glow = false }: IconProps) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M1 1l22 22" />
         </svg>
       )
+    case 'sparkles':
+      return (
+        <svg className={`${className} ${glowClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      )
     default:
       return null
   }
@@ -537,12 +543,12 @@ function getLevelMeta(level: string): typeof LEVEL_META[TutorialLevel] {
 }
 
 // ============================================
-// TAB TYPE — ⬅️ NEW: added 'bpo'
+// TAB TYPE
 // ============================================
-type AdminTab = 'overview' | 'users' | 'questions' | 'tutorials' | 'bpo' | 'rankings' | 'statistics'
+type AdminTab = 'overview' | 'users' | 'questions' | 'tutorials' | 'topics' | 'bpo' | 'suggestions' | 'rankings' | 'statistics'
 
 // ============================================
-// ⬅️ NEW: BPO SUB-SECTIONS MAP
+// BPO SUB-SECTIONS MAP
 // ============================================
 type BPOSection =
   | 'bpo_industry_overview'
@@ -585,7 +591,7 @@ const BPO_SECTIONS: Array<{
     key: 'bpo_companies',
     label: 'BPO Companies',
     description: 'Major employers with histories, services, and application notes',
-    icon: 'academic',
+    icon: 'book',
     gradient: 'from-cyan-500 to-blue-500',
     singular: false,
     orderField: 'display_order',
@@ -605,7 +611,7 @@ const BPO_SECTIONS: Array<{
     key: 'bpo_application_steps',
     label: 'Application Steps',
     description: 'Step-by-step guide for applying to BPO jobs',
-    icon: 'file-text',
+    icon: 'hash',
     gradient: 'from-fuchsia-500 to-pink-500',
     singular: false,
     orderField: 'step_number',
@@ -625,7 +631,7 @@ const BPO_SECTIONS: Array<{
     key: 'bpo_success_tips',
     label: 'Success Tips',
     description: 'Categorized tips for before, during, and after applying',
-    icon: 'sparkles',
+    icon: 'star',
     gradient: 'from-yellow-500 to-amber-500',
     singular: false,
     orderField: 'display_order',
@@ -634,7 +640,7 @@ const BPO_SECTIONS: Array<{
 ]
 
 // ============================================
-// ⬅️ NEW: FIELD DEFINITIONS PER BPO TABLE
+// FIELD DEFINITIONS PER BPO TABLE
 // ============================================
 type FieldType = 'text' | 'textarea' | 'number' | 'boolean' | 'array' | 'json' | 'select'
 
@@ -707,7 +713,72 @@ const BPO_FIELD_DEFS: Record<BPOSection, FieldDef[]> = {
 }
 
 // ============================================
-// ⬅️ NEW: BPO EDITOR COMPONENT
+// LEARNING TOPICS: Types & Field Definitions
+// ============================================
+interface LearningTopic {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  icon: string;
+  gradient: string;
+  level: 'beginner' | 'intermediate' | 'upper_intermediate' | 'advanced';
+  estimated_minutes: number;
+  is_active: boolean;
+  display_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface LearningTopicSection {
+  id: string;
+  topic_id: string;
+  section_type: 'lesson' | 'example' | 'template' | 'tip' | 'checklist' | 'script' | 'comparison';
+  title: string;
+  content: string;
+  examples: any[];
+  key_points: string[];
+  display_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+const TOPIC_FIELD_DEFS: FieldDef[] = [
+  { key: 'slug', label: 'Slug (unique URL-friendly ID)', type: 'text', required: true, placeholder: 'e.g., customer-interaction-service', helpText: 'Lowercase, hyphens only. Used as unique identifier.' },
+  { key: 'title', label: 'Topic Title', type: 'text', required: true, placeholder: 'e.g., Customer Interaction & Service Delivery' },
+  { key: 'subtitle', label: 'Subtitle', type: 'text', placeholder: 'Short one-line description' },
+  { key: 'description', label: 'Description', type: 'textarea', rows: 4, placeholder: 'Full description shown on topic card...' },
+  { key: 'icon', label: 'Icon Name', type: 'select', options: ['book', 'headphones', 'keyboard', 'graduation-cap', 'mic', 'pencil', 'activity', 'users', 'chart', 'award', 'trophy', 'info', 'message-square', 'shield', 'sparkles', 'file-text', 'layers', 'zap'] },
+  { key: 'gradient', label: 'Gradient Classes', type: 'select', options: [
+    'from-rose-500 to-pink-500',
+    'from-cyan-500 to-blue-500',
+    'from-indigo-500 to-violet-500',
+    'from-emerald-500 to-teal-500',
+    'from-amber-500 to-orange-500',
+    'from-violet-500 to-purple-500',
+    'from-fuchsia-500 to-pink-500',
+    'from-sky-500 to-blue-500',
+    'from-yellow-500 to-amber-500',
+    'from-slate-500 to-slate-600',
+  ]},
+  { key: 'level', label: 'Difficulty Level', type: 'select', required: true, options: ['beginner', 'intermediate', 'upper_intermediate', 'advanced'] },
+  { key: 'estimated_minutes', label: 'Estimated Minutes', type: 'number', placeholder: '15' },
+  { key: 'display_order', label: 'Display Order', type: 'number', placeholder: '1' },
+  { key: 'is_active', label: 'Active (visible to users)', type: 'boolean' },
+];
+
+const TOPIC_SECTION_FIELD_DEFS: FieldDef[] = [
+  { key: 'section_type', label: 'Section Type', type: 'select', required: true, options: ['lesson', 'example', 'template', 'tip', 'checklist', 'script', 'comparison'] },
+  { key: 'title', label: 'Section Title', type: 'text', required: true, placeholder: 'e.g., Understanding Customer Interaction Channels' },
+  { key: 'content', label: 'Content (main text)', type: 'textarea', required: true, rows: 5, placeholder: 'The main lesson/description text...' },
+  { key: 'examples', label: 'Examples (JSON array)', type: 'json', helpText: 'Array of objects. Shape varies by section type.', placeholder: '[{"key": "value"}]' },
+  { key: 'key_points', label: 'Key Takeaways (array)', type: 'array', helpText: 'One key point per line' },
+  { key: 'display_order', label: 'Display Order', type: 'number', placeholder: '1' },
+];
+
+// ============================================
+// BPO EDITOR COMPONENT
 // ============================================
 function BPOEditorView({ Icon }: { Icon: any }) {
   const [activeSection, setActiveSection] = useState<BPOSection>('bpo_industry_overview')
@@ -722,9 +793,6 @@ function BPOEditorView({ Icon }: { Icon: any }) {
   const currentSection = BPO_SECTIONS.find(s => s.key === activeSection)!
   const fieldDefs = BPO_FIELD_DEFS[activeSection]
 
-  // ============================================
-  // LOAD RECORDS
-  // ============================================
   const loadRecords = async () => {
     setLoading(true)
     setErrorMsg('')
@@ -759,9 +827,6 @@ function BPOEditorView({ Icon }: { Icon: any }) {
     setSearchQuery('')
   }, [activeSection])
 
-  // ============================================
-  // SEARCH FILTER
-  // ============================================
   const filteredRecords = useMemo(() => {
     if (!searchQuery.trim()) return records
     const q = searchQuery.toLowerCase()
@@ -776,9 +841,6 @@ function BPOEditorView({ Icon }: { Icon: any }) {
     )
   }, [records, searchQuery])
 
-  // ============================================
-  // OPEN CREATE / EDIT
-  // ============================================
   const openCreate = () => {
     const initial: any = {}
     fieldDefs.forEach((f) => {
@@ -804,19 +866,14 @@ function BPOEditorView({ Icon }: { Icon: any }) {
     setErrorMsg('')
   }
 
-  // ============================================
-  // SAVE
-  // ============================================
   const handleSave = async () => {
     if (!editingRecord) return
     setSaving(true)
     setErrorMsg('')
 
     try {
-      // Strip internal fields
       const { id, created_at, updated_at, ...payload } = editingRecord
 
-      // Validate required fields
       for (const f of fieldDefs) {
         if (f.required && !payload[f.key] && payload[f.key] !== 0) {
           throw new Error(`Field "${f.label}" is required.`)
@@ -841,9 +898,6 @@ function BPOEditorView({ Icon }: { Icon: any }) {
     }
   }
 
-  // ============================================
-  // DELETE
-  // ============================================
   const handleDelete = async (id: string, label: string) => {
     if (!confirm(`Delete "${label}"? This cannot be undone.`)) return
 
@@ -857,16 +911,10 @@ function BPOEditorView({ Icon }: { Icon: any }) {
     }
   }
 
-  // ============================================
-  // FIELD VALUE CHANGE
-  // ============================================
   const setFieldValue = (key: string, value: any) => {
     setEditingRecord((prev: any) => ({ ...prev, [key]: value }))
   }
 
-  // ============================================
-  // GET PRIMARY LABEL FOR A RECORD
-  // ============================================
   const getRecordLabel = (rec: any): string => {
     if (!rec) return 'Record'
     return (
@@ -881,9 +929,6 @@ function BPOEditorView({ Icon }: { Icon: any }) {
     )
   }
 
-  // ============================================
-  // RENDER FIELD INPUT
-  // ============================================
   const renderField = (f: FieldDef) => {
     const value = editingRecord?.[f.key]
 
@@ -954,7 +999,7 @@ function BPOEditorView({ Icon }: { Icon: any }) {
               try {
                 setFieldValue(f.key, JSON.parse(e.target.value))
               } catch {
-                setFieldValue(f.key, e.target.value) // store invalid JSON as string; will error on save
+                setFieldValue(f.key, e.target.value)
               }
             }}
             placeholder={f.placeholder}
@@ -1063,7 +1108,7 @@ function BPOEditorView({ Icon }: { Icon: any }) {
         </div>
       )}
 
-      {/* ============ EDITING / CREATING VIEW ============ */}
+      {/* EDITING / CREATING VIEW */}
       {editingRecord && (
         <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-[#151520]/90 backdrop-blur-xl p-5 sm:p-8">
           <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
@@ -1137,7 +1182,7 @@ function BPOEditorView({ Icon }: { Icon: any }) {
         </div>
       )}
 
-      {/* ============ LIST VIEW ============ */}
+      {/* LIST VIEW */}
       {!editingRecord && (
         <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
           <div className="p-5 border-b border-violet-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1205,7 +1250,6 @@ function BPOEditorView({ Icon }: { Icon: any }) {
                         <p className="text-[11px] text-slate-500 font-mono truncate">
                           {rec.id}
                         </p>
-                        {/* Meta preview */}
                         <div className="flex flex-wrap gap-1.5 mt-1.5">
                           {typeof rec.is_active === 'boolean' && (
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
@@ -1254,6 +1298,1521 @@ function BPOEditorView({ Icon }: { Icon: any }) {
       )}
     </div>
   )
+}
+
+// ============================================
+// LEARNING TOPICS EDITOR (Admin CRUD)
+// ============================================
+function TopicEditorView({ Icon }: { Icon: any }) {
+  const [view, setView] = useState<'topics' | 'sections'>('topics');
+  const [topics, setTopics] = useState<LearningTopic[]>([]);
+  const [sections, setSections] = useState<LearningTopicSection[]>([]);
+  const [selectedTopic, setSelectedTopic] = useState<LearningTopic | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Topic editing
+  const [editingTopic, setEditingTopic] = useState<any | null>(null);
+  const [isCreatingTopic, setIsCreatingTopic] = useState(false);
+
+  // Section editing
+  const [editingSection, setEditingSection] = useState<any | null>(null);
+  const [isCreatingSection, setIsCreatingSection] = useState(false);
+
+  const loadTopics = async () => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const { data, error } = await supabase
+        .from('learning_topics')
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      setTopics((data as LearningTopic[]) || []);
+    } catch (err: any) {
+      console.error('Error loading topics:', err.message);
+      setErrorMsg(err.message || 'Failed to load topics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSections = async (topicId: string) => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const { data, error } = await supabase
+        .from('learning_topic_sections')
+        .select('*')
+        .eq('topic_id', topicId)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      setSections((data as LearningTopicSection[]) || []);
+    } catch (err: any) {
+      console.error('Error loading sections:', err.message);
+      setErrorMsg(err.message || 'Failed to load sections');
+      setSections([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTopics();
+  }, []);
+
+  const filteredTopics = useMemo(() => {
+    if (!searchQuery.trim()) return topics;
+    const q = searchQuery.toLowerCase();
+    return topics.filter(
+      (t) =>
+        t.title.toLowerCase().includes(q) ||
+        t.slug.toLowerCase().includes(q) ||
+        (t.description || '').toLowerCase().includes(q)
+    );
+  }, [topics, searchQuery]);
+
+  const openCreateTopic = () => {
+    setEditingTopic({
+      slug: '',
+      title: '',
+      subtitle: '',
+      description: '',
+      icon: 'book',
+      gradient: 'from-indigo-500 to-violet-500',
+      level: 'beginner',
+      estimated_minutes: 15,
+      is_active: true,
+      display_order: topics.length + 1,
+    });
+    setIsCreatingTopic(true);
+  };
+
+  const openEditTopic = (topic: LearningTopic) => {
+    setEditingTopic({ ...topic });
+    setIsCreatingTopic(false);
+  };
+
+  const cancelTopicEdit = () => {
+    setEditingTopic(null);
+    setIsCreatingTopic(false);
+    setErrorMsg('');
+  };
+
+  const handleSaveTopic = async () => {
+    if (!editingTopic) return;
+    setSaving(true);
+    setErrorMsg('');
+
+    try {
+      const { id, created_at, updated_at, ...payload } = editingTopic;
+
+      if (!payload.slug?.trim()) throw new Error('Slug is required.');
+      if (!payload.title?.trim()) throw new Error('Title is required.');
+      if (!/^[a-z0-9-]+$/.test(payload.slug)) {
+        throw new Error('Slug must be lowercase letters, numbers, and hyphens only.');
+      }
+
+      if (isCreatingTopic) {
+        const { error } = await supabase.from('learning_topics').insert([payload]);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('learning_topics').update(payload).eq('id', id);
+        if (error) throw error;
+      }
+
+      await loadTopics();
+      cancelTopicEdit();
+    } catch (err: any) {
+      console.error('Save error:', err.message);
+      setErrorMsg(err.message || 'Failed to save topic');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteTopic = async (topic: LearningTopic) => {
+    if (!confirm(`Delete "${topic.title}"? All its sections will also be deleted. This cannot be undone.`)) return;
+    try {
+      const { error } = await supabase.from('learning_topics').delete().eq('id', topic.id);
+      if (error) throw error;
+      await loadTopics();
+    } catch (err: any) {
+      console.error('Delete error:', err.message);
+      alert('Delete failed: ' + err.message);
+    }
+  };
+
+  const handleManageSections = (topic: LearningTopic) => {
+    setSelectedTopic(topic);
+    setView('sections');
+    loadSections(topic.id);
+  };
+
+  const handleBackToTopics = () => {
+    setView('topics');
+    setSelectedTopic(null);
+    setSections([]);
+    setEditingSection(null);
+  };
+
+  const openCreateSection = () => {
+    setEditingSection({
+      topic_id: selectedTopic?.id,
+      section_type: 'lesson',
+      title: '',
+      content: '',
+      examples: [],
+      key_points: [],
+      display_order: sections.length + 1,
+    });
+    setIsCreatingSection(true);
+  };
+
+  const openEditSection = (section: LearningTopicSection) => {
+    setEditingSection({ ...section });
+    setIsCreatingSection(false);
+  };
+
+  const cancelSectionEdit = () => {
+    setEditingSection(null);
+    setIsCreatingSection(false);
+    setErrorMsg('');
+  };
+
+  const handleSaveSection = async () => {
+    if (!editingSection || !selectedTopic) return;
+    setSaving(true);
+    setErrorMsg('');
+
+    try {
+      const { id, created_at, updated_at, ...payload } = editingSection;
+
+      if (!payload.title?.trim()) throw new Error('Section title is required.');
+      if (!payload.content?.trim()) throw new Error('Section content is required.');
+
+      if (isCreatingSection) {
+        const { error } = await supabase.from('learning_topic_sections').insert([payload]);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('learning_topic_sections').update(payload).eq('id', id);
+        if (error) throw error;
+      }
+
+      await loadSections(selectedTopic.id);
+      cancelSectionEdit();
+    } catch (err: any) {
+      console.error('Save error:', err.message);
+      setErrorMsg(err.message || 'Failed to save section');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteSection = async (section: LearningTopicSection) => {
+    if (!confirm(`Delete section "${section.title}"? This cannot be undone.`)) return;
+    try {
+      const { error } = await supabase.from('learning_topic_sections').delete().eq('id', section.id);
+      if (error) throw error;
+      if (selectedTopic) await loadSections(selectedTopic.id);
+    } catch (err: any) {
+      console.error('Delete error:', err.message);
+      alert('Delete failed: ' + err.message);
+    }
+  };
+
+  const setTopicField = (key: string, value: any) => {
+    setEditingTopic((prev: any) => ({ ...prev, [key]: value }));
+  };
+
+  const setSectionField = (key: string, value: any) => {
+    setEditingSection((prev: any) => ({ ...prev, [key]: value }));
+  };
+
+  const renderField = (
+    f: FieldDef,
+    value: any,
+    onChange: (key: string, value: any) => void
+  ) => {
+    const baseInput =
+      'w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-violet-500/20 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400 transition-colors';
+
+    switch (f.type) {
+      case 'textarea':
+        return (
+          <textarea
+            value={value || ''}
+            onChange={(e) => onChange(f.key, e.target.value)}
+            placeholder={f.placeholder}
+            rows={f.rows || 4}
+            className={`${baseInput} leading-relaxed`}
+          />
+        );
+
+      case 'number':
+        return (
+          <input
+            type="number"
+            value={value ?? 0}
+            onChange={(e) => onChange(f.key, Number(e.target.value))}
+            placeholder={f.placeholder}
+            className={baseInput}
+          />
+        );
+
+      case 'boolean':
+        return (
+          <button
+            type="button"
+            onClick={() => onChange(f.key, !value)}
+            className={`relative inline-flex items-center gap-3 px-4 py-3 rounded-xl border transition-all w-full ${
+              value
+                ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                : 'bg-slate-900 border-slate-700 text-slate-400'
+            }`}
+          >
+            <span className={`relative w-10 h-6 rounded-full transition-colors ${value ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${value ? 'translate-x-4' : ''}`} />
+            </span>
+            <span className="text-xs font-bold uppercase tracking-wider">
+              {value ? 'Enabled' : 'Disabled'}
+            </span>
+          </button>
+        );
+
+      case 'array':
+        return (
+          <textarea
+            value={Array.isArray(value) ? value.join('\n') : ''}
+            onChange={(e) =>
+              onChange(f.key, e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))
+            }
+            placeholder={f.placeholder || 'One item per line'}
+            rows={5}
+            className={`${baseInput} leading-relaxed font-mono text-[13px]`}
+          />
+        );
+
+      case 'json':
+        return (
+          <textarea
+            value={typeof value === 'object' ? JSON.stringify(value, null, 2) : value || ''}
+            onChange={(e) => {
+              try {
+                onChange(f.key, JSON.parse(e.target.value));
+              } catch {
+                onChange(f.key, e.target.value);
+              }
+            }}
+            placeholder={f.placeholder}
+            rows={8}
+            className={`${baseInput} leading-relaxed font-mono text-[13px]`}
+          />
+        );
+
+      case 'select':
+        return (
+          <select
+            value={value || ''}
+            onChange={(e) => onChange(f.key, e.target.value)}
+            className={`${baseInput} cursor-pointer`}
+          >
+            {f.options?.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        );
+
+      default:
+        return (
+          <input
+            type="text"
+            value={value || ''}
+            onChange={(e) => onChange(f.key, e.target.value)}
+            placeholder={f.placeholder}
+            className={baseInput}
+          />
+        );
+    }
+  };
+
+  // ============================================
+  // TOPICS LIST VIEW
+  // ============================================
+  if (view === 'topics') {
+    return (
+      <div className="space-y-6">
+        <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-[#151520]/80 to-teal-500/5 backdrop-blur-xl p-5 sm:p-8">
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-500/20 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+          <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-widest text-emerald-300">
+                <Icon name="graduation-cap" className="w-3 h-3" glow />
+                Career Topics Content
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+                Learning <span className="bg-gradient-to-r from-emerald-300 via-teal-300 to-cyan-300 bg-clip-text text-transparent">Topics</span>
+              </h2>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Manage dynamic career-readiness topics shown in the user Learning module. Each topic contains organized sections (lessons, scripts, templates, checklists).
+              </p>
+            </div>
+
+            <button
+              onClick={loadTopics}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900/70 border border-emerald-500/30 hover:border-emerald-400/60 text-emerald-300 font-bold text-xs transition-all shrink-0 disabled:opacity-50"
+            >
+              <Icon name="refresh" className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>{loading ? 'Syncing...' : 'Refresh'}</span>
+            </button>
+          </div>
+        </div>
+
+        {errorMsg && (
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm flex items-center justify-between gap-3">
+            <span className="flex-1">{errorMsg}</span>
+            <button onClick={() => setErrorMsg('')} className="text-xs font-bold uppercase underline shrink-0">
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {editingTopic ? (
+          <div className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-[#151520]/90 backdrop-blur-xl p-5 sm:p-8">
+            <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${isCreatingTopic ? 'from-emerald-500 to-teal-500' : 'from-blue-500 to-cyan-500'} flex items-center justify-center shadow-lg`}>
+                  <Icon name={isCreatingTopic ? 'plus' : 'edit'} className="w-5 h-5 text-white" glow />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                    {isCreatingTopic ? 'Create' : 'Edit'} Topic
+                  </p>
+                  <h3 className="text-lg font-black">{editingTopic.title || 'Untitled Topic'}</h3>
+                </div>
+              </div>
+              <button
+                onClick={cancelTopicEdit}
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/60 transition"
+              >
+                <Icon name="x" className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5">
+              {TOPIC_FIELD_DEFS.map((f) => (
+                <div key={f.key} className="space-y-2">
+                  <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    {f.label}
+                    {f.required && <span className="text-rose-400">*</span>}
+                  </label>
+                  {renderField(f, editingTopic[f.key], setTopicField)}
+                  {f.helpText && (
+                    <p className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5">
+                      <Icon name="info" className="w-3 h-3" />
+                      {f.helpText}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Preview */}
+            <div className="mt-6 p-4 rounded-2xl border border-emerald-500/20 bg-slate-900/50">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 mb-3">
+                Live Preview
+              </p>
+              <div className="flex items-start gap-3">
+                <div className={`w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br ${editingTopic.gradient} flex items-center justify-center text-white shadow-lg`}>
+                  <Icon name={editingTopic.icon} className="w-6 h-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">{editingTopic.title || 'Topic Title'}</p>
+                  {editingTopic.subtitle && (
+                    <p className="text-xs text-emerald-400 mt-0.5">{editingTopic.subtitle}</p>
+                  )}
+                  <p className="text-[10px] text-slate-500 mt-1 font-mono">
+                    {editingTopic.level} · {editingTopic.estimated_minutes} min
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-emerald-500/20">
+              <button
+                onClick={handleSaveTopic}
+                disabled={saving}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/30 disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon name="check" className="w-4 h-4" />
+                    <span>{isCreatingTopic ? 'Create Topic' : 'Save Changes'}</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={cancelTopicEdit}
+                disabled={saving}
+                className="flex-1 sm:flex-none px-6 py-3.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm hover:bg-slate-700 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+            <div className="p-5 border-b border-violet-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-black tracking-tight">All Topics</h3>
+                <p className="text-xs text-slate-400">
+                  {filteredTopics.length} topic{filteredTopics.length === 1 ? '' : 's'}
+                  {searchQuery && ` (filtered from ${topics.length})`}
+                </p>
+              </div>
+              <div className="flex gap-3 flex-col sm:flex-row">
+                <div className="relative flex-1 sm:w-64">
+                  <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search topics..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400"
+                  />
+                </div>
+                <button
+                  onClick={openCreateTopic}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold text-xs shadow-lg shadow-emerald-500/30 hover:shadow-xl transition-all shrink-0"
+                >
+                  <Icon name="plus" className="w-4 h-4" />
+                  <span>New Topic</span>
+                </button>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="p-12 text-center text-slate-400 text-sm">Loading topics...</div>
+            ) : filteredTopics.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="inline-flex flex-col items-center gap-3">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                    <Icon name="graduation-cap" className="w-7 h-7 text-emerald-400" glow />
+                  </div>
+                  <p className="text-slate-300 font-bold">
+                    {topics.length === 0 ? 'No topics yet' : 'No matches found'}
+                  </p>
+                  <p className="text-xs text-slate-500 max-w-sm">
+                    {topics.length === 0
+                      ? 'Click "New Topic" to create your first learning topic.'
+                      : 'Try adjusting your search query.'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-violet-500/10 max-h-[600px] overflow-y-auto">
+                {filteredTopics.map((topic) => (
+                  <div
+                    key={topic.id}
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-violet-500/[0.04] transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className={`w-12 h-12 shrink-0 rounded-xl bg-gradient-to-br ${topic.gradient} flex items-center justify-center text-white shadow-lg`}>
+                        <Icon name={topic.icon} className="w-6 h-6" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-bold text-white truncate">{topic.title}</p>
+                          <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                            topic.is_active
+                              ? 'bg-emerald-500/15 text-emerald-400'
+                              : 'bg-slate-500/15 text-slate-400'
+                          }`}>
+                            {topic.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                          <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                            topic.level === 'beginner' ? 'bg-emerald-500/15 text-emerald-400' :
+                            topic.level === 'intermediate' ? 'bg-sky-500/15 text-sky-400' :
+                            topic.level === 'upper_intermediate' ? 'bg-violet-500/15 text-violet-400' :
+                            'bg-rose-500/15 text-rose-400'
+                          }`}>
+                            {topic.level}
+                          </span>
+                        </div>
+                        {topic.subtitle && (
+                          <p className="text-xs text-emerald-400 mt-0.5 truncate">{topic.subtitle}</p>
+                        )}
+                        <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                          {topic.slug} · {topic.estimated_minutes} min · Order #{topic.display_order}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                      <button
+                        onClick={() => handleManageSections(topic)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-bold transition-all"
+                      >
+                        <Icon name="layers" className="w-3.5 h-3.5" />
+                        <span>Sections</span>
+                      </button>
+                      <button
+                        onClick={() => openEditTopic(topic)}
+                        className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold transition-all"
+                      >
+                        <Icon name="edit" className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTopic(topic)}
+                        className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold transition-all"
+                      >
+                        <Icon name="trash" className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============================================
+  // SECTIONS VIEW
+  // ============================================
+  return (
+    <div className="space-y-6">
+      <button
+        onClick={handleBackToTopics}
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-slate-300 hover:text-white hover:border-violet-400/40 font-bold text-xs transition-all"
+      >
+        <Icon name="arrow-left" className="w-4 h-4" />
+        <span>Back to All Topics</span>
+      </button>
+
+      {selectedTopic && (
+        <div className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
+          <div className={`absolute -top-8 -right-8 w-40 h-40 bg-gradient-to-br ${selectedTopic.gradient} opacity-10 rounded-full blur-3xl`} />
+          <div className="relative flex items-start gap-4">
+            <div className={`w-16 h-16 shrink-0 rounded-2xl bg-gradient-to-br ${selectedTopic.gradient} flex items-center justify-center text-white shadow-lg`}>
+              <Icon name={selectedTopic.icon} className="w-8 h-8" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                Managing Sections
+              </p>
+              <h2 className="text-2xl font-black tracking-tight mt-1">{selectedTopic.title}</h2>
+              {selectedTopic.subtitle && (
+                <p className="text-sm text-emerald-400 mt-1">{selectedTopic.subtitle}</p>
+              )}
+              <p className="text-[11px] text-slate-500 font-mono mt-2">
+                {sections.length} section{sections.length === 1 ? '' : 's'} · {selectedTopic.level} · {selectedTopic.estimated_minutes} min
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm flex items-center justify-between gap-3">
+          <span className="flex-1">{errorMsg}</span>
+          <button onClick={() => setErrorMsg('')} className="text-xs font-bold uppercase underline shrink-0">
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {editingSection ? (
+        <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-[#151520]/90 backdrop-blur-xl p-5 sm:p-8">
+          <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${isCreatingSection ? 'from-cyan-500 to-blue-500' : 'from-emerald-500 to-teal-500'} flex items-center justify-center shadow-lg`}>
+                <Icon name={isCreatingSection ? 'plus' : 'edit'} className="w-5 h-5 text-white" glow />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-cyan-400">
+                  {isCreatingSection ? 'Create' : 'Edit'} Section
+                </p>
+                <h3 className="text-lg font-black">{editingSection.title || 'Untitled Section'}</h3>
+              </div>
+            </div>
+            <button
+              onClick={cancelSectionEdit}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/60 transition"
+            >
+              <Icon name="x" className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5">
+            {TOPIC_SECTION_FIELD_DEFS.map((f) => (
+              <div key={f.key} className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                  {f.label}
+                  {f.required && <span className="text-rose-400">*</span>}
+                </label>
+                {renderField(f, editingSection[f.key], setSectionField)}
+                {f.helpText && (
+                  <p className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5">
+                    <Icon name="info" className="w-3 h-3" />
+                    {f.helpText}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-cyan-500/20">
+            <button
+              onClick={handleSaveSection}
+              disabled={saving}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold text-sm shadow-lg shadow-cyan-500/30 disabled:opacity-50"
+            >
+              {saving ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Icon name="check" className="w-4 h-4" />
+                  <span>{isCreatingSection ? 'Create Section' : 'Save Changes'}</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={cancelSectionEdit}
+              disabled={saving}
+              className="flex-1 sm:flex-none px-6 py-3.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm hover:bg-slate-700 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+          <div className="p-5 border-b border-violet-500/20 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h3 className="text-base font-black tracking-tight">Sections</h3>
+              <p className="text-xs text-slate-400">
+                {sections.length} section{sections.length === 1 ? '' : 's'} in this topic
+              </p>
+            </div>
+            <button
+              onClick={openCreateSection}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold text-xs shadow-lg shadow-cyan-500/30 hover:shadow-xl transition-all"
+            >
+              <Icon name="plus" className="w-4 h-4" />
+              <span>New Section</span>
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="p-12 text-center text-slate-400 text-sm">Loading sections...</div>
+          ) : sections.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="inline-flex flex-col items-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                  <Icon name="layers" className="w-7 h-7 text-cyan-400" glow />
+                </div>
+                <p className="text-slate-300 font-bold">No sections yet</p>
+                <p className="text-xs text-slate-500 max-w-sm">
+                  Click "New Section" to add the first section to this topic.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="divide-y divide-violet-500/10 max-h-[600px] overflow-y-auto">
+              {sections.map((section, idx) => {
+                const sectionMeta: Record<string, { label: string; color: string }> = {
+                  lesson: { label: 'Lesson', color: 'text-indigo-400 bg-indigo-500/15' },
+                  example: { label: 'Example', color: 'text-cyan-400 bg-cyan-500/15' },
+                  template: { label: 'Template', color: 'text-violet-400 bg-violet-500/15' },
+                  tip: { label: 'Tips', color: 'text-amber-400 bg-amber-500/15' },
+                  checklist: { label: 'Checklist', color: 'text-emerald-400 bg-emerald-500/15' },
+                  script: { label: 'Scripts', color: 'text-rose-400 bg-rose-500/15' },
+                  comparison: { label: 'Comparison', color: 'text-fuchsia-400 bg-fuchsia-500/15' },
+                };
+                const meta = sectionMeta[section.section_type] || sectionMeta.lesson;
+
+                return (
+                  <div
+                    key={section.id}
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 hover:bg-violet-500/[0.04] transition-colors"
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="w-10 h-10 shrink-0 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-center text-xs font-black text-slate-400">
+                        {idx + 1}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${meta.color}`}>
+                            {meta.label}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-500">
+                            Order #{section.display_order}
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold text-white truncate mt-1">{section.title}</p>
+                        <p className="text-[11px] text-slate-500 line-clamp-1">
+                          {section.content}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                      <button
+                        onClick={() => openEditSection(section)}
+                        className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-xs font-bold transition-all"
+                      >
+                        <Icon name="edit" className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSection(section)}
+                        className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold transition-all"
+                      >
+                        <Icon name="trash" className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// ADMIN SUGGESTION POOL EDITOR
+// ============================================
+interface AdminSuggestion {
+  id: string;
+  title: string;
+  description: string | null;
+  category: 'feature' | 'bug' | 'improvement' | 'content' | 'ui_ux' | 'performance' | 'other';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: 'pending' | 'planned' | 'in_progress' | 'completed' | 'rejected';
+  tags: string[];
+  upvotes: number;
+  created_by?: string | null;
+  created_by_name?: string | null;
+  is_pinned: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+const SUGGESTION_CATEGORIES = [
+  { key: 'feature', label: 'Feature', emoji: '✨', color: 'text-violet-400 bg-violet-500/15 border-violet-500/30' },
+  { key: 'bug', label: 'Bug', emoji: '🐛', color: 'text-rose-400 bg-rose-500/15 border-rose-500/30' },
+  { key: 'improvement', label: 'Improvement', emoji: '⚡', color: 'text-amber-400 bg-amber-500/15 border-amber-500/30' },
+  { key: 'content', label: 'Content', emoji: '📚', color: 'text-cyan-400 bg-cyan-500/15 border-cyan-500/30' },
+  { key: 'ui_ux', label: 'UI/UX', emoji: '🎨', color: 'text-fuchsia-400 bg-fuchsia-500/15 border-fuchsia-500/30' },
+  { key: 'performance', label: 'Performance', emoji: '🚀', color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
+  { key: 'other', label: 'Other', emoji: '💡', color: 'text-slate-400 bg-slate-500/15 border-slate-500/30' },
+] as const;
+
+const SUGGESTION_PRIORITIES = [
+  { key: 'low', label: 'Low', color: 'text-slate-400 bg-slate-500/15 border-slate-500/30' },
+  { key: 'medium', label: 'Medium', color: 'text-sky-400 bg-sky-500/15 border-sky-500/30' },
+  { key: 'high', label: 'High', color: 'text-amber-400 bg-amber-500/15 border-amber-500/30' },
+  { key: 'critical', label: 'Critical', color: 'text-rose-400 bg-rose-500/15 border-rose-500/30' },
+] as const;
+
+const SUGGESTION_STATUSES = [
+  { key: 'pending', label: 'Pending', color: 'text-slate-400 bg-slate-500/15 border-slate-500/30' },
+  { key: 'planned', label: 'Planned', color: 'text-sky-400 bg-sky-500/15 border-sky-500/30' },
+  { key: 'in_progress', label: 'In Progress', color: 'text-amber-400 bg-amber-500/15 border-amber-500/30' },
+  { key: 'completed', label: 'Completed', color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
+  { key: 'rejected', label: 'Rejected', color: 'text-rose-400 bg-rose-500/15 border-rose-500/30' },
+] as const;
+
+function SuggestionPoolView({
+  Icon,
+  adminEmail,
+  userId,
+}: {
+  Icon: any;
+  adminEmail: string;
+  userId: string | null;
+}) {
+  const [suggestions, setSuggestions] = useState<AdminSuggestion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | AdminSuggestion['status']>('all');
+  const [categoryFilter, setCategoryFilter] = useState<'all' | AdminSuggestion['category']>('all');
+  const [editing, setEditing] = useState<any | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // ============================================
+  // LOAD SUGGESTIONS
+  // ============================================
+  const loadSuggestions = async () => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      const { data, error } = await supabase
+        .from('admin_suggestions')
+        .select('*')
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSuggestions((data as AdminSuggestion[]) || []);
+    } catch (err: any) {
+      console.error('Error loading suggestions:', err.message);
+      setErrorMsg(err.message || 'Failed to load suggestions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSuggestions();
+  }, []);
+
+  // ============================================
+  // FILTER
+  // ============================================
+  const filtered = useMemo(() => {
+    return suggestions.filter((s) => {
+      const matchesStatus = statusFilter === 'all' || s.status === statusFilter;
+      const matchesCategory = categoryFilter === 'all' || s.category === categoryFilter;
+      const matchesSearch =
+        !searchQuery.trim() ||
+        s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesStatus && matchesCategory && matchesSearch;
+    });
+  }, [suggestions, statusFilter, categoryFilter, searchQuery]);
+
+  // ============================================
+  // STATS
+  // ============================================
+  const stats = useMemo(() => {
+    const byStatus: Record<string, number> = {
+      pending: 0,
+      planned: 0,
+      in_progress: 0,
+      completed: 0,
+      rejected: 0,
+    };
+    const byCategory: Record<string, number> = {};
+    suggestions.forEach((s) => {
+      byStatus[s.status] = (byStatus[s.status] || 0) + 1;
+      byCategory[s.category] = (byCategory[s.category] || 0) + 1;
+    });
+    return {
+      total: suggestions.length,
+      byStatus,
+      byCategory,
+      topVoted: [...suggestions].sort((a, b) => b.upvotes - a.upvotes).slice(0, 5),
+    };
+  }, [suggestions]);
+
+  // ============================================
+  // OPEN CREATE
+  // ============================================
+  const openCreate = () => {
+    setEditing({
+      title: '',
+      description: '',
+      category: 'feature',
+      priority: 'medium',
+      status: 'pending',
+      tags: [],
+      upvotes: 0,
+      is_pinned: false,
+      created_by: userId,
+      created_by_name: adminEmail || 'Admin',
+    });
+    setIsCreating(true);
+  };
+
+  const openEdit = (s: AdminSuggestion) => {
+    setEditing({ ...s });
+    setIsCreating(false);
+  };
+
+  const cancelEdit = () => {
+    setEditing(null);
+    setIsCreating(false);
+    setErrorMsg('');
+  };
+
+  // ============================================
+  // SAVE
+  // ============================================
+  const handleSave = async () => {
+    if (!editing) return;
+    setSaving(true);
+    setErrorMsg('');
+
+    try {
+      const { id, created_at, updated_at, ...payload } = editing;
+
+      if (!payload.title?.trim()) throw new Error('Title is required.');
+
+      if (isCreating) {
+        const { error } = await supabase.from('admin_suggestions').insert([payload]);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('admin_suggestions').update(payload).eq('id', id);
+        if (error) throw error;
+      }
+
+      await loadSuggestions();
+      cancelEdit();
+    } catch (err: any) {
+      console.error('Save error:', err.message);
+      setErrorMsg(err.message || 'Failed to save suggestion');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ============================================
+  // DELETE
+  // ============================================
+  const handleDelete = async (s: AdminSuggestion) => {
+    if (!confirm(`Delete suggestion "${s.title}"? This cannot be undone.`)) return;
+    try {
+      const { error } = await supabase.from('admin_suggestions').delete().eq('id', s.id);
+      if (error) throw error;
+      await loadSuggestions();
+    } catch (err: any) {
+      console.error('Delete error:', err.message);
+      alert('Delete failed: ' + err.message);
+    }
+  };
+
+  // ============================================
+  // UPVOTE
+  // ============================================
+  const handleUpvote = async (s: AdminSuggestion) => {
+    try {
+      const { error } = await supabase
+        .from('admin_suggestions')
+        .update({ upvotes: (s.upvotes || 0) + 1 })
+        .eq('id', s.id);
+      if (error) throw error;
+      setSuggestions((prev) =>
+        prev.map((item) => (item.id === s.id ? { ...item, upvotes: (item.upvotes || 0) + 1 } : item))
+      );
+    } catch (err: any) {
+      console.error('Upvote error:', err.message);
+    }
+  };
+
+  // ============================================
+  // QUICK STATUS CHANGE
+  // ============================================
+  const quickStatusChange = async (s: AdminSuggestion, newStatus: AdminSuggestion['status']) => {
+    try {
+      const { error } = await supabase
+        .from('admin_suggestions')
+        .update({ status: newStatus })
+        .eq('id', s.id);
+      if (error) throw error;
+      setSuggestions((prev) =>
+        prev.map((item) => (item.id === s.id ? { ...item, status: newStatus } : item))
+      );
+    } catch (err: any) {
+      console.error('Status update error:', err.message);
+      alert('Failed to update status: ' + err.message);
+    }
+  };
+
+  // ============================================
+  // TOGGLE PIN
+  // ============================================
+  const togglePin = async (s: AdminSuggestion) => {
+    try {
+      const { error } = await supabase
+        .from('admin_suggestions')
+        .update({ is_pinned: !s.is_pinned })
+        .eq('id', s.id);
+      if (error) throw error;
+      await loadSuggestions();
+    } catch (err: any) {
+      console.error('Pin toggle error:', err.message);
+    }
+  };
+
+  // ============================================
+  // FIELD SETTER
+  // ============================================
+  const setField = (key: string, value: any) => {
+    setEditing((prev: any) => ({ ...prev, [key]: value }));
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
+  return (
+    <div className="space-y-6">
+      {/* Header banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-[#151520]/80 to-orange-500/5 backdrop-blur-xl p-5 sm:p-8">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-amber-500/20 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+
+        <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-bold uppercase tracking-widest text-amber-300">
+              <Icon name="sparkles" className="w-3 h-3" glow />
+              Internal Roadmap
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+              Suggestion <span className="bg-gradient-to-r from-amber-300 via-yellow-300 to-orange-300 bg-clip-text text-transparent">Pool</span>
+            </h2>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Capture your ideas for the next system update. Vote on proposals, track implementation status, and keep the roadmap visible.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button
+              onClick={loadSuggestions}
+              disabled={loading}
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900/70 border border-amber-500/30 hover:border-amber-400/60 text-amber-300 font-bold text-xs transition-all disabled:opacity-50"
+            >
+              <Icon name="refresh" className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>{loading ? 'Syncing...' : 'Refresh'}</span>
+            </button>
+            <button
+              onClick={openCreate}
+              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-xs shadow-lg shadow-amber-500/30 hover:shadow-xl transition-all"
+            >
+              <Icon name="plus" className="w-4 h-4" />
+              <span>New Suggestion</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {errorMsg && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm flex items-center justify-between gap-3">
+          <span className="flex-1">{errorMsg}</span>
+          <button onClick={() => setErrorMsg('')} className="text-xs font-bold uppercase underline shrink-0">
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        {[
+          { label: 'Total', value: stats.total, color: 'text-white', bg: 'bg-slate-500/15' },
+          { label: 'Pending', value: stats.byStatus.pending, color: 'text-slate-300', bg: 'bg-slate-500/15' },
+          { label: 'Planned', value: stats.byStatus.planned, color: 'text-sky-300', bg: 'bg-sky-500/15' },
+          { label: 'In Progress', value: stats.byStatus.in_progress, color: 'text-amber-300', bg: 'bg-amber-500/15' },
+          { label: 'Completed', value: stats.byStatus.completed, color: 'text-emerald-300', bg: 'bg-emerald-500/15' },
+          { label: 'Rejected', value: stats.byStatus.rejected, color: 'text-rose-300', bg: 'bg-rose-500/15' },
+        ].map((stat) => (
+          <div key={stat.label} className={`rounded-2xl border border-violet-500/20 ${stat.bg} p-4`}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{stat.label}</p>
+            <p className={`text-2xl font-black ${stat.color} mt-1`}>{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Editor */}
+      {editing ? (
+        <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-[#151520]/90 backdrop-blur-xl p-5 sm:p-8">
+          <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${isCreating ? 'from-amber-500 to-orange-500' : 'from-blue-500 to-cyan-500'} flex items-center justify-center shadow-lg`}>
+                <Icon name={isCreating ? 'plus' : 'edit'} className="w-5 h-5 text-white" glow />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400">
+                  {isCreating ? 'Create' : 'Edit'} Suggestion
+                </p>
+                <h3 className="text-lg font-black">{editing.title || 'Untitled Suggestion'}</h3>
+              </div>
+            </div>
+            <button
+              onClick={cancelEdit}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/60 transition"
+            >
+              <Icon name="x" className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5">
+            {/* Title */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                Title <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={editing.title || ''}
+                onChange={(e) => setField('title', e.target.value)}
+                placeholder="e.g., Add dark/light theme toggle in user dashboard"
+                className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-amber-500/20 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-amber-400"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                Description
+              </label>
+              <textarea
+                value={editing.description || ''}
+                onChange={(e) => setField('description', e.target.value)}
+                placeholder="Describe the idea, why it matters, and any relevant details..."
+                rows={5}
+                className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-amber-500/20 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-amber-400 leading-relaxed"
+              />
+            </div>
+
+            {/* Category + Priority + Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Category</label>
+                <select
+                  value={editing.category || 'feature'}
+                  onChange={(e) => setField('category', e.target.value)}
+                  className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-amber-500/20 text-white text-sm focus:outline-none focus:border-amber-400 cursor-pointer"
+                >
+                  {SUGGESTION_CATEGORIES.map((c) => (
+                    <option key={c.key} value={c.key}>
+                      {c.emoji} {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Priority</label>
+                <select
+                  value={editing.priority || 'medium'}
+                  onChange={(e) => setField('priority', e.target.value)}
+                  className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-amber-500/20 text-white text-sm focus:outline-none focus:border-amber-400 cursor-pointer"
+                >
+                  {SUGGESTION_PRIORITIES.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Status</label>
+                <select
+                  value={editing.status || 'pending'}
+                  onChange={(e) => setField('status', e.target.value)}
+                  className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-amber-500/20 text-white text-sm focus:outline-none focus:border-amber-400 cursor-pointer"
+                >
+                  {SUGGESTION_STATUSES.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Tags */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                Tags <span className="text-slate-500 normal-case">(one per line)</span>
+              </label>
+              <textarea
+                value={Array.isArray(editing.tags) ? editing.tags.join('\n') : ''}
+                onChange={(e) =>
+                  setField('tags', e.target.value.split('\n').map((t) => t.trim()).filter(Boolean))
+                }
+                placeholder="e.g., ui&#10;theme&#10;accessibility"
+                rows={3}
+                className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-amber-500/20 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-amber-400 font-mono text-[13px]"
+              />
+            </div>
+
+            {/* Pin toggle + Upvotes */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Pin to top</label>
+                <button
+                  type="button"
+                  onClick={() => setField('is_pinned', !editing.is_pinned)}
+                  className={`relative inline-flex items-center gap-3 px-4 py-3 rounded-xl border transition-all w-full ${
+                    editing.is_pinned
+                      ? 'bg-amber-500/10 border-amber-500/40 text-amber-400'
+                      : 'bg-slate-900 border-slate-700 text-slate-400'
+                  }`}
+                >
+                  <span className={`relative w-10 h-6 rounded-full transition-colors ${editing.is_pinned ? 'bg-amber-500' : 'bg-slate-700'}`}>
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${editing.is_pinned ? 'translate-x-4' : ''}`} />
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-wider">
+                    {editing.is_pinned ? 'Pinned' : 'Not pinned'}
+                  </span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Upvotes</label>
+                <input
+                  type="number"
+                  value={editing.upvotes ?? 0}
+                  onChange={(e) => setField('upvotes', Number(e.target.value))}
+                  className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-amber-500/20 text-white text-sm focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-amber-500/20">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white font-bold text-sm shadow-lg shadow-amber-500/30 disabled:opacity-50"
+            >
+              {saving ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Icon name="check" className="w-4 h-4" />
+                  <span>{isCreating ? 'Submit Suggestion' : 'Save Changes'}</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={cancelEdit}
+              disabled={saving}
+              className="flex-1 sm:flex-none px-6 py-3.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm hover:bg-slate-700 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Filters */}
+          <div className="rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Icon name="search" className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search suggestions by title, description, or tags..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-violet-400"
+                />
+              </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="px-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white text-sm focus:outline-none focus:border-violet-400 cursor-pointer"
+              >
+                <option value="all">All Statuses</option>
+                {SUGGESTION_STATUSES.map((s) => (
+                  <option key={s.key} value={s.key}>{s.label}</option>
+                ))}
+              </select>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value as any)}
+                className="px-4 py-2.5 rounded-xl border border-violet-500/20 bg-slate-900/50 text-white text-sm focus:outline-none focus:border-violet-400 cursor-pointer"
+              >
+                <option value="all">All Categories</option>
+                {SUGGESTION_CATEGORIES.map((c) => (
+                  <option key={c.key} value={c.key}>{c.emoji} {c.label}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-[11px] font-mono text-slate-500">
+              {filtered.length} of {suggestions.length} suggestion{suggestions.length === 1 ? '' : 's'} shown
+            </p>
+          </div>
+
+          {/* List */}
+          {loading ? (
+            <div className="p-12 text-center text-slate-400 text-sm rounded-2xl border border-violet-500/20 bg-[#151520]/70">
+              Loading suggestions...
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl border border-violet-500/20 bg-[#151520]/70">
+              <div className="inline-flex flex-col items-center gap-3">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                  <Icon name="sparkles" className="w-8 h-8 text-amber-400" glow />
+                </div>
+                <p className="text-slate-300 font-bold">
+                  {suggestions.length === 0 ? 'No suggestions yet' : 'No matches found'}
+                </p>
+                <p className="text-xs text-slate-500 max-w-sm">
+                  {suggestions.length === 0
+                    ? 'Click "New Suggestion" to submit your first idea for the next system update.'
+                    : 'Try adjusting your filters or search query.'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filtered.map((s) => {
+                const catMeta = SUGGESTION_CATEGORIES.find((c) => c.key === s.category) || SUGGESTION_CATEGORIES[6];
+                const prioMeta = SUGGESTION_PRIORITIES.find((p) => p.key === s.priority) || SUGGESTION_PRIORITIES[1];
+                const statusMeta = SUGGESTION_STATUSES.find((st) => st.key === s.status) || SUGGESTION_STATUSES[0];
+
+                return (
+                  <div
+                    key={s.id}
+                    className={`relative overflow-hidden rounded-2xl border bg-[#151520]/70 backdrop-blur-xl p-5 transition-colors hover:bg-violet-500/[0.03] ${
+                      s.is_pinned ? 'border-amber-500/40' : 'border-violet-500/20'
+                    }`}
+                  >
+                    {s.is_pinned && (
+                      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400" />
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      {/* Vote column */}
+                      <div className="flex sm:flex-col items-center gap-2 sm:w-16 shrink-0">
+                        <button
+                          onClick={() => handleUpvote(s)}
+                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-slate-900/70 border border-violet-500/20 hover:border-amber-500/40 hover:bg-amber-500/10 flex flex-col items-center justify-center transition-all group"
+                          title="Upvote"
+                        >
+                          <Icon name="chevron-down" className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 rotate-180 transition-colors" />
+                          <span className="text-sm font-black text-white group-hover:text-amber-400">{s.upvotes || 0}</span>
+                        </button>
+                      </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0 space-y-3">
+                        <div className="flex items-start gap-2 flex-wrap">
+                          {s.is_pinned && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                              📌 Pinned
+                            </span>
+                          )}
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${catMeta.color}`}>
+                            {catMeta.emoji} {catMeta.label}
+                          </span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${prioMeta.color}`}>
+                            {prioMeta.label}
+                          </span>
+                        </div>
+
+                        <h3 className="text-base font-bold text-white leading-snug">{s.title}</h3>
+
+                        {s.description && (
+                          <p className="text-sm text-slate-400 leading-relaxed whitespace-pre-line">
+                            {s.description}
+                          </p>
+                        )}
+
+                        {s.tags && s.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {s.tags.map((tag, i) => (
+                              <span key={i} className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800/80 text-slate-400 border border-slate-700/60">
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-violet-500/10">
+                          {/* Status quick-select */}
+                          <select
+                            value={s.status}
+                            onChange={(e) => quickStatusChange(s, e.target.value as any)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${statusMeta.color} cursor-pointer focus:outline-none`}
+                          >
+                            {SUGGESTION_STATUSES.map((st) => (
+                              <option key={st.key} value={st.key}>{st.label}</option>
+                            ))}
+                          </select>
+
+                          {s.created_by_name && (
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              by {s.created_by_name}
+                            </span>
+                          )}
+
+                          {s.created_at && (
+                            <span className="text-[10px] text-slate-500 font-mono">
+                              · {new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          )}
+
+                          <div className="ml-auto flex items-center gap-2">
+                            <button
+                              onClick={() => togglePin(s)}
+                              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                s.is_pinned
+                                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                                  : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-amber-400'
+                              }`}
+                              title={s.is_pinned ? 'Unpin' : 'Pin to top'}
+                            >
+                              📌
+                            </button>
+                            <button
+                              onClick={() => openEdit(s)}
+                              className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-[10px] font-bold transition-all flex items-center gap-1"
+                            >
+                              <Icon name="edit" className="w-3 h-3" />
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(s)}
+                              className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-[10px] font-bold transition-all"
+                            >
+                              <Icon name="trash" className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 }
 
 // ============================================
@@ -1314,9 +2873,7 @@ export default function AdminDashboardPage() {
   const [qOptionsStr, setQOptionsStr] = useState('')
   const [qCorrectAnswer, setQCorrectAnswer] = useState('')
 
-  // ============================================
   // TUTORIAL / LESSON STATES
-  // ============================================
   const [tutorialSearch, setTutorialSearch] = useState('')
   const [tutorialLevelFilter, setTutorialLevelFilter] = useState<'all' | TutorialLevel>('all')
   const [showTutorialModal, setShowTutorialModal] = useState(false)
@@ -1327,9 +2884,7 @@ export default function AdminDashboardPage() {
   const [tContent, setTContent] = useState('')
   const [expandedTutorialId, setExpandedTutorialId] = useState<string | null>(null)
 
-  // ============================================
-  // ⬅️ NEW: BPO COUNTS STATE (for badge in sidebar)
-  // ============================================
+  // BPO COUNTS STATE
   const [bpoCounts, setBpoCounts] = useState<Record<BPOSection, number>>({
     bpo_industry_overview: 0,
     bpo_historical_timeline: 0,
@@ -1339,6 +2894,15 @@ export default function AdminDashboardPage() {
     bpo_required_documents: 0,
     bpo_success_tips: 0,
   })
+  
+  // TOPIC COUNTS STATE
+  const [topicCounts, setTopicCounts] = useState({
+    topics: 0,
+    sections: 0,
+  })
+
+  // SUGGESTION COUNT STATE
+  const [suggestionCount, setSuggestionCount] = useState(0)
 
   const router = useRouter()
 
@@ -1394,7 +2958,6 @@ export default function AdminDashboardPage() {
       if (tutorialsError) throw tutorialsError
       if (tutorialsData) setTutorials(tutorialsData)
 
-      // ⬅️ NEW: Load BPO counts
       const bpoTableNames: BPOSection[] = [
         'bpo_industry_overview',
         'bpo_historical_timeline',
@@ -1404,6 +2967,22 @@ export default function AdminDashboardPage() {
         'bpo_required_documents',
         'bpo_success_tips',
       ]
+
+      const [topicsCountRes, sectionsCountRes] = await Promise.all([
+        supabase.from('learning_topics').select('*', { count: 'exact', head: true }),
+        supabase.from('learning_topic_sections').select('*', { count: 'exact', head: true }),
+      ])
+
+      const { count: suggestionCountRes } = await supabase
+        .from('admin_suggestions')
+        .select('*', { count: 'exact', head: true })
+
+      setSuggestionCount(suggestionCountRes ?? 0)
+
+      setTopicCounts({
+        topics: topicsCountRes.count ?? 0,
+        sections: sectionsCountRes.count ?? 0,
+      })
 
       const countResults = await Promise.all(
         bpoTableNames.map((t) =>
@@ -1803,7 +3382,7 @@ export default function AdminDashboardPage() {
     })
   }, [tutorials, tutorialSearch, tutorialLevelFilter])
 
-  // Tutorial stats for tab badge + metrics
+  // Tutorial stats
   const tutorialStats = useMemo(() => {
     const total = tutorials.length
     const byLevel: Record<string, number> = {
@@ -1943,9 +3522,7 @@ export default function AdminDashboardPage() {
     return { total, average, best, worst, certificates, tickets, moduleStats }
   }, [profileData])
 
-  // ============================================
-  // LEARNING PROGRESS STATS (for viewed user)
-  // ============================================
+  // LEARNING PROGRESS STATS
   const learningProfileStats = useMemo(() => {
     const completedIds = profileData.completedLessonIds || []
     const totalLessons = tutorials.length
@@ -2125,7 +3702,7 @@ export default function AdminDashboardPage() {
   }, [allScores, users])
 
   // ============================================
-  // SIDEBAR NAV ITEMS — ⬅️ NEW: added BPO item
+  // SIDEBAR NAV ITEMS
   // ============================================
   const totalBpoRecords = useMemo(
     () => Object.values(bpoCounts).reduce((a, b) => a + b, 0),
@@ -2144,8 +3721,9 @@ export default function AdminDashboardPage() {
     { key: 'users', label: 'Users', icon: 'users', gradient: 'from-cyan-500 to-blue-500', badge: users.length, section: 'main' },
     { key: 'questions', label: 'Question Bank', icon: 'book', gradient: 'from-amber-500 to-orange-500', badge: questions.length, section: 'content' },
     { key: 'tutorials', label: 'Tutorials & Lessons', icon: 'graduation-cap', gradient: 'from-emerald-500 to-teal-500', badge: tutorials.length, section: 'content' },
-    // ⬅️ NEW: BPO Industry item
-    { key: 'bpo', label: 'BPO Industry', icon: 'database', gradient: 'from-cyan-500 to-blue-500', badge: totalBpoRecords, section: 'content' },
+    { key: 'topics', label: 'Learning Topics', icon: 'layers', gradient: 'from-cyan-500 to-blue-500', badge: topicCounts.topics, section: 'content' },
+    { key: 'bpo', label: 'BPO Industry', icon: 'database', gradient: 'from-blue-500 to-indigo-500', badge: totalBpoRecords, section: 'content' },
+    { key: 'suggestions', label: 'Suggestion Pool', icon: 'sparkles', gradient: 'from-amber-500 to-orange-500', badge: suggestionCount, section: 'content' },
     { key: 'rankings', label: 'Rankings', icon: 'trophy', gradient: 'from-yellow-500 to-amber-500', badge: rankings.length, section: 'analytics' },
     { key: 'statistics', label: 'Analytics', icon: 'bar-chart', gradient: 'from-fuchsia-500 to-pink-500', section: 'analytics' },
   ]
@@ -2293,7 +3871,6 @@ export default function AdminDashboardPage() {
 
         {/* Sidebar Footer */}
         <div className="shrink-0 border-t border-violet-500/20 p-3 space-y-2">
-          {/* System Status */}
           {!isSidebarCollapsed && (
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 space-y-2">
               <div className="flex items-center justify-between">
@@ -2311,7 +3888,6 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* Refresh */}
           <button
             onClick={handleRefresh}
             disabled={refreshing}
@@ -2324,7 +3900,6 @@ export default function AdminDashboardPage() {
             {!isSidebarCollapsed && <span>{refreshing ? 'Syncing...' : 'Refresh Data'}</span>}
           </button>
 
-          {/* Public Hub */}
           <a
             href="/"
             className={`w-full flex items-center ${
@@ -2336,7 +3911,6 @@ export default function AdminDashboardPage() {
             {!isSidebarCollapsed && <span>Public Hub</span>}
           </a>
 
-          {/* Admin Info + Logout */}
           <div className={`flex items-center gap-2 ${
             isSidebarCollapsed ? 'flex-col' : ''
           }`}>
@@ -2363,7 +3937,6 @@ export default function AdminDashboardPage() {
             </button>
           </div>
 
-          {/* Collapse toggle (desktop only) */}
           <button
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
             className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:text-white border border-violet-500/20 hover:border-violet-400/40 hover:bg-slate-900/50 transition-all"
@@ -2384,7 +3957,6 @@ export default function AdminDashboardPage() {
         <header className="sticky top-0 z-30 h-16 border-b border-violet-500/20 bg-[#0B0B0D]/80 backdrop-blur-xl">
           <div className="h-full px-4 sm:px-8 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              {/* Mobile menu button */}
               <button
                 onClick={() => setIsSidebarOpen(true)}
                 className="lg:hidden w-10 h-10 rounded-xl border border-violet-500/20 flex items-center justify-center text-slate-300 hover:text-white hover:bg-slate-900/50 transition"
@@ -2393,7 +3965,6 @@ export default function AdminDashboardPage() {
                 <Icon name="menu" className="w-5 h-5" />
               </button>
 
-              {/* Page title */}
               <div className="min-w-0">
                 <h2 className="text-base sm:text-lg font-black tracking-tight truncate">
                   {navItems.find(i => i.key === activeTab)?.label || 'Overview'}
@@ -2403,7 +3974,9 @@ export default function AdminDashboardPage() {
                   {activeTab === 'users' && 'Manage user accounts & permissions'}
                   {activeTab === 'questions' && 'Create, edit, and delete questions'}
                   {activeTab === 'tutorials' && 'Publish and organize training lessons'}
+                  {activeTab === 'topics' && 'Manage career-readiness learning topics & sections'}
                   {activeTab === 'bpo' && 'Manage BPO industry knowledge base'}
+                  {activeTab === 'suggestions' && 'Capture, vote on, and track ideas for the next update'}
                   {activeTab === 'rankings' && 'Leaderboard and top performers'}
                   {activeTab === 'statistics' && 'Platform analytics & insights'}
                 </p>
@@ -2411,7 +3984,6 @@ export default function AdminDashboardPage() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {/* Live status pill (desktop) */}
               <div className="hidden md:flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900/50 border border-violet-500/20">
                 <Icon name="activity" className="w-4 h-4 text-emerald-400" glow />
                 <span className="text-[11px] font-mono">
@@ -2421,7 +3993,6 @@ export default function AdminDashboardPage() {
                 </span>
               </div>
 
-              {/* Quick logout (mobile) */}
               <button
                 onClick={() => setShowLogoutModal(true)}
                 className="lg:hidden w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center"
@@ -2461,7 +4032,6 @@ export default function AdminDashboardPage() {
               {/* ============ OVERVIEW TAB ============ */}
               {activeTab === 'overview' && (
                 <div className="space-y-6">
-                  {/* Hero banner */}
                   <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6 sm:p-8">
                     <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-500/20 rounded-full blur-[100px] pointer-events-none" />
                     <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
@@ -2482,15 +4052,17 @@ export default function AdminDashboardPage() {
                   </div>
 
                   {/* Quick Stats Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-9 gap-4">
                     {[
                       { label: 'Users', value: stats.totalUsers, icon: 'users', gradient: 'from-violet-500 to-purple-500' },
                       { label: 'Admins', value: stats.admins, icon: 'crown', gradient: 'from-amber-500 to-orange-500' },
                       { label: 'Questions', value: stats.totalQuestions, icon: 'book', gradient: 'from-cyan-500 to-blue-500' },
                       { label: 'Lessons', value: tutorialStats.total, icon: 'graduation-cap', gradient: 'from-emerald-500 to-teal-500' },
-                      { label: 'BPO Items', value: totalBpoRecords, icon: 'database', gradient: 'from-cyan-500 to-blue-500' },
+                      { label: 'Topics', value: topicCounts.topics, icon: 'layers', gradient: 'from-cyan-500 to-blue-500' },
+                      { label: 'BPO Items', value: totalBpoRecords, icon: 'database', gradient: 'from-blue-500 to-indigo-500' },
                       { label: 'Attempts', value: platformStats.totalAttempts, icon: 'activity', gradient: 'from-fuchsia-500 to-pink-500' },
                       { label: 'Ranked', value: rankings.length, icon: 'trophy', gradient: 'from-yellow-500 to-amber-500' },
+                      { label: 'Ideas', value: suggestionCount, icon: 'sparkles', gradient: 'from-amber-500 to-orange-500' },
                     ].map((stat) => (
                       <div key={stat.label} className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-4">
                         <div className={`absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full blur-2xl`} />
@@ -2511,7 +4083,6 @@ export default function AdminDashboardPage() {
 
                   {/* Two-column quick panels */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Recent Users */}
                     <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
                       <div className="p-5 border-b border-violet-500/20 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -2558,7 +4129,6 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    {/* Top Performers */}
                     <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
                       <div className="p-5 border-b border-violet-500/20 flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -2611,7 +4181,7 @@ export default function AdminDashboardPage() {
                       <Icon name="zap" className="w-4 h-4 text-violet-400" glow />
                       Quick Actions
                     </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
                       <button
                         onClick={openCreateQuestionModal}
                         className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/30 hover:border-amber-400/60 transition-all text-left group"
@@ -2629,12 +4199,28 @@ export default function AdminDashboardPage() {
                         <p className="text-[10px] text-slate-400 mt-0.5">Publish training</p>
                       </button>
                       <button
-                        onClick={() => setActiveTab('bpo')}
+                        onClick={() => setActiveTab('topics')}
                         className="p-4 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/30 hover:border-cyan-400/60 transition-all text-left group"
                       >
-                        <Icon name="database" className="w-5 h-5 text-cyan-400 mb-2" glow />
+                        <Icon name="layers" className="w-5 h-5 text-cyan-400 mb-2" glow />
+                        <p className="text-xs font-bold text-white">Learning Topics</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Manage career content</p>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('bpo')}
+                        className="p-4 rounded-2xl bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border border-blue-500/30 hover:border-blue-400/60 transition-all text-left group"
+                      >
+                        <Icon name="database" className="w-5 h-5 text-blue-400 mb-2" glow />
                         <p className="text-xs font-bold text-white">BPO Content</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">Manage knowledge</p>
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('suggestions')}
+                        className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/5 border border-amber-500/30 hover:border-amber-400/60 transition-all text-left group"
+                      >
+                        <Icon name="sparkles" className="w-5 h-5 text-amber-400 mb-2" glow />
+                        <p className="text-xs font-bold text-white">Suggestion Pool</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Ideas & roadmap</p>
                       </button>
                       <button
                         onClick={() => setActiveTab('rankings')}
@@ -2911,7 +4497,6 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  {/* Level cards */}
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {(['beginner', 'intermediate', 'upper_intermediate', 'advanced'] as TutorialLevel[]).map((level) => {
                       const meta = getLevelMeta(level)
@@ -2954,7 +4539,6 @@ export default function AdminDashboardPage() {
                     })}
                   </div>
 
-                  {/* Lessons list */}
                   <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
                     <div className="p-5 border-b border-violet-500/20 space-y-4">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -3059,8 +4643,16 @@ export default function AdminDashboardPage() {
                 </div>
               )}
 
-              {/* ============ ⬅️ NEW: BPO TAB ============ */}
+              {/* ============ LEARNING TOPICS TAB ============ */}
+              {activeTab === 'topics' && <TopicEditorView Icon={Icon} />}
+
+              {/* ============ BPO TAB ============ */}
               {activeTab === 'bpo' && <BPOEditorView Icon={Icon} />}
+
+              {/* ============ SUGGESTION POOL TAB ============ */}
+              {activeTab === 'suggestions' && (
+                <SuggestionPoolView Icon={Icon} adminEmail={adminEmail} userId={null} />
+              )}
 
               {/* ============ RANKINGS TAB ============ */}
               {activeTab === 'rankings' && (
@@ -3089,7 +4681,6 @@ export default function AdminDashboardPage() {
                     ))}
                   </div>
 
-                  {/* Podium */}
                   {topThree.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                       {[1, 0, 2].map((podiumIdx) => {
@@ -3143,7 +4734,6 @@ export default function AdminDashboardPage() {
                     </div>
                   )}
 
-                  {/* Ranking table */}
                   <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
                     <div className="p-5 border-b border-violet-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
@@ -3239,7 +4829,6 @@ export default function AdminDashboardPage() {
               {/* ============ STATISTICS TAB ============ */}
               {activeTab === 'statistics' && (
                 <div className="space-y-6">
-                  {/* Summary cards */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                     {platformStats.mostUsed && (
                       <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 backdrop-blur-xl p-5">
@@ -3324,7 +4913,6 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  {/* Module distribution */}
                   <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
                     <h3 className="text-base font-black tracking-tight mb-5 flex items-center gap-2">
                       <Icon name="bar-chart" className="w-4 h-4 text-violet-400" glow />
@@ -3368,7 +4956,6 @@ export default function AdminDashboardPage() {
                     )}
                   </div>
 
-                  {/* Score distribution */}
                   <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
                     <h3 className="text-base font-black tracking-tight mb-5 flex items-center gap-2">
                       <Icon name="pie-chart" className="w-4 h-4 text-amber-400" glow />
@@ -3407,7 +4994,6 @@ export default function AdminDashboardPage() {
                     )}
                   </div>
 
-                  {/* Top performers by module */}
                   {Object.keys(platformStats.topPerformersByModule).length > 0 && (
                     <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
                       <h3 className="text-base font-black tracking-tight mb-5 flex items-center gap-2">
@@ -3791,7 +5377,7 @@ function SidebarItem({
 }
 
 // ============================================
-// USER PROFILE VIEW COMPONENT (unchanged)
+// USER PROFILE VIEW COMPONENT
 // ============================================
 function UserProfileView({
   profileData,
@@ -3837,9 +5423,6 @@ function UserProfileView({
   }
   tutorials: any[]
 }) {
-  // ============================================
-  // PASSWORD UPDATE MODAL STATE
-  // ============================================
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -3849,7 +5432,6 @@ function UserProfileView({
   const [showPasswordValue, setShowPasswordValue] = useState(false)
   const [showConfirmPasswordValue, setShowConfirmPasswordValue] = useState(false)
 
-  // Reset modal state when opened
   useEffect(() => {
     if (showPasswordModal) {
       setNewPassword('')
@@ -3861,9 +5443,6 @@ function UserProfileView({
     }
   }, [showPasswordModal])
 
-  // ============================================
-  // PASSWORD STRENGTH CALCULATOR
-  // ============================================
   const passwordStrength = useMemo(() => {
     if (!newPassword) return { score: 0, label: '', color: '', width: '0%' }
     let score = 0
@@ -3879,9 +5458,6 @@ function UserProfileView({
     return { score, label: 'Strong', color: 'text-emerald-400', bg: 'bg-emerald-500', width: '100%' }
   }, [newPassword])
 
-  // ============================================
-  // HANDLE PASSWORD SUBMIT
-  // ============================================
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setPasswordError('')
@@ -3931,7 +5507,6 @@ function UserProfileView({
         <span>Back to Registry</span>
       </button>
 
-      {/* Profile Hero */}
       <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-6 sm:p-8">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-500/20 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
@@ -4031,7 +5606,6 @@ function UserProfileView({
         </div>
       ) : (
         <>
-          {/* Stats Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             {[
               { label: 'Attempts', value: profileStats.total, icon: 'activity', gradient: 'from-violet-500 to-purple-500' },
@@ -4057,7 +5631,6 @@ function UserProfileView({
             ))}
           </div>
 
-          {/* LEARNING PROGRESS SECTION */}
           <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
             <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
               <div className="flex items-center gap-3">
@@ -4188,7 +5761,6 @@ function UserProfileView({
             )}
           </div>
 
-          {/* Module Stats */}
           {Object.keys(profileStats.moduleStats).length > 0 && (
             <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6">
               <div className="flex items-center gap-2 mb-5">
@@ -4233,7 +5805,6 @@ function UserProfileView({
             </div>
           )}
 
-          {/* Performance Log */}
           <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
             <div className="p-5 border-b border-violet-500/20 flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
@@ -4291,7 +5862,6 @@ function UserProfileView({
             )}
           </div>
 
-          {/* Certificates */}
           <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
             <div className="p-5 border-b border-violet-500/20 flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
@@ -4337,7 +5907,6 @@ function UserProfileView({
             )}
           </div>
 
-          {/* Tickets */}
           <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
             <div className="p-5 border-b border-violet-500/20 flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center">
@@ -4396,7 +5965,6 @@ function UserProfileView({
         </>
       )}
 
-      {/* PASSWORD UPDATE MODAL */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4">
           <div className="relative w-full max-w-md rounded-3xl border border-emerald-500/30 bg-[#151520] p-6 sm:p-8 shadow-2xl space-y-6">
