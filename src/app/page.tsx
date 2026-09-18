@@ -22,6 +22,38 @@ import type {
   BPOSuccessTip,
 } from '../data/bpoIndustryTypes';
 
+// ⬇️ NEW: Learning Topics types (inline — or add to a separate file)
+interface LearningTopic {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  icon: string;
+  gradient: string;
+  level: 'beginner' | 'intermediate' | 'upper_intermediate' | 'advanced';
+  estimated_minutes: number;
+  is_active: boolean;
+  display_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface LearningTopicSection {
+  id: string;
+  topic_id: string;
+  section_type: 'lesson' | 'example' | 'template' | 'tip' | 'checklist' | 'script' | 'comparison';
+  title: string;
+  content: string;
+  examples: any[];
+  key_points: string[];
+  display_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+
+
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import confetti from 'canvas-confetti';
@@ -1929,6 +1961,829 @@ function BPOIndustryModule({
 }
 
 // ============================================
+// DYNAMIC LEARNING TOPICS MODULE
+// ============================================
+function LearningTopicsView({
+  themeClasses,
+  Icon,
+}: {
+  themeClasses: any;
+  Icon: any;
+}) {
+  const [topics, setTopics] = useState<LearningTopic[]>([]);
+  const [selectedTopic, setSelectedTopic] = useState<LearningTopic | null>(null);
+  const [sections, setSections] = useState<LearningTopicSection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [levelFilter, setLevelFilter] = useState<'all' | LearningTopic['level']>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // ============================================
+  // LOAD ALL TOPICS
+  // ============================================
+  const loadTopics = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from('learning_topics')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      setTopics((data as LearningTopic[]) || []);
+    } catch (err: any) {
+      console.error('Error loading topics:', err.message);
+      setError(err.message || 'Failed to load learning topics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ============================================
+  // LOAD SECTIONS FOR A SPECIFIC TOPIC
+  // ============================================
+  const loadSections = async (topicId: string) => {
+    setSectionsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('learning_topic_sections')
+        .select('*')
+        .eq('topic_id', topicId)
+        .order('display_order', { ascending: true });
+
+      if (error) throw error;
+      setSections((data as LearningTopicSection[]) || []);
+    } catch (err: any) {
+      console.error('Error loading sections:', err.message);
+      setSections([]);
+    } finally {
+      setSectionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTopics();
+  }, []);
+
+  // ============================================
+  // HANDLE TOPIC SELECTION
+  // ============================================
+  const handleSelectTopic = (topic: LearningTopic) => {
+    setSelectedTopic(topic);
+    loadSections(topic.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBackToList = () => {
+    setSelectedTopic(null);
+    setSections([]);
+  };
+
+  // ============================================
+  // FILTER TOPICS
+  // ============================================
+  const filteredTopics = useMemo(() => {
+    return topics.filter((t) => {
+      const matchesLevel = levelFilter === 'all' || t.level === levelFilter;
+      const matchesSearch =
+        !searchQuery.trim() ||
+        t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (t.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesLevel && matchesSearch;
+    });
+  }, [topics, levelFilter, searchQuery]);
+
+  // ============================================
+  // LOADING / ERROR STATES
+  // ============================================
+  if (loading) {
+    return (
+      <div className={`rounded-2xl border p-16 text-center ${themeClasses.card}`}>
+        <div className="inline-flex items-center gap-3 text-indigo-400">
+          <svg className="animate-spin h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span className="font-bold text-sm uppercase tracking-widest">Loading Learning Topics...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 rounded-2xl border border-rose-500/30 bg-rose-500/5 flex items-start gap-4">
+        <Icon name="alert-circle" className="w-6 h-6 text-rose-400 shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-bold text-rose-400">Couldn't load topics</p>
+          <p className={`text-xs mt-1 ${themeClasses.textMuted}`}>{error}</p>
+          <button
+            onClick={loadTopics}
+            className="mt-3 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+// TOPIC SECTION CARD (Renders each section type) — THEME AWARE
+// ============================================
+function TopicSectionCard({
+  section,
+  index,
+  themeClasses,
+  Icon,
+}: {
+  section: LearningTopicSection;
+  index: number;
+  themeClasses: any;
+  Icon: any;
+}) {
+  // Section type metadata — using theme-aware color tokens
+  const sectionMeta: Record<string, { label: string; icon: string; color: string; bgColor: string; borderColor: string }> = {
+    lesson: { label: 'Lesson', icon: 'book', color: 'text-indigo-400', bgColor: 'bg-indigo-500/10', borderColor: 'border-indigo-500/30' },
+    example: { label: 'Example', icon: 'file-text', color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', borderColor: 'border-cyan-500/30' },
+    template: { label: 'Template', icon: 'file-text', color: 'text-violet-400', bgColor: 'bg-violet-500/10', borderColor: 'border-violet-500/30' },
+    tip: { label: 'Tips', icon: 'sparkles', color: 'text-amber-400', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/30' },
+    checklist: { label: 'Checklist', icon: 'check', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10', borderColor: 'border-emerald-500/30' },
+    script: { label: 'Scripts', icon: 'message-square', color: 'text-rose-400', bgColor: 'bg-rose-500/10', borderColor: 'border-rose-500/30' },
+    comparison: { label: 'Comparison', icon: 'scale', color: 'text-fuchsia-400', bgColor: 'bg-fuchsia-500/10', borderColor: 'border-fuchsia-500/30' },
+  };
+
+  const meta = sectionMeta[section.section_type] || sectionMeta.lesson;
+
+  // ============================================
+  // RENDER SECTION TYPE SPECIFIC CONTENT
+  // ============================================
+  const renderExamples = () => {
+    if (!Array.isArray(section.examples) || section.examples.length === 0) return null;
+
+    // Checklist type
+    if (section.section_type === 'checklist') {
+      return (
+        <div className="space-y-2 mt-4">
+          {section.examples.map((item: any, i: number) => (
+            <div
+              key={i}
+              className={`flex items-start gap-3 p-3 rounded-lg border ${themeClasses.card} border-emerald-500/20`}
+            >
+              <div className="w-5 h-5 rounded border-2 border-emerald-500/40 flex items-center justify-center shrink-0 mt-0.5">
+                <Icon name="check" className="w-3 h-3 text-emerald-400" />
+              </div>
+              <span className={`text-sm flex-1 ${themeClasses.textPrimary}`}>
+                {typeof item === 'string' ? item : JSON.stringify(item)}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Script type
+    if (section.section_type === 'script') {
+      return (
+        <div className="space-y-3 mt-4">
+          {section.examples.map((item: any, i: number) => (
+            <div key={i} className="rounded-xl border border-rose-500/20 overflow-hidden">
+              <div className="px-4 py-2 bg-rose-500/10 border-b border-rose-500/20">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">
+                  {item.scenario || `Scenario ${i + 1}`}
+                </span>
+              </div>
+              <div className={`p-4 ${themeClasses.card}`}>
+                <p className={`text-sm leading-relaxed italic ${themeClasses.textPrimary}`}>
+                  {item.script}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Template type
+    if (section.section_type === 'template') {
+      return (
+        <div className="space-y-4 mt-4">
+          {section.examples.map((item: any, i: number) => (
+            <div key={i} className="rounded-xl border border-violet-500/20 overflow-hidden">
+              <div className="px-4 py-3 bg-violet-500/10 border-b border-violet-500/20 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400 block">
+                  {item.purpose || `Template ${i + 1}`}
+                </span>
+                {item.subject && (
+                  <p className={`text-xs font-bold ${themeClasses.textPrimary}`}>
+                    Subject: {item.subject}
+                  </p>
+                )}
+              </div>
+              <div className={`p-4 ${themeClasses.card}`}>
+                <pre className={`text-xs leading-relaxed whitespace-pre-wrap font-mono ${themeClasses.textPrimary}`}>
+                  {item.body}
+                </pre>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Comparison type
+    if (section.section_type === 'comparison') {
+      return (
+        <div className="space-y-3 mt-4">
+          {section.examples.map((item: any, i: number) => (
+            <div key={i} className={`rounded-xl border border-fuchsia-500/20 p-4 ${themeClasses.card}`}>
+              <h4 className="text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3">
+                {item.aspect || `Aspect ${i + 1}`}
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {item.voice && (
+                  <div className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400 mb-1">
+                      🎤 Voice
+                    </p>
+                    <p className={`text-xs ${themeClasses.textPrimary}`}>{item.voice}</p>
+                  </div>
+                )}
+                {item.chat_email && (
+                  <div className="p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 mb-1">
+                      💬 Chat / Email
+                    </p>
+                    <p className={`text-xs ${themeClasses.textPrimary}`}>{item.chat_email}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Default — generic object renderer (THEME-AWARE)
+    return (
+      <div className="space-y-3 mt-4">
+        {section.examples.map((item: any, i: number) => (
+          <div key={i} className={`rounded-xl border p-4 ${themeClasses.card} ${themeClasses.border}`}>
+            <div className="space-y-3">
+              {Object.entries(item).map(([key, value]) => (
+                <div key={key} className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-1 sm:gap-3 text-sm">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                    {key.replace(/_/g, ' ')}
+                  </span>
+                  <span className={`${themeClasses.textPrimary} font-medium`}>
+                    {String(value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className={`rounded-2xl border overflow-hidden ${themeClasses.card} ${themeClasses.border}`}>
+      {/* Section header */}
+      <div className={`p-5 border-b ${themeClasses.border}`}>
+        <div className="flex items-start gap-4">
+          <div className={`w-12 h-12 shrink-0 rounded-xl ${meta.bgColor} border ${meta.borderColor} flex items-center justify-center`}>
+            <Icon name={meta.icon} className={`w-6 h-6 ${meta.color}`} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${meta.bgColor} ${meta.color} border ${meta.borderColor}`}>
+                {meta.label}
+              </span>
+              <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
+                Section {index + 1}
+              </span>
+            </div>
+            <h3 className={`text-lg font-black tracking-tight ${themeClasses.textPrimary}`}>
+              {section.title}
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-5 sm:p-6">
+        <p className={`text-sm leading-relaxed whitespace-pre-line ${themeClasses.textSecondary}`}>
+          {section.content}
+        </p>
+
+        {renderExamples()}
+
+        {/* Key Points */}
+        {Array.isArray(section.key_points) && section.key_points.length > 0 && (
+          <div className={`mt-6 pt-5 border-t ${themeClasses.border}`}>
+            <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-3 flex items-center gap-2">
+              <Icon name="sparkles" className="w-3.5 h-3.5" />
+              Key Takeaways
+            </h4>
+            <ul className="space-y-2">
+              {section.key_points.map((point, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <span className="text-indigo-400 font-bold mt-0.5">•</span>
+                  <span className={themeClasses.textMuted}>{point}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+  // ============================================
+  // TOPIC DETAIL VIEW
+  // ============================================
+  if (selectedTopic) {
+    const levelMeta = getLessonLevelMeta(selectedTopic.level);
+
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        {/* Back button + navigation */}
+        <div className={`rounded-xl border p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 ${themeClasses.card}`}>
+          <button
+            onClick={handleBackToList}
+            className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
+          >
+            <Icon name="arrow-left" className="w-4 h-4" />
+            <span>Back to All Topics</span>
+          </button>
+
+          <div className="flex items-center gap-3 justify-center">
+            <span className={`text-xs font-mono ${themeClasses.textMuted}`}>
+              {sections.length} section{sections.length === 1 ? '' : 's'}
+            </span>
+            <span className={`text-xs font-mono ${themeClasses.textMuted}`}>
+              ~{selectedTopic.estimated_minutes} min read
+            </span>
+          </div>
+        </div>
+
+        {/* Topic Header */}
+        <div className={`rounded-2xl border p-6 sm:p-8 ${themeClasses.card}`}>
+          <div className="flex flex-col sm:flex-row items-start gap-4">
+            <div className={`w-16 h-16 shrink-0 rounded-2xl bg-gradient-to-br ${selectedTopic.gradient} flex items-center justify-center text-white shadow-lg`}>
+              <Icon name={selectedTopic.icon} className="w-8 h-8" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${levelMeta.borderColor} ${levelMeta.bgColor}/10 ${levelMeta.textColor}`}>
+                  <span>{levelMeta.emoji}</span>
+                  {levelMeta.label}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-indigo-500/10 border border-indigo-500/30 text-indigo-400">
+                  <Icon name="clock" className="w-3 h-3" />
+                  {selectedTopic.estimated_minutes} min
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+                {selectedTopic.title}
+              </h1>
+              {selectedTopic.subtitle && (
+                <p className={`text-sm font-medium mt-1 ${themeClasses.accent}`}>
+                  {selectedTopic.subtitle}
+                </p>
+              )}
+              {selectedTopic.description && (
+                <p className={`text-sm leading-relaxed mt-3 ${themeClasses.textMuted}`}>
+                  {selectedTopic.description}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Sections */}
+        {sectionsLoading ? (
+          <div className={`rounded-2xl border p-16 text-center ${themeClasses.card}`}>
+            <div className="inline-flex items-center gap-3 text-indigo-400">
+              <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span className="font-bold text-sm uppercase tracking-widest">Loading content...</span>
+            </div>
+          </div>
+        ) : sections.length === 0 ? (
+          <div className={`rounded-2xl border p-16 text-center ${themeClasses.card}`}>
+            <div className={`w-16 h-16 mx-auto rounded-xl flex items-center justify-center mb-4 ${themeClasses.accentSoft}`}>
+              <Icon name="file-text" className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold">No content yet</h3>
+            <p className={`text-sm mt-2 ${themeClasses.textMuted}`}>
+              This topic has no sections published yet. Check back soon.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {sections.map((section, idx) => (
+              <TopicSectionCard
+                key={section.id}
+                section={section}
+                index={idx}
+                themeClasses={themeClasses}
+                Icon={Icon}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Bottom navigation */}
+        <div className={`rounded-xl border p-4 flex items-center justify-center ${themeClasses.card}`}>
+          <button
+            onClick={handleBackToList}
+            className={`px-6 py-3 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
+          >
+            <Icon name="arrow-left" className="w-4 h-4" />
+            <span>Back to All Topics</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================
+  // TOPICS LIST VIEW
+  // ============================================
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      {/* Hero */}
+      <div className={`rounded-2xl border p-6 sm:p-8 ${themeClasses.card}`}>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border ${themeClasses.accentSoft}`}>
+              <Icon name="graduation-cap" className="w-3.5 h-3.5" />
+              Career-Ready Learning Topics
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight">
+              Professional Skills for <span className="text-indigo-400">BPO Success</span>
+            </h1>
+            <p className={`text-sm sm:text-base leading-relaxed ${themeClasses.textMuted}`}>
+              Master customer interaction, complaint handling, workplace tools, and administrative skills. Each topic includes practical templates, scripts, and checklists you can use on day one.
+            </p>
+          </div>
+
+          <div className="shrink-0 flex items-center gap-4">
+            <div className={`p-6 rounded-2xl border ${themeClasses.card}`}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 mb-1">
+                Available
+              </p>
+              <p className="text-4xl font-black">{topics.length}</p>
+              <p className={`text-[11px] ${themeClasses.textMuted}`}>
+                topic{topics.length === 1 ? '' : 's'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className={`rounded-xl border p-4 shadow-sm ${themeClasses.card}`}>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <Icon name="search" className={`w-4 h-4 ${themeClasses.textMuted}`} />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search topics by title or description..."
+              className={`w-full pl-10 pr-4 py-3 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${themeClasses.border}`}
+            />
+          </div>
+
+          <div className={`flex items-center gap-1 p-1 rounded-lg border overflow-x-auto ${themeClasses.border}`}>
+            {[
+              { key: 'all', label: 'All Levels' },
+              { key: 'beginner', label: 'Beginner' },
+              { key: 'intermediate', label: 'Intermediate' },
+              { key: 'upper_intermediate', label: 'Upper Int.' },
+              { key: 'advanced', label: 'Advanced' },
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setLevelFilter(opt.key as any)}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  levelFilter === opt.key
+                    ? 'bg-indigo-600 text-white'
+                    : `${themeClasses.textMuted}`
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={loadTopics}
+            disabled={loading}
+            className={`px-4 py-3 rounded-lg text-xs font-bold transition cursor-pointer border flex items-center justify-center gap-2 disabled:opacity-50 ${themeClasses.border} ${themeClasses.cardHover}`}
+          >
+            <Icon name="refresh" className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Topics Grid */}
+      {filteredTopics.length === 0 ? (
+        <div className={`rounded-2xl border p-16 text-center ${themeClasses.card}`}>
+          <div className={`w-16 h-16 mx-auto rounded-xl flex items-center justify-center mb-4 ${themeClasses.accentSoft}`}>
+            <Icon name="book" className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-bold">
+            {topics.length === 0 ? 'No topics available yet' : 'No matching topics'}
+          </h3>
+          <p className={`text-sm mt-2 ${themeClasses.textMuted}`}>
+            {topics.length === 0
+              ? 'Topics will appear here once they are published by an administrator.'
+              : 'Try adjusting your filters or search query.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredTopics.map((topic) => {
+            const levelMeta = getLessonLevelMeta(topic.level);
+            return (
+              <button
+                key={topic.id}
+                onClick={() => handleSelectTopic(topic)}
+                className={`group rounded-xl border p-6 text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-lg cursor-pointer ${themeClasses.card} ${themeClasses.cardHover}`}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${topic.gradient} flex items-center justify-center text-white shadow-lg`}>
+                      <Icon name={topic.icon} className="w-7 h-7" />
+                    </div>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${levelMeta.borderColor} ${levelMeta.bgColor}/10 ${levelMeta.textColor}`}>
+                      {levelMeta.emoji} {levelMeta.label}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-bold leading-snug group-hover:text-indigo-300 transition-colors">
+                      {topic.title}
+                    </h3>
+                    {topic.subtitle && (
+                      <p className={`text-xs font-semibold ${themeClasses.accent}`}>
+                        {topic.subtitle}
+                      </p>
+                    )}
+                    {topic.description && (
+                      <p className={`text-xs leading-relaxed line-clamp-3 ${themeClasses.textMuted}`}>
+                        {topic.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className={`flex items-center justify-between pt-3 border-t ${themeClasses.border}`}>
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-mono ${themeClasses.textMuted}`}>
+                      <Icon name="clock" className="w-3 h-3" />
+                      {topic.estimated_minutes} min
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-400 group-hover:translate-x-1 transition-transform">
+                      Start learning
+                      <Icon name="chevron-right" className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// TOPIC SECTION CARD (Renders each section type)
+// ============================================
+function TopicSectionCard({
+  section,
+  index,
+  themeClasses,
+  Icon,
+}: {
+  section: LearningTopicSection;
+  index: number;
+  themeClasses: any;
+  Icon: any;
+}) {
+  // Section type metadata
+  const sectionMeta: Record<string, { label: string; icon: string; color: string; bgColor: string; borderColor: string }> = {
+    lesson: { label: 'Lesson', icon: 'book', color: 'text-indigo-400', bgColor: 'bg-indigo-500/10', borderColor: 'border-indigo-500/30' },
+    example: { label: 'Example', icon: 'file-text', color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', borderColor: 'border-cyan-500/30' },
+    template: { label: 'Template', icon: 'file-text', color: 'text-violet-400', bgColor: 'bg-violet-500/10', borderColor: 'border-violet-500/30' },
+    tip: { label: 'Tips', icon: 'sparkles', color: 'text-amber-400', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/30' },
+    checklist: { label: 'Checklist', icon: 'check', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10', borderColor: 'border-emerald-500/30' },
+    script: { label: 'Scripts', icon: 'message-square', color: 'text-rose-400', bgColor: 'bg-rose-500/10', borderColor: 'border-rose-500/30' },
+    comparison: { label: 'Comparison', icon: 'scale', color: 'text-fuchsia-400', bgColor: 'bg-fuchsia-500/10', borderColor: 'border-fuchsia-500/30' },
+  };
+
+  const meta = sectionMeta[section.section_type] || sectionMeta.lesson;
+
+  // ============================================
+  // RENDER SECTION TYPE SPECIFIC CONTENT
+  // ============================================
+  const renderExamples = () => {
+    if (!Array.isArray(section.examples) || section.examples.length === 0) return null;
+
+    // Checklist type — render as simple check items
+    if (section.section_type === 'checklist') {
+      // Default — generic object renderer (THEME-AWARE)
+      return (
+        <div className="space-y-3 mt-4">
+          {section.examples.map((item: any, i: number) => (
+            <div key={i} className={`rounded-xl border p-4 ${themeClasses.card} ${themeClasses.border}`}>
+              <div className="space-y-2">
+                {Object.entries(item).map(([key, value]) => (
+                  <div key={key} className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-1 sm:gap-3 text-sm">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                      {key.replace(/_/g, ' ')}
+                    </span>
+                    <span className={themeClasses.textPrimary}>{String(value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Script type — render scenario/script pairs
+    if (section.section_type === 'script') {
+      return (
+        <div className="space-y-3 mt-4">
+          {section.examples.map((item: any, i: number) => (
+            <div key={i} className="rounded-xl border border-rose-500/20 bg-rose-500/5 overflow-hidden">
+              <div className="px-4 py-2 bg-rose-500/10 border-b border-rose-500/20">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">
+                  {item.scenario || `Scenario ${i + 1}`}
+                </span>
+              </div>
+              <div className="p-4">
+                <p className="text-sm leading-relaxed italic text-slate-200">
+                  {item.script}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Template type — render email templates with subject + body
+    if (section.section_type === 'template') {
+      return (
+        <div className="space-y-4 mt-4">
+          {section.examples.map((item: any, i: number) => (
+            <div key={i} className="rounded-xl border border-violet-500/20 bg-violet-500/5 overflow-hidden">
+              <div className="px-4 py-3 bg-violet-500/10 border-b border-violet-500/20 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400 block">
+                  {item.purpose || `Template ${i + 1}`}
+                </span>
+                {item.subject && (
+                  <p className="text-xs font-bold text-white">
+                    Subject: {item.subject}
+                  </p>
+                )}
+              </div>
+              <div className="p-4">
+                <pre className="text-xs leading-relaxed whitespace-pre-wrap font-mono text-slate-200">
+                  {item.body}
+                </pre>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Comparison type — render aspect/voice/chat_email three-way
+    if (section.section_type === 'comparison') {
+      return (
+        <div className="space-y-3 mt-4">
+          {section.examples.map((item: any, i: number) => (
+            <div key={i} className="rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/5 p-4">
+              <h4 className="text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3">
+                {item.aspect || `Aspect ${i + 1}`}
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {item.voice && (
+                  <div className="p-3 rounded-lg bg-rose-500/5 border border-rose-500/20">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400 mb-1">
+                      🎤 Voice
+                    </p>
+                    <p className="text-xs text-slate-200">{item.voice}</p>
+                  </div>
+                )}
+                {item.chat_email && (
+                  <div className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 mb-1">
+                      💬 Chat / Email
+                    </p>
+                    <p className="text-xs text-slate-200">{item.chat_email}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // Default — generic object renderer
+    return (
+      <div className="space-y-3 mt-4">
+        {section.examples.map((item: any, i: number) => (
+          <div key={i} className="rounded-xl border border-slate-500/20 bg-slate-500/5 p-4">
+            <div className="space-y-2">
+              {Object.entries(item).map(([key, value]) => (
+                <div key={key} className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-1 sm:gap-3 text-sm">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {key.replace(/_/g, ' ')}
+                  </span>
+                  <span className="text-slate-200">{String(value)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className={`rounded-2xl border overflow-hidden ${themeClasses.card}`}>
+      {/* Section header */}
+      <div className="p-5 border-b border-slate-500/10">
+        <div className="flex items-start gap-4">
+          <div className={`w-12 h-12 shrink-0 rounded-xl ${meta.bgColor} border ${meta.borderColor} flex items-center justify-center`}>
+            <Icon name={meta.icon} className={`w-6 h-6 ${meta.color}`} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${meta.bgColor} ${meta.color} border ${meta.borderColor}`}>
+                {meta.label}
+              </span>
+              <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
+                Section {index + 1}
+              </span>
+            </div>
+            <h3 className="text-lg font-black tracking-tight">
+              {section.title}
+            </h3>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-5 sm:p-6">
+        <p className={`text-sm leading-relaxed whitespace-pre-line ${themeClasses.textSecondary}`}>
+          {section.content}
+        </p>
+
+        {renderExamples()}
+
+        {/* Key Points */}
+        {Array.isArray(section.key_points) && section.key_points.length > 0 && (
+          <div className="mt-6 pt-5 border-t border-slate-500/10">
+            <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-3 flex items-center gap-2">
+              <Icon name="sparkles" className="w-3.5 h-3.5" />
+              Key Takeaways
+            </h4>
+            <ul className="space-y-2">
+              {section.key_points.map((point, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <span className="text-indigo-400 font-bold mt-0.5">•</span>
+                  <span className={themeClasses.textMuted}>{point}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // LEARNING MODULE VIEW COMPONENT
 // ============================================
 function LearningModuleView({
@@ -1973,7 +2828,8 @@ function LearningModuleView({
   Icon: any;
 }) {
   // ⬇️ NEW: Tab state for switching between English Lessons and BPO Guide
-  const [learningTab, setLearningTab] = useState<'lessons' | 'bpo'>('lessons');
+  // ⬅️ NEW: 3 tabs
+  const [learningTab, setLearningTab] = useState<'lessons' | 'topics' | 'bpo'>('lessons');
 
   const currentLevelMeta = selectedLesson ? getLessonLevelMeta(selectedLesson.level) : null;
   const isCurrentCompleted = selectedLesson ? completedLessonIds.includes(selectedLesson.id) : false;
@@ -1990,175 +2846,184 @@ function LearningModuleView({
   };
 
   // ============ LESSON READER ============
+  
   if (selectedLesson && currentLevelMeta) {
-    return (
-      <div className="space-y-6 animate-fadeIn">
-        <div className={`rounded-xl border p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-sm ${themeClasses.card}`}>
-          <button
-            onClick={() => setSelectedLessonId(null)}
-            className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
-          >
-            <Icon name="arrow-left" className="w-4 h-4" />
-            <span>Back to Lesson Library</span>
-          </button>
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      <div className={`rounded-xl border p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-sm ${themeClasses.card}`}>
+        <button
+          onClick={() => setSelectedLessonId(null)}
+          className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
+        >
+          <Icon name="arrow-left" className="w-4 h-4" />
+          <span>Back to Lesson Library</span>
+        </button>
 
-          <div className="flex items-center gap-2 justify-center">
-            <button
-              onClick={handlePrev}
-              disabled={selectedLessonIndex <= 0}
-              className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
-            >
-              <Icon name="arrow-left" className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Previous</span>
-            </button>
-            <span className={`text-xs font-mono ${themeClasses.textMuted} px-2`}>
-              {selectedLessonIndex + 1} / {filteredLessons.length}
-            </span>
-            <button
-              onClick={handleNext}
-              disabled={selectedLessonIndex >= filteredLessons.length - 1}
-              className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
-            >
-              <span className="hidden sm:inline">Next</span>
-              <Icon name="chevron-right" className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
-        <div className={`rounded-2xl border p-6 sm:p-8 shadow-sm ${themeClasses.card}`}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-4 min-w-0">
-              <div className={`w-14 h-14 shrink-0 rounded-xl ${currentLevelMeta.color} flex items-center justify-center text-white font-black text-xl`}>
-                {selectedLesson.order_index}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-2">
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${currentLevelMeta.borderColor} ${currentLevelMeta.bgColor}/10 ${currentLevelMeta.textColor}`}>
-                    <span>{currentLevelMeta.emoji}</span>
-                    {currentLevelMeta.label}
-                  </span>
-                  {isCurrentCompleted && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                      <Icon name="check" className="w-3 h-3" />
-                      Completed
-                    </span>
-                  )}
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-                  {selectedLesson.title}
-                </h2>
-                <p className={`text-xs mt-1 ${themeClasses.textMuted}`}>
-                  Lesson {selectedLesson.order_index} of {lessons.length} · {selectedLesson.content.length.toLocaleString()} characters
-                </p>
-              </div>
-            </div>
-
-            <button
-              onClick={() => toggleLessonCompleted(selectedLesson.id)}
-              className={`shrink-0 px-5 py-3 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center gap-2 ${
-                isCurrentCompleted
-                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-              }`}
-            >
-              <Icon name="check" className="w-4 h-4" />
-              <span>{isCurrentCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}</span>
-            </button>
-          </div>
-        </div>
-
-        <div className={`rounded-2xl border p-6 sm:p-10 shadow-sm ${themeClasses.card}`}>
-          <article className="max-w-3xl mx-auto">
-            <div className="prose prose-invert max-w-none">
-              {selectedLesson.content.split('\n').map((paragraph, idx) => {
-                const trimmed = paragraph.trim();
-                if (!trimmed) return <div key={idx} className="h-3" />;
-
-                if (/^-{3,}$/.test(trimmed)) {
-                  return <hr key={idx} className="my-6 border-slate-500/20" />;
-                }
-
-                const isHeading =
-                  /^[A-Z0-9][A-Z0-9\s\-&':,]{5,}$/.test(trimmed) ||
-                  /^\d+\.\s+[A-Z]/.test(trimmed);
-
-                if (isHeading) {
-                  return (
-                    <h3 key={idx} className="text-lg sm:text-xl font-black mt-8 mb-3 tracking-tight">
-                      {trimmed}
-                    </h3>
-                  );
-                }
-
-                if (/^[•\-*]\s/.test(trimmed)) {
-                  return (
-                    <div key={idx} className="flex items-start gap-3 ml-2 my-2">
-                      <span className={`mt-2 w-1.5 h-1.5 rounded-full ${currentLevelMeta.color} shrink-0`} />
-                      <p className="flex-1 text-sm sm:text-base leading-relaxed">{trimmed.replace(/^[•\-*]\s/, '')}</p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <p key={idx} className="text-sm sm:text-base leading-relaxed my-3 text-slate-200">
-                    {trimmed}
-                  </p>
-                );
-              })}
-            </div>
-          </article>
-
-          <PronunciationPracticePanel
-            content={selectedLesson.content}
-            themeClasses={themeClasses}
-            Icon={Icon}
-          />
-        </div>
-
-        <div className={`rounded-xl border p-4 flex items-center justify-between gap-3 shadow-sm ${themeClasses.card}`}>
+        <div className="flex items-center gap-2 justify-center">
           <button
             onClick={handlePrev}
             disabled={selectedLessonIndex <= 0}
-            className={`flex-1 sm:flex-none px-5 py-3 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+            className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
           >
-            <Icon name="arrow-left" className="w-4 h-4" />
-            <span>Previous Lesson</span>
+            <Icon name="arrow-left" className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Previous</span>
           </button>
-
-          <button
-            onClick={() => toggleLessonCompleted(selectedLesson.id)}
-            className={`hidden sm:flex px-5 py-3 rounded-lg font-bold text-xs transition-all cursor-pointer items-center gap-2 ${
-              isCurrentCompleted
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                : 'bg-indigo-600 text-white'
-            }`}
-          >
-            <Icon name="check" className="w-4 h-4" />
-            <span>{isCurrentCompleted ? 'Completed' : 'Mark Complete'}</span>
-          </button>
-
+          <span className={`text-xs font-mono ${themeClasses.textMuted} px-2`}>
+            {selectedLessonIndex + 1} / {filteredLessons.length}
+          </span>
           <button
             onClick={handleNext}
             disabled={selectedLessonIndex >= filteredLessons.length - 1}
-            className={`flex-1 sm:flex-none px-5 py-3 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+            className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
           >
-            <span>Next Lesson</span>
-            <Icon name="chevron-right" className="w-4 h-4" />
+            <span className="hidden sm:inline">Next</span>
+            <Icon name="chevron-right" className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
-    );
-  }
+
+      <div className={`rounded-2xl border p-6 sm:p-8 shadow-sm ${themeClasses.card}`}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-4 min-w-0">
+            <div className={`w-14 h-14 shrink-0 rounded-xl ${currentLevelMeta.color} flex items-center justify-center text-white font-black text-xl`}>
+              {selectedLesson.order_index}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${currentLevelMeta.borderColor} ${currentLevelMeta.bgColor}/10 ${currentLevelMeta.textColor}`}>
+                  <span>{currentLevelMeta.emoji}</span>
+                  {currentLevelMeta.label}
+                </span>
+                {isCurrentCompleted && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                    <Icon name="check" className="w-3 h-3" />
+                    Completed
+                  </span>
+                )}
+              </div>
+              <h2 className={`text-2xl sm:text-3xl font-black tracking-tight ${themeClasses.textPrimary}`}>
+                {selectedLesson.title}
+              </h2>
+              <p className={`text-xs mt-1 ${themeClasses.textMuted}`}>
+                Lesson {selectedLesson.order_index} of {lessons.length} · {selectedLesson.content.length.toLocaleString()} characters
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => toggleLessonCompleted(selectedLesson.id)}
+            className={`shrink-0 px-5 py-3 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center gap-2 ${
+              isCurrentCompleted
+                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+            }`}
+          >
+            <Icon name="check" className="w-4 h-4" />
+            <span>{isCurrentCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}</span>
+          </button>
+        </div>
+      </div>
+
+      <div className={`rounded-2xl border p-6 sm:p-10 shadow-sm ${themeClasses.card}`}>
+        <article className="max-w-3xl mx-auto">
+          <div className="max-w-none">
+            {selectedLesson.content.split('\n').map((paragraph, idx) => {
+              const trimmed = paragraph.trim();
+              if (!trimmed) return <div key={idx} className="h-3" />;
+
+              if (/^-{3,}$/.test(trimmed)) {
+                return <hr key={idx} className={`my-6 ${themeClasses.border}`} />;
+              }
+
+              const isHeading =
+                /^[A-Z0-9][A-Z0-9\s\-&':,]{5,}$/.test(trimmed) ||
+                /^\d+\.\s+[A-Z]/.test(trimmed);
+
+              if (isHeading) {
+                return (
+                  <h3
+                    key={idx}
+                    className={`text-lg sm:text-xl font-black mt-8 mb-3 tracking-tight ${themeClasses.textPrimary}`}
+                  >
+                    {trimmed}
+                  </h3>
+                );
+              }
+
+              if (/^[•\-*]\s/.test(trimmed)) {
+                return (
+                  <div key={idx} className="flex items-start gap-3 ml-2 my-2">
+                    <span className={`mt-2 w-1.5 h-1.5 rounded-full ${currentLevelMeta.color} shrink-0`} />
+                    <p className={`flex-1 text-sm sm:text-base leading-relaxed ${themeClasses.textSecondary}`}>
+                      {trimmed.replace(/^[•\-*]\s/, '')}
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <p
+                  key={idx}
+                  className={`text-sm sm:text-base leading-relaxed my-3 ${themeClasses.textSecondary}`}
+                >
+                  {trimmed}
+                </p>
+              );
+            })}
+          </div>
+        </article>
+
+        <PronunciationPracticePanel
+          content={selectedLesson.content}
+          themeClasses={themeClasses}
+          Icon={Icon}
+        />
+      </div>
+
+      <div className={`rounded-xl border p-4 flex items-center justify-between gap-3 shadow-sm ${themeClasses.card}`}>
+        <button
+          onClick={handlePrev}
+          disabled={selectedLessonIndex <= 0}
+          className={`flex-1 sm:flex-none px-5 py-3 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+        >
+          <Icon name="arrow-left" className="w-4 h-4" />
+          <span>Previous Lesson</span>
+        </button>
+
+        <button
+          onClick={() => toggleLessonCompleted(selectedLesson.id)}
+          className={`hidden sm:flex px-5 py-3 rounded-lg font-bold text-xs transition-all cursor-pointer items-center gap-2 ${
+            isCurrentCompleted
+              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+              : 'bg-indigo-600 text-white'
+          }`}
+        >
+          <Icon name="check" className="w-4 h-4" />
+          <span>{isCurrentCompleted ? 'Completed' : 'Mark Complete'}</span>
+        </button>
+
+        <button
+          onClick={handleNext}
+          disabled={selectedLessonIndex >= filteredLessons.length - 1}
+          className={`flex-1 sm:flex-none px-5 py-3 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+        >
+          <span>Next Lesson</span>
+          <Icon name="chevron-right" className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
 
   // ============ LESSON LIBRARY ============
   return (
     <div className="space-y-6 animate-fadeIn">
 
-      {/* ⬇️⬇️⬇️ NEW: TAB SWITCHER ⬇️⬇️⬇️ */}
-      <div className={`rounded-2xl border p-2 flex gap-2 ${themeClasses.card}`}>
+      {/* Tab Switcher — now with 3 tabs */}
+      <div className={`rounded-2xl border p-2 flex flex-wrap gap-2 ${themeClasses.card}`}>
         <button
           onClick={() => setLearningTab('lessons')}
-          className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+          className={`flex-1 min-w-[140px] px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
             learningTab === 'lessons'
               ? 'bg-indigo-600 text-white shadow-sm'
               : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
@@ -2168,8 +3033,19 @@ function LearningModuleView({
           <span>English Lessons</span>
         </button>
         <button
+          onClick={() => setLearningTab('topics')}
+          className={`flex-1 min-w-[140px] px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            learningTab === 'topics'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+          }`}
+        >
+          <Icon name="graduation-cap" className="w-4 h-4" />
+          <span>Career Topics</span>
+        </button>
+        <button
           onClick={() => setLearningTab('bpo')}
-          className={`flex-1 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+          className={`flex-1 min-w-[140px] px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
             learningTab === 'bpo'
               ? 'bg-indigo-600 text-white shadow-sm'
               : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
@@ -2183,7 +3059,9 @@ function LearningModuleView({
       {/* ⬇️⬇️⬇️ CONDITIONAL RENDER: BPO MODULE OR LESSON LIBRARY ⬇️⬇️⬇️ */}
       {learningTab === 'bpo' ? (
         <BPOIndustryModule themeClasses={themeClasses} Icon={Icon} />
-      ) : (
+      ) : learningTab === 'topics' ? (
+        <LearningTopicsView themeClasses={themeClasses} Icon={Icon} />) : 
+        (
         <>
           {/* ============================================
               ORIGINAL LESSON LIBRARY CONTENT
