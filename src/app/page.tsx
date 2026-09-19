@@ -386,7 +386,7 @@ function LegalModal({
         <div className="shrink-0 px-6 sm:px-8 py-4 border-t border-slate-700 bg-slate-800 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500">
             <Icon name="shield" className="w-3 h-3 text-emerald-400" />
-            <span>Version 2.6.0 · Effective Jan 2026</span>
+            <span>Version 2.6.0 · Effective September 2026</span>
           </div>
           <button
             onClick={onClose}
