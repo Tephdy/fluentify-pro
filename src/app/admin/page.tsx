@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import bcrypt from 'bcryptjs'
 import { supabase } from '@/lib/supabase'
+import { useNotifications } from '@/lib/notification-context'
 
 // ============================================
 // ICON COMPONENT
@@ -545,7 +546,7 @@ function getLevelMeta(level: string): typeof LEVEL_META[TutorialLevel] {
 // ============================================
 // TAB TYPE
 // ============================================
-type AdminTab = 'overview' | 'users' | 'questions' | 'tutorials' | 'topics' | 'bpo' | 'suggestions' | 'rankings' | 'statistics'
+type AdminTab = 'overview' | 'users' | 'questions' | 'tutorials' | 'topics' | 'bpo' | 'suggestions' | 'notifications' | 'rankings' | 'statistics'
 
 // ============================================
 // BPO SUB-SECTIONS MAP
@@ -2126,6 +2127,7 @@ interface AdminSuggestion {
   updated_at?: string;
 }
 
+
 const SUGGESTION_CATEGORIES = [
   { key: 'feature', label: 'Feature', emoji: '✨', color: 'text-violet-400 bg-violet-500/15 border-violet-500/30' },
   { key: 'bug', label: 'Bug', emoji: '🐛', color: 'text-rose-400 bg-rose-500/15 border-rose-500/30' },
@@ -2816,6 +2818,897 @@ function SuggestionPoolView({
 }
 
 // ============================================
+// ADMIN NOTIFICATION COMPOSER (schema-matched)
+// ============================================
+interface NotificationRecord {
+  id: string
+  user_id: string | null
+  type: 'info' | 'success' | 'warning' | 'error'
+  title: string
+  message: string | null
+  link: string | null
+  icon: string | null
+  is_read: boolean
+  read_at: string | null
+  metadata: {
+    priority?: 'low' | 'normal' | 'high' | 'urgent'
+    action_label?: string
+    created_by?: string
+    created_by_name?: string
+    expires_at?: string
+  } | null
+  created_at: string
+}
+
+const NOTIFICATION_TYPES = [
+  { key: 'info',    label: 'Info',    emoji: 'ℹ️', color: 'text-cyan-400 bg-cyan-500/15 border-cyan-500/30',              accent: 'from-cyan-500 to-blue-500' },
+  { key: 'success', label: 'Success', emoji: '✅', color: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30',    accent: 'from-emerald-500 to-teal-500' },
+  { key: 'warning', label: 'Warning', emoji: '⚠️', color: 'text-amber-400 bg-amber-500/15 border-amber-500/30',          accent: 'from-amber-500 to-orange-500' },
+  { key: 'error',   label: 'Alert',   emoji: '🚨', color: 'text-rose-400 bg-rose-500/15 border-rose-500/30',              accent: 'from-rose-500 to-red-500' },
+] as const
+
+const NOTIFICATION_PRIORITIES = [
+  { key: 'low',    label: 'Low',    color: 'text-slate-400 bg-slate-500/15 border-slate-500/30' },
+  { key: 'normal', label: 'Normal', color: 'text-sky-400 bg-sky-500/15 border-sky-500/30' },
+  { key: 'high',   label: 'High',   color: 'text-amber-400 bg-amber-500/15 border-amber-500/30' },
+  { key: 'urgent', label: 'Urgent', color: 'text-rose-400 bg-rose-500/15 border-rose-500/30' },
+] as const
+
+const NOTIFICATION_ICON_OPTIONS = [
+  'bell', 'info', 'alert-circle', 'check', 'sparkles', 'trophy',
+  'gift', 'mail', 'shield', 'zap', 'star', 'graduation-cap',
+] as const
+
+function NotificationComposerView({
+  Icon,
+  users,
+  adminEmail,
+  adminUserId,
+}: {
+  Icon: any
+  users: any[]
+  adminEmail: string
+  adminUserId: string | null
+}) {
+  const [title, setTitle] = useState('')
+  const [message, setMessage] = useState('')
+  const [type, setType] = useState<NotificationRecord['type']>('info')
+  const [priority, setPriority] = useState<'low' | 'normal' | 'high' | 'urgent'>('normal')
+  const [icon, setIcon] = useState('bell')
+  const [link, setLink] = useState('')
+  const [actionLabel, setActionLabel] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
+
+  // Targeting
+  const [targetMode, setTargetMode] = useState<'all' | 'specific'>('all')
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
+  const [userSearch, setUserSearch] = useState('')
+
+  // UI state
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState('')
+  const [sendSuccess, setSendSuccess] = useState('')
+  const [history, setHistory] = useState<NotificationRecord[]>([])
+  const [historyLoading, setHistoryLoading] = useState(true)
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'broadcast' | 'targeted'>('all')
+
+  // ============================================
+  // LOAD HISTORY
+  // ============================================
+  const loadHistory = async () => {
+    setHistoryLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100)
+
+      if (error) throw error
+      setHistory((data as NotificationRecord[]) || [])
+    } catch (err: any) {
+      console.error('Error loading notification history:', err.message)
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadHistory()
+  }, [])
+
+  // ============================================
+  // FILTERED USERS FOR PICKER
+  // ============================================
+  const filteredUsers = useMemo(() => {
+    if (!userSearch.trim()) return users
+    const q = userSearch.toLowerCase()
+    return users.filter(
+      (u) =>
+        u.name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q)
+    )
+  }, [users, userSearch])
+
+  const toggleUser = (id: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
+
+  const selectAllFiltered = () => {
+    const ids = filteredUsers.map((u) => u.id)
+    setSelectedUserIds((prev) => Array.from(new Set([...prev, ...ids])))
+  }
+
+  const clearSelection = () => setSelectedUserIds([])
+
+  // ============================================
+  // SEND
+  // ============================================
+  const handleSend = async () => {
+    setSendError('')
+    setSendSuccess('')
+
+    if (!title.trim()) {
+      setSendError('Title is required.')
+      return
+    }
+    if (!message.trim()) {
+      setSendError('Message is required.')
+      return
+    }
+    if (targetMode === 'specific' && selectedUserIds.length === 0) {
+      setSendError('Please select at least one recipient.')
+      return
+    }
+
+    setSending(true)
+    try {
+      // Build the shared metadata payload
+      const metadata: Record<string, any> = {
+        priority,
+        created_by: adminUserId || null,
+        created_by_name: adminEmail || 'Admin',
+      }
+      if (actionLabel.trim()) metadata.action_label = actionLabel.trim()
+      if (expiresAt) metadata.expires_at = new Date(expiresAt).toISOString()
+
+      // Shared row shape (minus user_id, which varies per row)
+      const baseRow = {
+        type,
+        title: title.trim(),
+        message: message.trim(),
+        link: link.trim() || null,
+        icon,
+        is_read: false,
+        metadata,
+      }
+
+      // Determine recipients
+      const recipientIds =
+        targetMode === 'all'
+          ? users.map((u) => u.id)  // ⬅️ one row per user for "broadcast"
+          : selectedUserIds
+
+      if (recipientIds.length === 0) {
+        throw new Error('No recipients selected — cannot send.')
+      }
+
+      // Insert one row per recipient (works with both provider query styles)
+      const rows = recipientIds.map((uid) => ({ ...baseRow, user_id: uid }))
+
+      const { error } = await supabase.from('notifications').insert(rows)
+      if (error) throw error
+
+      setSendSuccess(
+        targetMode === 'all'
+          ? `Broadcast sent to ${recipientIds.length} user${recipientIds.length === 1 ? '' : 's'}.`
+          : `Notification sent to ${recipientIds.length} user${recipientIds.length === 1 ? '' : 's'}.`
+      )
+
+      // Reset form
+      setTitle('')
+      setMessage('')
+      setLink('')
+      setActionLabel('')
+      setExpiresAt('')
+      setSelectedUserIds([])
+      setTargetMode('all')
+
+      await loadHistory()
+    } catch (err: any) {
+      console.error('Send error:', err.message)
+      setSendError(err.message || 'Failed to send notification.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  // ============================================
+  // FILTERED HISTORY
+  // ============================================
+  // We approximate "broadcast" as any title sent to many users on the same date,
+  // or we can just show all and let admin filter by looking.
+  const filteredHistory = useMemo(() => {
+    if (historyFilter === 'all') return history
+    // Heuristic: broadcasts have identical title+message+created_at (same second)
+    const groups = new Map<string, number>()
+    history.forEach((n) => {
+      const key = `${n.title}|${n.message}|${n.created_at?.slice(0, 19)}`
+      groups.set(key, (groups.get(key) || 0) + 1)
+    })
+    if (historyFilter === 'broadcast') {
+      return history.filter((n) => {
+        const key = `${n.title}|${n.message}|${n.created_at?.slice(0, 19)}`
+        return (groups.get(key) || 0) > 1
+      })
+    }
+    // targeted: unique
+    return history.filter((n) => {
+      const key = `${n.title}|${n.message}|${n.created_at?.slice(0, 19)}`
+      return (groups.get(key) || 0) === 1
+    })
+  }, [history, historyFilter])
+
+  const activeType =
+    NOTIFICATION_TYPES.find((t) => t.key === type) || NOTIFICATION_TYPES[0]
+  const activePriority =
+    NOTIFICATION_PRIORITIES.find((p) => p.key === priority) || NOTIFICATION_PRIORITIES[1]
+
+  // Group history rows that share title+message+created_at second (broadcast visual grouping)
+  const groupedHistory = useMemo(() => {
+    const map = new Map<
+      string,
+      { record: NotificationRecord; recipients: number; ids: string[] }
+    >()
+    filteredHistory.forEach((n) => {
+      const key = `${n.title}|${n.message}|${n.created_at?.slice(0, 19)}`
+      if (!map.has(key)) {
+        map.set(key, { record: n, recipients: 0, ids: [] })
+      }
+      const entry = map.get(key)!
+      entry.recipients += 1
+      entry.ids.push(n.id)
+    })
+    return Array.from(map.values())
+  }, [filteredHistory])
+
+  return (
+    <div className="space-y-6">
+      {/* Header banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-500/10 via-[#151520]/80 to-pink-500/5 backdrop-blur-xl p-5 sm:p-8">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-fuchsia-500/20 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-pink-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-fuchsia-400/50 to-transparent" />
+
+        <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-2xl">
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 text-[10px] font-bold uppercase tracking-widest text-fuchsia-300">
+              <Icon name="bell" className="w-3 h-3" glow />
+              User Communications
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+              Notification{' '}
+              <span className="bg-gradient-to-r from-fuchsia-300 via-pink-300 to-rose-300 bg-clip-text text-transparent">
+                Composer
+              </span>
+            </h2>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Broadcast announcements to every user, or target specific candidates. Notifications appear in the bell menu inside the user dashboard.
+            </p>
+          </div>
+
+          <button
+            onClick={loadHistory}
+            disabled={historyLoading}
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900/70 border border-fuchsia-500/30 hover:border-fuchsia-400/60 text-fuchsia-300 font-bold text-xs transition-all shrink-0 disabled:opacity-50"
+          >
+            <Icon name="refresh" className={`w-4 h-4 ${historyLoading ? 'animate-spin' : ''}`} />
+            <span>{historyLoading ? 'Syncing...' : 'Refresh'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Alerts */}
+      {sendError && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm flex items-center justify-between gap-3">
+          <span className="flex-1">{sendError}</span>
+          <button onClick={() => setSendError('')} className="text-xs font-bold uppercase underline shrink-0">
+            Dismiss
+          </button>
+        </div>
+      )}
+      {sendSuccess && (
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm flex items-center justify-between gap-3">
+          <span className="flex-1">{sendSuccess}</span>
+          <button onClick={() => setSendSuccess('')} className="text-xs font-bold uppercase underline shrink-0">
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* ============================================ */}
+        {/* LEFT: COMPOSER FORM */}
+        {/* ============================================ */}
+        <div className="xl:col-span-2 space-y-6">
+          <div className="relative overflow-hidden rounded-3xl border border-fuchsia-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-8 space-y-6">
+            <div className="flex items-center gap-3 border-b border-fuchsia-500/20 pb-5">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-500 flex items-center justify-center shadow-lg shadow-fuchsia-500/30">
+                <Icon name="edit" className="w-5 h-5 text-white" glow />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-400">Compose</p>
+                <h3 className="text-lg font-black">New Notification</h3>
+              </div>
+            </div>
+
+            {/* Title */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                Title <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., System Maintenance on Nov 30"
+                maxLength={120}
+                className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-fuchsia-500/20 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-fuchsia-400 transition-colors"
+              />
+              <p className="text-[10px] font-mono text-slate-500">{title.length}/120 characters</p>
+            </div>
+
+            {/* Message */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                Message <span className="text-rose-400">*</span>
+              </label>
+              <textarea
+                rows={5}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Write the notification body. Keep it concise — a few sentences work best."
+                maxLength={500}
+                className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-fuchsia-500/20 text-white placeholder-slate-500 text-sm leading-relaxed focus:outline-none focus:border-fuchsia-400 transition-colors resize-y"
+              />
+              <p className="text-[10px] font-mono text-slate-500">{message.length}/500 characters</p>
+            </div>
+
+            {/* Type + Priority */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Type</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {NOTIFICATION_TYPES.map((t) => (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => setType(t.key)}
+                      className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-2 ${
+                        type === t.key
+                          ? `${t.color} ring-2 ring-current ring-offset-2 ring-offset-[#151520]`
+                          : 'bg-slate-900 text-slate-400 border-slate-700 hover:border-slate-600'
+                      }`}
+                    >
+                      <span>{t.emoji}</span>
+                      <span>{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Priority</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {NOTIFICATION_PRIORITIES.map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setPriority(p.key)}
+                      className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all ${
+                        priority === p.key
+                          ? `${p.color} ring-2 ring-current ring-offset-2 ring-offset-[#151520]`
+                          : 'bg-slate-900 text-slate-400 border-slate-700 hover:border-slate-600'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Icon picker */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Icon</label>
+              <div className="flex flex-wrap gap-2">
+                {NOTIFICATION_ICON_OPTIONS.map((iconName) => (
+                  <button
+                    key={iconName}
+                    type="button"
+                    onClick={() => setIcon(iconName)}
+                    className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${
+                      icon === iconName
+                        ? 'bg-fuchsia-500/20 border-fuchsia-400 text-fuchsia-300 ring-2 ring-fuchsia-400/40'
+                        : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-500'
+                    }`}
+                    title={iconName}
+                  >
+                    <Icon name={iconName} className="w-4 h-4" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Link + action label */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  Link <span className="text-slate-500 normal-case font-mono">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                  placeholder="/learning  or  https://..."
+                  className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-fuchsia-500/20 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-fuchsia-400 font-mono"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  Button Label{' '}
+                  <span className="text-slate-500 normal-case font-mono">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={actionLabel}
+                  onChange={(e) => setActionLabel(e.target.value)}
+                  placeholder="e.g., View lesson"
+                  maxLength={40}
+                  className="w-full px-3.5 py-3 rounded-xl bg-slate-900 border border-fuchsia-500/20 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-fuchsia-400"
+                />
+              </div>
+            </div>
+
+            {/* Expiry */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                Expires At <span className="text-slate-500 normal-case font-mono">(optional)</span>
+              </label>
+              <input
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+                className="w-full sm:w-64 px-3.5 py-3 rounded-xl bg-slate-900 border border-fuchsia-500/20 text-white text-sm focus:outline-none focus:border-fuchsia-400"
+              />
+              <p className="text-[10px] text-slate-500 font-mono">
+                Stored in metadata — your NotificationProvider must honor it.
+              </p>
+            </div>
+
+            {/* ============================================ */}
+            {/* TARGETING */}
+            {/* ============================================ */}
+            <div className="space-y-3 pt-4 border-t border-fuchsia-500/20">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                Recipients <span className="text-rose-400">*</span>
+              </label>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTargetMode('all')}
+                  className={`flex-1 px-4 py-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                    targetMode === 'all'
+                      ? 'bg-fuchsia-500/20 border-fuchsia-400 text-fuchsia-300'
+                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
+                  }`}
+                >
+                  <Icon name="users" className="w-3.5 h-3.5" />
+                  Broadcast to All ({users.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetMode('specific')}
+                  className={`flex-1 px-4 py-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
+                    targetMode === 'specific'
+                      ? 'bg-fuchsia-500/20 border-fuchsia-400 text-fuchsia-300'
+                      : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
+                  }`}
+                >
+                  <Icon name="user-check" className="w-3.5 h-3.5" />
+                  Specific Users {selectedUserIds.length > 0 && `(${selectedUserIds.length})`}
+                </button>
+              </div>
+
+              {targetMode === 'specific' && (
+                <div className="space-y-3 p-4 rounded-2xl bg-slate-900/50 border border-fuchsia-500/20">
+                  <div className="relative">
+                    <Icon
+                      name="search"
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none"
+                    />
+                    <input
+                      type="text"
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                      placeholder="Search users by name or email..."
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-fuchsia-500/20 bg-slate-900 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-fuchsia-400"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={selectAllFiltered}
+                      className="text-[11px] font-bold text-fuchsia-400 hover:text-fuchsia-300 underline"
+                    >
+                      Select all {filteredUsers.length} filtered
+                    </button>
+                    {selectedUserIds.length > 0 && (
+                      <>
+                        <span className="text-slate-600">·</span>
+                        <button
+                          type="button"
+                          onClick={clearSelection}
+                          className="text-[11px] font-bold text-rose-400 hover:text-rose-300 underline"
+                        >
+                          Clear selection
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto rounded-xl border border-slate-700/50 divide-y divide-slate-800/50">
+                    {filteredUsers.length === 0 ? (
+                      <div className="p-6 text-center text-xs text-slate-500">No matching users.</div>
+                    ) : (
+                      filteredUsers.map((u) => {
+                        const checked = selectedUserIds.includes(u.id)
+                        return (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onClick={() => toggleUser(u.id)}
+                            className={`w-full flex items-center gap-3 p-3 text-left transition-colors ${
+                              checked ? 'bg-fuchsia-500/10' : 'hover:bg-slate-800/40'
+                            }`}
+                          >
+                            <span
+                              className={`w-4 h-4 shrink-0 rounded border-2 flex items-center justify-center ${
+                                checked ? 'bg-fuchsia-500 border-fuchsia-500' : 'border-slate-500'
+                              }`}
+                            >
+                              {checked && <Icon name="check" className="w-3 h-3 text-white" />}
+                            </span>
+                            <div
+                              className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center font-black text-xs ${
+                                u.is_admin ? 'bg-amber-500 text-white' : 'bg-violet-600 text-white'
+                              }`}
+                            >
+                              {(u.name || u.email || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-white truncate">{u.name || 'Unnamed User'}</p>
+                              <p className="text-[10px] text-slate-500 font-mono truncate">{u.email}</p>
+                            </div>
+                          </button>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Submit */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-fuchsia-500/20">
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={sending}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white font-bold text-sm shadow-lg shadow-fuchsia-500/30 hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sending ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>Sending...</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon name="bell" className="w-4 h-4" />
+                    <span>
+                      {targetMode === 'all'
+                        ? `Send to All Users (${users.length})`
+                        : `Send to ${selectedUserIds.length || 0} User${selectedUserIds.length === 1 ? '' : 's'}`}
+                    </span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTitle('')
+                  setMessage('')
+                  setLink('')
+                  setActionLabel('')
+                  setExpiresAt('')
+                  setSelectedUserIds([])
+                  setSendError('')
+                  setSendSuccess('')
+                }}
+                disabled={sending}
+                className="px-6 py-4 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm hover:bg-slate-700 disabled:opacity-50"
+              >
+                Reset Form
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ============================================ */}
+        {/* RIGHT: LIVE PREVIEW */}
+        {/* ============================================ */}
+        <div className="space-y-6">
+          <div className="relative overflow-hidden rounded-3xl border border-fuchsia-500/20 bg-[#151520]/70 backdrop-blur-xl p-5 sm:p-6 sticky top-24">
+            <div className="flex items-center gap-2 mb-5">
+              <div className="w-8 h-8 rounded-lg bg-fuchsia-500/20 flex items-center justify-center">
+                <Icon name="eye" className="w-4 h-4 text-fuchsia-400" glow />
+              </div>
+              <div>
+                <h3 className="text-sm font-black tracking-tight">Live Preview</h3>
+                <p className="text-[11px] text-slate-400">How users will see it</p>
+              </div>
+            </div>
+
+            <div
+              className={`relative overflow-hidden rounded-2xl border bg-slate-900/60 p-4 space-y-3 ${
+                activeType.color.split(' ').filter((c) => c.startsWith('border-')).join(' ')
+              }`}
+            >
+              <div
+                className={`absolute -top-8 -right-8 w-32 h-32 bg-gradient-to-br ${activeType.accent} opacity-10 rounded-full blur-2xl`}
+              />
+
+              <div className="relative flex items-start gap-3">
+                <div
+                  className={`w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br ${activeType.accent} flex items-center justify-center shadow-lg`}
+                >
+                  <Icon name={icon} className="w-5 h-5 text-white" glow />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${activeType.color}`}
+                    >
+                      {activeType.emoji} {activeType.label}
+                    </span>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${activePriority.color}`}
+                    >
+                      {activePriority.label}
+                    </span>
+                  </div>
+
+                  <h4 className="text-sm font-bold text-white leading-snug">
+                    {title || 'Notification title will appear here'}
+                  </h4>
+                  <p className="text-xs text-slate-400 leading-relaxed mt-1 whitespace-pre-line">
+                    {message ||
+                      'Notification body preview — start typing to see the live update.'}
+                  </p>
+
+                  {link && (
+                    <button
+                      type="button"
+                      className={`mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border ${activeType.color}`}
+                    >
+                      {actionLabel || 'Open'}
+                      <Icon name="chevron-right" className="w-3 h-3" />
+                    </button>
+                  )}
+
+                  <div className="mt-3 pt-3 border-t border-slate-700/50 flex items-center justify-between text-[10px] font-mono text-slate-500">
+                    <span>
+                      {targetMode === 'all'
+                        ? `All users (${users.length})`
+                        : `${selectedUserIds.length} recipient${selectedUserIds.length === 1 ? '' : 's'}`}
+                    </span>
+                    <span>Just now</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 p-3 rounded-xl bg-slate-900/40 border border-slate-700/40">
+              <p className="text-[10px] text-slate-500 leading-relaxed flex items-start gap-2">
+                <Icon name="info" className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-500" />
+                <span>
+                  Delivered instantly to the bell icon in each user's dashboard header. Users can dismiss or mark as read.
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ============================================ */}
+      {/* SENT HISTORY */}
+      {/* ============================================ */}
+      <div className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-[#151520]/70 backdrop-blur-xl">
+        <div className="p-5 border-b border-violet-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-base font-black tracking-tight">Sent History</h3>
+            <p className="text-xs text-slate-400">
+              {groupedHistory.length} entr{groupedHistory.length === 1 ? 'y' : 'ies'}
+              {historyFilter !== 'all' && ` · ${filteredHistory.length} row${filteredHistory.length === 1 ? '' : 's'}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-1 p-1 rounded-xl border border-violet-500/20 bg-slate-900/50">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'broadcast', label: 'Broadcasts' },
+              { key: 'targeted', label: 'Targeted' },
+            ].map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setHistoryFilter(opt.key as any)}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                  historyFilter === opt.key
+                    ? 'bg-violet-600 text-white shadow-lg'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {historyLoading ? (
+          <div className="p-12 text-center text-slate-400 text-sm">Loading history...</div>
+        ) : groupedHistory.length === 0 ? (
+          <div className="p-12 text-center">
+            <div className="inline-flex flex-col items-center gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/20 flex items-center justify-center">
+                <Icon name="bell" className="w-7 h-7 text-fuchsia-400" glow />
+              </div>
+              <p className="text-slate-300 font-bold">No notifications sent yet</p>
+              <p className="text-xs text-slate-500 max-w-sm">
+                Compose your first announcement above to reach your users.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="divide-y divide-violet-500/10 max-h-[600px] overflow-y-auto">
+            {groupedHistory.map(({ record: n, recipients, ids }) => {
+              const t = NOTIFICATION_TYPES.find((x) => x.key === n.type) || NOTIFICATION_TYPES[0]
+              const p = NOTIFICATION_PRIORITIES.find((x) => x.key === n.metadata?.priority) || NOTIFICATION_PRIORITIES[1]
+              const isBroadcast = recipients > 1
+              const recipient = n.user_id
+                ? users.find((u) => u.id === n.user_id)
+                : null
+
+              return (
+                <div key={n.id} className="p-4 sm:p-5 hover:bg-violet-500/[0.03] transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br ${t.accent} flex items-center justify-center shadow-lg`}
+                    >
+                      <Icon name={n.icon || 'bell'} className="w-5 h-5 text-white" />
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      {/* Badges */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${t.color}`}
+                        >
+                          {t.emoji} {t.label}
+                        </span>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${p.color}`}
+                        >
+                          {p.label}
+                        </span>
+                        {isBroadcast ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-violet-500/15 text-violet-300 border border-violet-500/30">
+                            <Icon name="users" className="w-2.5 h-2.5" />
+                            Broadcast · {recipients}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                            <Icon name="user-check" className="w-2.5 h-2.5" />
+                            {recipient?.name || recipient?.email || 'Target user'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <h4 className="text-sm font-bold text-white">{n.title}</h4>
+                      {n.message && (
+                        <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
+                          {n.message}
+                        </p>
+                      )}
+
+                      {/* Meta */}
+                      <div className="flex items-center gap-3 pt-1 text-[10px] font-mono text-slate-500 flex-wrap">
+                        <span>
+                          {n.created_at
+                            ? new Date(n.created_at).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : 'N/A'}
+                        </span>
+                        {n.metadata?.created_by_name && (
+                          <>
+                            <span className="text-slate-600">·</span>
+                            <span>by {n.metadata.created_by_name}</span>
+                          </>
+                        )}
+                        {n.metadata?.expires_at && (
+                          <>
+                            <span className="text-slate-600">·</span>
+                            <span className="text-amber-400">
+                              expires {new Date(n.metadata.expires_at).toLocaleDateString()}
+                            </span>
+                          </>
+                        )}
+                        {n.link && (
+                          <>
+                            <span className="text-slate-600">·</span>
+                            <span className="text-fuchsia-400 truncate max-w-[160px]">
+                              → {n.link}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        if (!confirm(
+                          isBroadcast
+                            ? `Delete this broadcast? This will remove ${recipients} notification row${recipients === 1 ? '' : 's'} across all recipients.`
+                            : 'Delete this notification?'
+                        )) return
+                        try {
+                          const { error } = await supabase
+                            .from('notifications')
+                            .delete()
+                            .in('id', ids)
+                          if (error) throw error
+                          await loadHistory()
+                        } catch (err: any) {
+                          alert('Delete failed: ' + err.message)
+                        }
+                      }}
+                      className="shrink-0 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold transition-all"
+                      title={isBroadcast ? `Delete all ${recipients} rows` : 'Delete notification'}
+                    >
+                      <Icon name="trash" className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+// ============================================
 // MAIN ADMIN DASHBOARD
 // ============================================
 export default function AdminDashboardPage() {
@@ -2904,6 +3797,10 @@ export default function AdminDashboardPage() {
   // SUGGESTION COUNT STATE
   const [suggestionCount, setSuggestionCount] = useState(0)
 
+  // ⬅️ NEW: Admin user + Notification count state
+  const [adminUserId, setAdminUserId] = useState<string | null>(null)
+  const [notificationCount, setNotificationCount] = useState(0)
+
   const router = useRouter()
 
   // Live clock
@@ -2921,88 +3818,90 @@ export default function AdminDashboardPage() {
   // LOAD ADMIN DATA
   // ============================================
   const loadAdminData = async () => {
-    try {
-      setErrorMsg('')
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user?.email) setAdminEmail(user.email)
+  try {
+    setErrorMsg('')
 
-      const { data: usersData, error: usersError } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user?.email) setAdminEmail(user.email)
+    if (user?.id) setAdminUserId(user.id)   // ⬅️ NEW: capture admin user id
 
-      if (usersError) throw usersError
-      if (usersData) setUsers(usersData)
+    const { data: usersData, error: usersError } = await supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('questions')
-        .select('*')
-        .order('id', { ascending: false })
+    if (usersError) throw usersError
+    if (usersData) setUsers(usersData)
 
-      if (questionsError) throw questionsError
-      if (questionsData) setQuestions(questionsData)
+    const { data: questionsData, error: questionsError } = await supabase
+      .from('questions')
+      .select('*')
+      .order('id', { ascending: false })
 
-      const { data: scoresData, error: scoresError } = await supabase
-        .from('module_scores')
-        .select('*')
-        .order('created_at', { ascending: false })
+    if (questionsError) throw questionsError
+    if (questionsData) setQuestions(questionsData)
 
-      if (scoresError) throw scoresError
-      if (scoresData) setAllScores(scoresData)
+    const { data: scoresData, error: scoresError } = await supabase
+      .from('module_scores')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-      const { data: tutorialsData, error: tutorialsError } = await supabase
-        .from('lessons')
-        .select('*')
-        .order('order_index', { ascending: true })
+    if (scoresError) throw scoresError
+    if (scoresData) setAllScores(scoresData)
 
-      if (tutorialsError) throw tutorialsError
-      if (tutorialsData) setTutorials(tutorialsData)
+    const { data: tutorialsData, error: tutorialsError } = await supabase
+      .from('lessons')
+      .select('*')
+      .order('order_index', { ascending: true })
 
-      const bpoTableNames: BPOSection[] = [
-        'bpo_industry_overview',
-        'bpo_historical_timeline',
-        'bpo_companies',
-        'bpo_job_roles',
-        'bpo_application_steps',
-        'bpo_required_documents',
-        'bpo_success_tips',
-      ]
+    if (tutorialsError) throw tutorialsError
+    if (tutorialsData) setTutorials(tutorialsData)
 
-      const [topicsCountRes, sectionsCountRes] = await Promise.all([
-        supabase.from('learning_topics').select('*', { count: 'exact', head: true }),
-        supabase.from('learning_topic_sections').select('*', { count: 'exact', head: true }),
-      ])
+    const bpoTableNames: BPOSection[] = [
+      'bpo_industry_overview',
+      'bpo_historical_timeline',
+      'bpo_companies',
+      'bpo_job_roles',
+      'bpo_application_steps',
+      'bpo_required_documents',
+      'bpo_success_tips',
+    ]
 
-      const { count: suggestionCountRes } = await supabase
-        .from('admin_suggestions')
-        .select('*', { count: 'exact', head: true })
+    const [topicsCountRes, sectionsCountRes] = await Promise.all([
+      supabase.from('learning_topics').select('*', { count: 'exact', head: true }),
+      supabase.from('learning_topic_sections').select('*', { count: 'exact', head: true }),
+    ])
 
-      setSuggestionCount(suggestionCountRes ?? 0)
+    const { count: suggestionCountRes } = await supabase
+      .from('admin_suggestions')
+      .select('*', { count: 'exact', head: true })
 
-      setTopicCounts({
-        topics: topicsCountRes.count ?? 0,
-        sections: sectionsCountRes.count ?? 0,
-      })
+    setSuggestionCount(suggestionCountRes ?? 0)
 
-      const countResults = await Promise.all(
-        bpoTableNames.map((t) =>
-          supabase.from(t).select('*', { count: 'exact', head: true })
-        )
+    setTopicCounts({
+      topics: topicsCountRes.count ?? 0,
+      sections: sectionsCountRes.count ?? 0,
+    })
+
+    const countResults = await Promise.all(
+      bpoTableNames.map((t) =>
+        supabase.from(t).select('*', { count: 'exact', head: true })
       )
+    )
 
-      const counts: Record<string, number> = {}
-      bpoTableNames.forEach((name, i) => {
-        counts[name] = countResults[i].count ?? 0
-      })
-      setBpoCounts(counts as Record<BPOSection, number>)
-    } catch (err: any) {
-      console.error('Error loading admin dashboard data:', err)
-      setErrorMsg('Failed to fetch data: ' + (err.message || 'Unknown error (Check RLS Policies or Table Name)'))
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
+    const counts: Record<string, number> = {}
+    bpoTableNames.forEach((name, i) => {
+      counts[name] = countResults[i].count ?? 0
+    })
+    setBpoCounts(counts as Record<BPOSection, number>)
+  } catch (err: any) {
+    console.error('Error loading admin dashboard data:', err)
+    setErrorMsg('Failed to fetch data: ' + (err.message || 'Unknown error (Check RLS Policies or Table Name)'))
+  } finally {
+    setLoading(false)
+    setRefreshing(false)
   }
+}
 
   useEffect(() => {
     loadAdminData()
@@ -3793,17 +4692,22 @@ export default function AdminDashboardPage() {
     badge?: number
     section: 'main' | 'content' | 'analytics'
   }> = [
+    // ── Main ─────────────────────────────────────
     { key: 'overview', label: 'Overview', icon: 'grid', gradient: 'from-violet-500 to-purple-500', section: 'main' },
     { key: 'users', label: 'Users', icon: 'users', gradient: 'from-cyan-500 to-blue-500', badge: users.length, section: 'main' },
-    { key: 'questions', label: 'Question Bank', icon: 'book', gradient: 'from-amber-500 to-orange-500', badge: questions.length, section: 'content' },
-    { key: 'tutorials', label: 'Tutorials & Lessons', icon: 'graduation-cap', gradient: 'from-emerald-500 to-teal-500', badge: tutorials.length, section: 'content' },
-    { key: 'topics', label: 'Learning Topics', icon: 'layers', gradient: 'from-cyan-500 to-blue-500', badge: topicCounts.topics, section: 'content' },
-    { key: 'bpo', label: 'BPO Industry', icon: 'database', gradient: 'from-blue-500 to-indigo-500', badge: totalBpoRecords, section: 'content' },
-    { key: 'suggestions', label: 'Suggestion Pool', icon: 'sparkles', gradient: 'from-amber-500 to-orange-500', badge: suggestionCount, section: 'content' },
-    { key: 'rankings', label: 'Rankings', icon: 'trophy', gradient: 'from-yellow-500 to-amber-500', badge: rankings.length, section: 'analytics' },
-    { key: 'statistics', label: 'Analytics', icon: 'bar-chart', gradient: 'from-fuchsia-500 to-pink-500', section: 'analytics' },
-  ]
 
+    // ── Content ──────────────────────────────────
+    { key: 'questions',   label: 'Question Bank',       icon: 'book',            gradient: 'from-amber-500 to-orange-500',   badge: questions.length,     section: 'content' },
+    { key: 'tutorials',   label: 'Tutorials & Lessons', icon: 'graduation-cap',  gradient: 'from-emerald-500 to-teal-500',   badge: tutorials.length,     section: 'content' },
+    { key: 'topics',      label: 'Learning Topics',     icon: 'layers',          gradient: 'from-cyan-500 to-blue-500',      badge: topicCounts.topics,   section: 'content' },
+    { key: 'bpo',         label: 'BPO Industry',        icon: 'database',        gradient: 'from-blue-500 to-indigo-500',    badge: totalBpoRecords,      section: 'content' },
+    { key: 'suggestions', label: 'Suggestion Pool',     icon: 'sparkles',        gradient: 'from-amber-500 to-orange-500',   badge: suggestionCount,      section: 'content' },
+    { key: 'notifications', label: 'Notifications',     icon: 'bell',            gradient: 'from-fuchsia-500 to-pink-500',   badge: notificationCount,    section: 'content' },
+
+    // ── Analytics ────────────────────────────────
+    { key: 'rankings',    label: 'Rankings',            icon: 'trophy',          gradient: 'from-yellow-500 to-amber-500',   badge: rankings.length,      section: 'analytics' },
+    { key: 'statistics',  label: 'Analytics',           icon: 'bar-chart',       gradient: 'from-fuchsia-500 to-pink-500',   section: 'analytics' },
+  ]
   // Loading state
   if (loading) {
     return (
@@ -4053,6 +4957,7 @@ export default function AdminDashboardPage() {
                   {activeTab === 'topics' && 'Manage career-readiness learning topics & sections'}
                   {activeTab === 'bpo' && 'Manage BPO industry knowledge base'}
                   {activeTab === 'suggestions' && 'Capture, vote on, and track ideas for the next update'}
+                  {activeTab === 'notifications' && 'Broadcast announcements to users or target specific candidates'}
                   {activeTab === 'rankings' && 'Leaderboard and top performers'}
                   {activeTab === 'statistics' && 'Platform analytics & insights'}
                 </p>
@@ -4728,6 +5633,15 @@ export default function AdminDashboardPage() {
               {/* ============ SUGGESTION POOL TAB ============ */}
               {activeTab === 'suggestions' && (
                 <SuggestionPoolView Icon={Icon} adminEmail={adminEmail} userId={null} />
+              )}
+              {/* ============ NOTIFICATIONS TAB ============ */}
+              {activeTab === 'notifications' && (
+                <NotificationComposerView
+                  Icon={Icon}
+                  users={users}
+                  adminEmail={adminEmail}
+                  adminUserId={adminUserId}   // ⬅️ was null, now real id
+                />
               )}
 
               {/* ============ RANKINGS TAB ============ */}

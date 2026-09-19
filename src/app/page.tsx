@@ -58,6 +58,9 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import confetti from 'canvas-confetti';
 import { supabase } from '@/lib/supabase';
+import { NotificationProvider } from '@/lib/notification-context';
+import { ToastProvider } from '@/components/toast';
+import { NotificationBell } from '@/components/notification-bell';
 
 // ============================================
 // FLAT ICON COMPONENT
@@ -6140,9 +6143,11 @@ export default function Home() {
   // RENDER: MAIN APP
   // ============================================
   return (
+    <NotificationProvider userId={userId}>
+      <ToastProvider>
     <div className={`h-screen w-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 ${themeClasses.bg} ${themeClasses.textPrimary}`}>
       
-      <header className={`relative z-50 shrink-0 border-b px-4 sm:px-8 ${themeClasses.header}`}>
+            <header className={`relative z-50 shrink-0 border-b px-4 sm:px-8 ${themeClasses.header}`}>
         <div className="w-full flex items-center justify-between h-16">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" onClick={handleBackToDashboard}>
@@ -6171,6 +6176,7 @@ export default function Home() {
               </a>
             )}
 
+            {/* Theme Selector Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setShowThemeMenu(!showThemeMenu)}
@@ -6179,7 +6185,7 @@ export default function Home() {
               >
                 <Icon name="layers" className="w-5 h-5" />
               </button>
-              
+
               {showThemeMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowThemeMenu(false)} />
@@ -6187,25 +6193,30 @@ export default function Home() {
                     <div className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 ${themeClasses.textMuted}`}>
                       Interface Theme
                     </div>
-                    {(Object.keys(themeConfigs) as ThemeMode[]).filter(t => t !== 'emerald').map((themeKey) => (
-                      <button
-                        key={themeKey}
-                        onClick={() => handleThemeChange(themeKey)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                          theme === themeKey 
-                            ? 'bg-indigo-600 text-white' 
-                            : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
-                        }`}
-                      >
-                        <div className={`w-6 h-6 rounded-lg ${themeConfigs[themeKey].gradient}`} />
-                        <span>{themeConfigs[themeKey].name}</span>
-                        {theme === themeKey && <span className="ml-auto">✓</span>}
-                      </button>
-                    ))}
+                    {(Object.keys(themeConfigs) as ThemeMode[])
+                      .filter((t) => t !== 'emerald')
+                      .map((themeKey) => (
+                        <button
+                          key={themeKey}
+                          onClick={() => handleThemeChange(themeKey)}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                            theme === themeKey
+                              ? 'bg-indigo-600 text-white'
+                              : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+                          }`}
+                        >
+                          <div className={`w-6 h-6 rounded-lg ${themeConfigs[themeKey].gradient}`} />
+                          <span>{themeConfigs[themeKey].name}</span>
+                          {theme === themeKey && <span className="ml-auto">✓</span>}
+                        </button>
+                      ))}
                   </div>
                 </>
               )}
             </div>
+
+            {/* Notification Bell — always visible in header */}
+            <NotificationBell />
 
             <div className="hidden sm:flex items-center gap-3 text-xs font-semibold">
               <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">
@@ -6213,7 +6224,9 @@ export default function Home() {
               </div>
               <div className="flex flex-col">
                 <span className="truncate max-w-[120px] font-bold">{userName || 'Candidate'}</span>
-                <span className={`text-[10px] ${themeClasses.textMuted}`}>{isAdmin ? 'Administrator' : 'Candidate'}</span>
+                <span className={`text-[10px] ${themeClasses.textMuted}`}>
+                  {isAdmin ? 'Administrator' : 'Candidate'}
+                </span>
               </div>
             </div>
 
@@ -8015,7 +8028,9 @@ export default function Home() {
             </p>
           </div>
         </div>
-      </LegalModal>
+           </LegalModal>
     </div>
+      </ToastProvider>
+    </NotificationProvider>
   );
 }
