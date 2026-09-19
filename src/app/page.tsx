@@ -1,4 +1,5 @@
 'use client';
+console.log('🚨🚨🚨 MARKER CHECK — ' + new Date().toISOString());
 import bcrypt from 'bcryptjs';
 
 
@@ -3298,6 +3299,9 @@ interface ModuleCertificate {
   score_history: Array<{ score: number; created_at: string }>;
   certificate_code: string;
   issued_at: string;
+  // ⬇️ NEW — typing-specific metrics (null for non-typing modules)
+  wpm?: number | null;
+  accuracy?: number | null;
 }
 
 function generateModuleCertificateCode(moduleName: string, score: number): string {
@@ -3324,24 +3328,19 @@ async function createModuleCertificate({
   score,
   previousBest,
   scoreHistory,
+  wpm,
+  accuracy,
 }: {
   userId: string;
   moduleName: string;
   score: number;
   previousBest: number | null;
   scoreHistory: Array<{ score: number; created_at: string }>;
+  wpm?: number | null;
+  accuracy?: number | null;
 }): Promise<ModuleCertificate | null> {
   try {
     const code = generateModuleCertificateCode(moduleName, score);
-
-    console.log('📝 createModuleCertificate called with:', {
-      userId,
-      moduleName,
-      score,
-      previousBest,
-      scoreHistoryLength: scoreHistory.length,
-      code,
-    });
 
     const { data, error } = await supabase
       .from('module_certificates')
@@ -3353,27 +3352,18 @@ async function createModuleCertificate({
           previous_best: previousBest,
           score_history: scoreHistory,
           certificate_code: code,
+          // ⬇️ NEW — only sent for typing; null otherwise
+          wpm: wpm ?? null,
+          accuracy: accuracy ?? null,
         },
       ])
       .select()
       .single();
 
-    console.log('📦 Supabase response:', { data, error });
-
-    if (error) {
-      console.error('❌ Supabase insert error:', error);
-      console.error('❌ Error code:', error.code);
-      console.error('❌ Error message:', error.message);
-      console.error('❌ Error details:', error.details);
-      console.error('❌ Error hint:', error.hint);
-      throw error;
-    }
-
-    console.log('✅ Certificate created:', data);
+    if (error) throw error;
     return data as ModuleCertificate;
   } catch (err: any) {
-    console.error('❌❌❌ createModuleCertificate FAILED:', err);
-    console.error('❌❌❌ Error message:', err.message);
+    console.error('createModuleCertificate error:', err.message);
     return null;
   }
 }
@@ -3417,8 +3407,17 @@ async function sendMilestoneNotification({
     case 'personal_best': {
       const modLabel = MODULE_DISPLAY_NAMES[moduleName || ''] || moduleName || 'module';
       const delta = (score || 0) - (previousBest || 0);
+      const isTyping = moduleName === 'typing';
+
+      // ⬇️ Guard `extra` before accessing
+      const extraWpm = extra && typeof extra.wpm === 'number' ? extra.wpm : null;
+      const extraAcc = extra && typeof extra.accuracy === 'number' ? extra.accuracy : null;
+
+      const wpmText = isTyping && extraWpm ? ` Speed: ${extraWpm} WPM.` : '';
+      const accText = isTyping && extraAcc ? ` Accuracy: ${extraAcc}%.` : '';
+
       title = `🏆 New personal best in ${modLabel}!`;
-      message = `You just scored ${score}%, beating your previous best of ${previousBest}% by ${delta} point${delta === 1 ? '' : 's'}. Tap to view your mini certificate.`;
+      message = `You just scored ${score}%, beating your previous best of ${previousBest}% by ${delta} point${delta === 1 ? '' : 's'}.${wpmText}${accText} Tap to view your mini certificate.`;
       icon = 'trophy';
       link = certificateId ? `#mini-cert-${certificateId}` : '/';
       metadata.previous_best = previousBest;
@@ -3618,6 +3617,104 @@ function MiniModuleCertificate({
           >
             NEW HIGH SCORE
           </div>
+          {/* ⬇️ NEW — Typing metrics (only shown when module is typing) */}
+            {cert.module_name === 'typing' && (cert.wpm != null || cert.accuracy != null) && (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 16,
+                  padding: '12px 16px',
+                  borderRadius: 12,
+                  background: 'rgba(56,189,248,0.08)',
+                  border: '1px solid rgba(56,189,248,0.25)',
+                  marginBottom: compact ? 16 : 24,
+                  flexWrap: 'wrap',
+                }}
+              >
+                {cert.wpm != null && (
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 9,
+                        letterSpacing: '0.15em',
+                        color: '#7dd3fc',
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                        marginBottom: 4,
+                      }}
+                    >
+                      Typing Speed
+                    </div>
+                    <div
+                      style={{
+                        fontSize: compact ? 22 : 28,
+                        fontWeight: 900,
+                        color: '#ffffff',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {cert.wpm}
+                      <span
+                        style={{
+                          fontSize: compact ? 11 : 13,
+                          fontWeight: 700,
+                          color: '#7dd3fc',
+                          marginLeft: 4,
+                        }}
+                      >
+                        WPM
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {cert.accuracy != null && (
+                  <>
+                    <div
+                      style={{
+                        width: 1,
+                        background: 'rgba(56,189,248,0.25)',
+                        alignSelf: 'stretch',
+                      }}
+                    />
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 9,
+                          letterSpacing: '0.15em',
+                          color: '#6ee7b7',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          marginBottom: 4,
+                        }}
+                      >
+                        Accuracy
+                      </div>
+                      <div
+                        style={{
+                          fontSize: compact ? 22 : 28,
+                          fontWeight: 900,
+                          color: '#ffffff',
+                          lineHeight: 1,
+                        }}
+                      >
+                        {cert.accuracy}
+                        <span
+                          style={{
+                            fontSize: compact ? 11 : 13,
+                            fontWeight: 700,
+                            color: '#6ee7b7',
+                            marginLeft: 2,
+                          }}
+                        >
+                          %
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           <div
             style={{
               fontSize: compact ? 40 : 56,
@@ -5072,159 +5169,185 @@ export default function Home() {
   };
 
   const handleScoreFinalized = async (
-    finalPct: number,
-    extraData?: { wpm?: number; accuracy?: number }
-  ) => {
-    setScore(finalPct);
-    setIsSubmitted(true);
-    setShowScorePopup(true);
+  finalPct: number,
+  extraData?: { wpm?: number; accuracy?: number }
+) => {
+  setScore(finalPct);
+  setIsSubmitted(true);
+  setShowScorePopup(true);
 
-    if (userId && selectedModule) {
-      const insertPayload: any = {
-        user_id: userId,
-        module_name: selectedModule,
-        score: finalPct,
-        created_at: new Date().toISOString(),
-      };
+  if (userId && selectedModule) {
+    const insertPayload: any = {
+      user_id: userId,
+      module_name: selectedModule,
+      score: finalPct,
+      created_at: new Date().toISOString(),
+    };
 
-      if (selectedModule === 'typing' && extraData) {
-        if (typeof extraData.wpm === 'number') insertPayload.wpm = extraData.wpm;
-        if (typeof extraData.accuracy === 'number') insertPayload.accuracy = extraData.accuracy;
-      }
+    if (selectedModule === 'typing' && extraData) {
+      if (typeof extraData.wpm === 'number') insertPayload.wpm = extraData.wpm;
+      if (typeof extraData.accuracy === 'number') insertPayload.accuracy = extraData.accuracy;
+    }
 
-      const { data, error } = await supabase
+    const { data, error } = await supabase
+      .from('module_scores')
+      .insert([insertPayload])
+      .select();
+
+    if (error) {
+      console.error('Error saving module score:', error.message);
+    } else if (data && data.length > 0) {
+      setUserScores((prev) => [data[0], ...prev.filter((item) => item.id !== data[0].id)]);
+    }
+    await refreshUserStats();
+
+    // ============================================
+    // MILESTONE DETECTION
+    // ============================================
+    try {
+      const { data: moduleHistory, error: histErr } = await supabase
         .from('module_scores')
-        .insert([insertPayload])
-        .select();
+        .select('id, score, created_at')
+        .eq('user_id', userId)
+        .eq('module_name', selectedModule)
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error saving module score:', error.message);
-      } else if (data && data.length > 0) {
-        setUserScores(prev => [data[0], ...prev.filter((item) => item.id !== data[0].id)]);
-      }
-      await refreshUserStats();
+      if (histErr) {
+        console.error('Milestone history fetch error:', histErr.message);
+      } else if (moduleHistory && moduleHistory.length > 0) {
+        const justSavedId = data && data.length > 0 ? data[0].id : null;
+        const previousScores = moduleHistory
+          .filter((row) => row.id !== justSavedId)
+          .map((row) => row.score || 0);
 
-      // ============================================
-      // MILESTONE DETECTION
-      // ============================================
-      try {
-        const { data: moduleHistory, error: histErr } = await supabase
-          .from('module_scores')
-          .select('id, score, created_at')
-          .eq('user_id', userId)
-          .eq('module_name', selectedModule)
-          .order('created_at', { ascending: false });
+        const previousBest =
+          previousScores.length > 0 ? Math.max(...previousScores) : null;
 
-        if (histErr) {
-          console.error('Milestone history fetch error:', histErr.message);
-        } else if (moduleHistory && moduleHistory.length > 0) {
-          const justSavedId = data && data.length > 0 ? data[0].id : null;
-          const previousScores = moduleHistory
+        // ⬇️ Shared metrics for typing modules — passed to notifications + certs
+        const typingMetrics =
+          selectedModule === 'typing'
+            ? {
+                wpm: typeof extraData?.wpm === 'number' ? extraData.wpm : null,
+                accuracy: typeof extraData?.accuracy === 'number' ? extraData.accuracy : null,
+              }
+            : { wpm: null, accuracy: null };
+
+        // ⬇️ Build the cert history once — reused by PB and Perfect branches
+        const historyForCert = [
+          ...moduleHistory
             .filter((row) => row.id !== justSavedId)
-            .map((row) => row.score || 0);
+            .map((row) => ({ score: row.score || 0, created_at: row.created_at })),
+          { score: finalPct, created_at: new Date().toISOString() },
+        ].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
 
-          const previousBest =
-            previousScores.length > 0 ? Math.max(...previousScores) : null;
+        // ============================================
+        // Milestone 1: First attempt ever
+        // ============================================
+        if (previousScores.length === 0) {
+          await sendMilestoneNotification({
+            userId,
+            type: 'first_attempt',
+            moduleName: selectedModule,
+            score: finalPct,
+            extra: typingMetrics.wpm !== null ? typingMetrics : undefined,
+          });
+        }
 
-          // ---- Milestone 1: First attempt ever ----
-          if (previousScores.length === 0) {
-            await sendMilestoneNotification({
-              userId,
-              type: 'first_attempt',
-              moduleName: selectedModule,
-              score: finalPct,
-            });
+        // ============================================
+        // Milestone 2: New personal best (also fires when it's a first attempt AND > 0, skip first)
+        // ============================================
+        if (previousScores.length > 0 && finalPct > (previousBest ?? 0)) {
+          const cert = await createModuleCertificate({
+            userId,
+            moduleName: selectedModule,
+            score: finalPct,
+            previousBest: previousBest ?? 0,
+            scoreHistory: historyForCert,
+            wpm: typingMetrics.wpm,
+            accuracy: typingMetrics.accuracy,
+          });
+
+          if (cert) {
+            setMiniCerts((prev) => [cert, ...prev]);
           }
-          // ---- Milestone 2: New personal best ----
-          else if (finalPct > (previousBest ?? 0)) {
-            const historyForCert = [
-              ...moduleHistory
-                .filter((row) => row.id !== justSavedId)
-                .map((row) => ({ score: row.score || 0, created_at: row.created_at })),
-              { score: finalPct, created_at: new Date().toISOString() },
-            ].sort(
-              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            );
 
-            const cert = await createModuleCertificate({
+          await sendMilestoneNotification({
+            userId,
+            type: 'personal_best',
+            moduleName: selectedModule,
+            score: finalPct,
+            previousBest: previousBest ?? 0,
+            certificateId: cert?.id,
+            // ⬇️ Pass typing metrics so the notification message can include WPM/accuracy
+            extra: typingMetrics.wpm !== null ? typingMetrics : undefined,
+          });
+        }
+
+        // ============================================
+        // Milestone 3: Perfect score (independent of PB — first-ever 100% gets a cert even if it's also a PB)
+        // ============================================
+        if (finalPct === 100) {
+          // Check if a perfect-score cert already exists for this module
+          const { data: existingCert } = await supabase
+            .from('module_certificates')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('module_name', selectedModule)
+            .eq('score', 100)
+            .maybeSingle();
+
+          if (!existingCert) {
+            console.log('🎯 [Milestone 3] First-ever 100% in this module — creating cert');
+
+            const perfectCert = await createModuleCertificate({
               userId,
               moduleName: selectedModule,
-              score: finalPct,
+              score: 100,
               previousBest: previousBest ?? 0,
               scoreHistory: historyForCert,
+              wpm: typingMetrics.wpm,
+              accuracy: typingMetrics.accuracy,
             });
 
-            if (cert) {
-              setMiniCerts((prev) => [cert, ...prev]);
+            if (perfectCert) {
+              setMiniCerts((prev) => [perfectCert, ...prev]);
             }
 
             await sendMilestoneNotification({
               userId,
-              type: 'personal_best',
+              type: 'perfect_score',
               moduleName: selectedModule,
-              score: finalPct,
-              previousBest: previousBest ?? 0,
-              certificateId: cert?.id,
+              score: 100,
+              certificateId: perfectCert?.id,
+              // ⬇️ Pass typing metrics
+              extra: typingMetrics.wpm !== null ? typingMetrics : undefined,
             });
+          } else {
+            console.log('⏭️ [Milestone 3] Skipped — perfect-score cert already exists');
           }
-            // ---- Milestone 3: Perfect score ----
-            if (finalPct === 100 && !previousScores.includes(100)) {
-              console.log('🎯 [Milestone 3] Perfect score detected — starting cert creation');
-
-              // Build the score history for the mini cert
-              const historyForPerfectCert = [
-                ...moduleHistory
-                  .filter((row) => row.id !== justSavedId)
-                  .map((row) => ({ score: row.score || 0, created_at: row.created_at })),
-                { score: finalPct, created_at: new Date().toISOString() },
-              ].sort(
-                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-              );
-
-              // Create the mini certificate FIRST
-              const perfectCert = await createModuleCertificate({
-                userId,
-                moduleName: selectedModule,
-                score: 100,
-                previousBest: previousBest ?? 0,
-                scoreHistory: historyForPerfectCert,
-              });
-
-              console.log('📜 createModuleCertificate returned:', perfectCert);
-
-              if (perfectCert) {
-                setMiniCerts((prev) => [perfectCert, ...prev]);
-              }
-
-              // Then send the notification, linking to the cert
-              await sendMilestoneNotification({
-                userId,
-                type: 'perfect_score',
-                moduleName: selectedModule,
-                score: 100,
-                certificateId: perfectCert?.id,
-              });
-            }
         }
-      } catch (milestoneErr) {
-        console.error('Milestone detection error:', milestoneErr);
       }
+    } catch (milestoneErr) {
+      console.error('Milestone detection error:', milestoneErr);
     }
+  }
 
-    if (finalPct > 70) {
-      triggerConfetti();
-    } else {
-      const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
-      setMotivationalQuote(randomQuote);
-    }
+  if (finalPct > 70) {
+    triggerConfetti();
+  } else {
+    const randomQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+    setMotivationalQuote(randomQuote);
+  }
 
-    if (appMode === 'full_exam') {
-      setTimeout(() => {
-        setShowScorePopup(false);
-        handleAdvanceExamStep(finalPct);
-      }, 4000);
-    }
-  };
+  if (appMode === 'full_exam') {
+    setTimeout(() => {
+      setShowScorePopup(false);
+      handleAdvanceExamStep(finalPct);
+    }, 5000);
+  }
+};
 
   const handleSubmitWriting = () => {
     if (!writingText.trim()) return;
