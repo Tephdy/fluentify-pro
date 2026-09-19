@@ -328,10 +328,50 @@ function Icon({ name, className = "w-5 h-5", glow = false }: IconProps) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
         </svg>
       );
+    case 'message-square':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" />
+        </svg>
+      );
+    case 'graduation-cap':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M22 10L12 5 2 10l10 5 10-5z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 12v5c3 3 9 3 12 0v-5" />
+        </svg>
+      );
+    case 'search':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="11" cy="11" r="7" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35" />
+        </svg>
+      );
+    case 'minus':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
+        </svg>
+      );
+    case 'award':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <circle cx="12" cy="8" r="6" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" />
+        </svg>
+      );
+    case 'gift':
+      return (
+        <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20 12v9H4v-9M2 7h20v5H2V7zm10 5v9M12 7a3 3 0 116 0H6a3 3 0 116 0h.01" />
+        </svg>
+      );
     default:
       return null;
   }
 }
+
 
 // ============================================
 // FLAT LEGAL MODAL COMPONENT
@@ -883,6 +923,7 @@ function SpeakingRecorder({ prompts, onComplete }: { prompts: string[]; onComple
   );
 }
 
+
 // ============================================
 // INTERFACES
 // ============================================
@@ -1366,6 +1407,7 @@ function PronunciationPracticePanel({
     </div>
   );
 }
+
 
 // ============================================
 // DYNAMIC BPO INDUSTRY MODULE
@@ -1963,6 +2005,7 @@ function BPOIndustryModule({
   );
 }
 
+
 // ============================================
 // DYNAMIC LEARNING TOPICS MODULE
 // ============================================
@@ -2093,219 +2136,6 @@ function LearningTopicsView({
       </div>
     );
   }
-
-  // ============================================
-// TOPIC SECTION CARD (Renders each section type) — THEME AWARE
-// ============================================
-function TopicSectionCard({
-  section,
-  index,
-  themeClasses,
-  Icon,
-}: {
-  section: LearningTopicSection;
-  index: number;
-  themeClasses: any;
-  Icon: any;
-}) {
-  // Section type metadata — using theme-aware color tokens
-  const sectionMeta: Record<string, { label: string; icon: string; color: string; bgColor: string; borderColor: string }> = {
-    lesson: { label: 'Lesson', icon: 'book', color: 'text-indigo-400', bgColor: 'bg-indigo-500/10', borderColor: 'border-indigo-500/30' },
-    example: { label: 'Example', icon: 'file-text', color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', borderColor: 'border-cyan-500/30' },
-    template: { label: 'Template', icon: 'file-text', color: 'text-violet-400', bgColor: 'bg-violet-500/10', borderColor: 'border-violet-500/30' },
-    tip: { label: 'Tips', icon: 'sparkles', color: 'text-amber-400', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/30' },
-    checklist: { label: 'Checklist', icon: 'check', color: 'text-emerald-400', bgColor: 'bg-emerald-500/10', borderColor: 'border-emerald-500/30' },
-    script: { label: 'Scripts', icon: 'message-square', color: 'text-rose-400', bgColor: 'bg-rose-500/10', borderColor: 'border-rose-500/30' },
-    comparison: { label: 'Comparison', icon: 'scale', color: 'text-fuchsia-400', bgColor: 'bg-fuchsia-500/10', borderColor: 'border-fuchsia-500/30' },
-  };
-
-  const meta = sectionMeta[section.section_type] || sectionMeta.lesson;
-
-  // ============================================
-  // RENDER SECTION TYPE SPECIFIC CONTENT
-  // ============================================
-  const renderExamples = () => {
-    if (!Array.isArray(section.examples) || section.examples.length === 0) return null;
-
-    // Checklist type
-    if (section.section_type === 'checklist') {
-      return (
-        <div className="space-y-2 mt-4">
-          {section.examples.map((item: any, i: number) => (
-            <div
-              key={i}
-              className={`flex items-start gap-3 p-3 rounded-lg border ${themeClasses.card} border-emerald-500/20`}
-            >
-              <div className="w-5 h-5 rounded border-2 border-emerald-500/40 flex items-center justify-center shrink-0 mt-0.5">
-                <Icon name="check" className="w-3 h-3 text-emerald-400" />
-              </div>
-              <span className={`text-sm flex-1 ${themeClasses.textPrimary}`}>
-                {typeof item === 'string' ? item : JSON.stringify(item)}
-              </span>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    // Script type
-    if (section.section_type === 'script') {
-      return (
-        <div className="space-y-3 mt-4">
-          {section.examples.map((item: any, i: number) => (
-            <div key={i} className="rounded-xl border border-rose-500/20 overflow-hidden">
-              <div className="px-4 py-2 bg-rose-500/10 border-b border-rose-500/20">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">
-                  {item.scenario || `Scenario ${i + 1}`}
-                </span>
-              </div>
-              <div className={`p-4 ${themeClasses.card}`}>
-                <p className={`text-sm leading-relaxed italic ${themeClasses.textPrimary}`}>
-                  {item.script}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    // Template type
-    if (section.section_type === 'template') {
-      return (
-        <div className="space-y-4 mt-4">
-          {section.examples.map((item: any, i: number) => (
-            <div key={i} className="rounded-xl border border-violet-500/20 overflow-hidden">
-              <div className="px-4 py-3 bg-violet-500/10 border-b border-violet-500/20 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400 block">
-                  {item.purpose || `Template ${i + 1}`}
-                </span>
-                {item.subject && (
-                  <p className={`text-xs font-bold ${themeClasses.textPrimary}`}>
-                    Subject: {item.subject}
-                  </p>
-                )}
-              </div>
-              <div className={`p-4 ${themeClasses.card}`}>
-                <pre className={`text-xs leading-relaxed whitespace-pre-wrap font-mono ${themeClasses.textPrimary}`}>
-                  {item.body}
-                </pre>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    // Comparison type
-    if (section.section_type === 'comparison') {
-      return (
-        <div className="space-y-3 mt-4">
-          {section.examples.map((item: any, i: number) => (
-            <div key={i} className={`rounded-xl border border-fuchsia-500/20 p-4 ${themeClasses.card}`}>
-              <h4 className="text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3">
-                {item.aspect || `Aspect ${i + 1}`}
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {item.voice && (
-                  <div className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400 mb-1">
-                      🎤 Voice
-                    </p>
-                    <p className={`text-xs ${themeClasses.textPrimary}`}>{item.voice}</p>
-                  </div>
-                )}
-                {item.chat_email && (
-                  <div className="p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 mb-1">
-                      💬 Chat / Email
-                    </p>
-                    <p className={`text-xs ${themeClasses.textPrimary}`}>{item.chat_email}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    // Default — generic object renderer (THEME-AWARE)
-    return (
-      <div className="space-y-3 mt-4">
-        {section.examples.map((item: any, i: number) => (
-          <div key={i} className={`rounded-xl border p-4 ${themeClasses.card} ${themeClasses.border}`}>
-            <div className="space-y-3">
-              {Object.entries(item).map(([key, value]) => (
-                <div key={key} className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-1 sm:gap-3 text-sm">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
-                    {key.replace(/_/g, ' ')}
-                  </span>
-                  <span className={`${themeClasses.textPrimary} font-medium`}>
-                    {String(value)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  return (
-    <div className={`rounded-2xl border overflow-hidden ${themeClasses.card} ${themeClasses.border}`}>
-      {/* Section header */}
-      <div className={`p-5 border-b ${themeClasses.border}`}>
-        <div className="flex items-start gap-4">
-          <div className={`w-12 h-12 shrink-0 rounded-xl ${meta.bgColor} border ${meta.borderColor} flex items-center justify-center`}>
-            <Icon name={meta.icon} className={`w-6 h-6 ${meta.color}`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${meta.bgColor} ${meta.color} border ${meta.borderColor}`}>
-                {meta.label}
-              </span>
-              <span className={`text-[10px] font-mono ${themeClasses.textMuted}`}>
-                Section {index + 1}
-              </span>
-            </div>
-            <h3 className={`text-lg font-black tracking-tight ${themeClasses.textPrimary}`}>
-              {section.title}
-            </h3>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-5 sm:p-6">
-        <p className={`text-sm leading-relaxed whitespace-pre-line ${themeClasses.textSecondary}`}>
-          {section.content}
-        </p>
-
-        {renderExamples()}
-
-        {/* Key Points */}
-        {Array.isArray(section.key_points) && section.key_points.length > 0 && (
-          <div className={`mt-6 pt-5 border-t ${themeClasses.border}`}>
-            <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-3 flex items-center gap-2">
-              <Icon name="sparkles" className="w-3.5 h-3.5" />
-              Key Takeaways
-            </h4>
-            <ul className="space-y-2">
-              {section.key_points.map((point, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm">
-                  <span className="text-indigo-400 font-bold mt-0.5">•</span>
-                  <span className={themeClasses.textMuted}>{point}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
   // ============================================
   // TOPIC DETAIL VIEW
@@ -2573,6 +2403,7 @@ function TopicSectionCard({
   );
 }
 
+
 // ============================================
 // TOPIC SECTION CARD (Renders each section type)
 // ============================================
@@ -2606,42 +2437,40 @@ function TopicSectionCard({
   const renderExamples = () => {
     if (!Array.isArray(section.examples) || section.examples.length === 0) return null;
 
-    // Checklist type — render as simple check items
+    // Checklist type
     if (section.section_type === 'checklist') {
-      // Default — generic object renderer (THEME-AWARE)
       return (
-        <div className="space-y-3 mt-4">
+        <div className="space-y-2 mt-4">
           {section.examples.map((item: any, i: number) => (
-            <div key={i} className={`rounded-xl border p-4 ${themeClasses.card} ${themeClasses.border}`}>
-              <div className="space-y-2">
-                {Object.entries(item).map(([key, value]) => (
-                  <div key={key} className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-1 sm:gap-3 text-sm">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
-                      {key.replace(/_/g, ' ')}
-                    </span>
-                    <span className={themeClasses.textPrimary}>{String(value)}</span>
-                  </div>
-                ))}
+            <div
+              key={i}
+              className={`flex items-start gap-3 p-3 rounded-lg border ${themeClasses.card} border-emerald-500/20`}
+            >
+              <div className="w-5 h-5 rounded border-2 border-emerald-500/40 flex items-center justify-center shrink-0 mt-0.5">
+                <Icon name="check" className="w-3 h-3 text-emerald-400" />
               </div>
+              <span className={`text-sm flex-1 ${themeClasses.textPrimary}`}>
+                {typeof item === 'string' ? item : JSON.stringify(item)}
+              </span>
             </div>
           ))}
         </div>
       );
     }
 
-    // Script type — render scenario/script pairs
+    // Script type
     if (section.section_type === 'script') {
       return (
         <div className="space-y-3 mt-4">
           {section.examples.map((item: any, i: number) => (
-            <div key={i} className="rounded-xl border border-rose-500/20 bg-rose-500/5 overflow-hidden">
+            <div key={i} className="rounded-xl border border-rose-500/20 overflow-hidden">
               <div className="px-4 py-2 bg-rose-500/10 border-b border-rose-500/20">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-rose-400">
                   {item.scenario || `Scenario ${i + 1}`}
                 </span>
               </div>
-              <div className="p-4">
-                <p className="text-sm leading-relaxed italic text-slate-200">
+              <div className={`p-4 ${themeClasses.card}`}>
+                <p className={`text-sm leading-relaxed italic ${themeClasses.textPrimary}`}>
                   {item.script}
                 </p>
               </div>
@@ -2651,24 +2480,24 @@ function TopicSectionCard({
       );
     }
 
-    // Template type — render email templates with subject + body
+    // Template type
     if (section.section_type === 'template') {
       return (
         <div className="space-y-4 mt-4">
           {section.examples.map((item: any, i: number) => (
-            <div key={i} className="rounded-xl border border-violet-500/20 bg-violet-500/5 overflow-hidden">
+            <div key={i} className="rounded-xl border border-violet-500/20 overflow-hidden">
               <div className="px-4 py-3 bg-violet-500/10 border-b border-violet-500/20 space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400 block">
                   {item.purpose || `Template ${i + 1}`}
                 </span>
                 {item.subject && (
-                  <p className="text-xs font-bold text-white">
+                  <p className={`text-xs font-bold ${themeClasses.textPrimary}`}>
                     Subject: {item.subject}
                   </p>
                 )}
               </div>
-              <div className="p-4">
-                <pre className="text-xs leading-relaxed whitespace-pre-wrap font-mono text-slate-200">
+              <div className={`p-4 ${themeClasses.card}`}>
+                <pre className={`text-xs leading-relaxed whitespace-pre-wrap font-mono ${themeClasses.textPrimary}`}>
                   {item.body}
                 </pre>
               </div>
@@ -2678,30 +2507,30 @@ function TopicSectionCard({
       );
     }
 
-    // Comparison type — render aspect/voice/chat_email three-way
+    // Comparison type
     if (section.section_type === 'comparison') {
       return (
         <div className="space-y-3 mt-4">
           {section.examples.map((item: any, i: number) => (
-            <div key={i} className="rounded-xl border border-fuchsia-500/20 bg-fuchsia-500/5 p-4">
+            <div key={i} className={`rounded-xl border border-fuchsia-500/20 p-4 ${themeClasses.card}`}>
               <h4 className="text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3">
                 {item.aspect || `Aspect ${i + 1}`}
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {item.voice && (
-                  <div className="p-3 rounded-lg bg-rose-500/5 border border-rose-500/20">
+                  <div className="p-3 rounded-lg border border-rose-500/20 bg-rose-500/5">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-rose-400 mb-1">
                       🎤 Voice
                     </p>
-                    <p className="text-xs text-slate-200">{item.voice}</p>
+                    <p className={`text-xs ${themeClasses.textPrimary}`}>{item.voice}</p>
                   </div>
                 )}
                 {item.chat_email && (
-                  <div className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+                  <div className="p-3 rounded-lg border border-cyan-500/20 bg-cyan-500/5">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 mb-1">
                       💬 Chat / Email
                     </p>
-                    <p className="text-xs text-slate-200">{item.chat_email}</p>
+                    <p className={`text-xs ${themeClasses.textPrimary}`}>{item.chat_email}</p>
                   </div>
                 )}
               </div>
@@ -2715,14 +2544,16 @@ function TopicSectionCard({
     return (
       <div className="space-y-3 mt-4">
         {section.examples.map((item: any, i: number) => (
-          <div key={i} className="rounded-xl border border-slate-500/20 bg-slate-500/5 p-4">
-            <div className="space-y-2">
+          <div key={i} className={`rounded-xl border p-4 ${themeClasses.card} ${themeClasses.border}`}>
+            <div className="space-y-3">
               {Object.entries(item).map(([key, value]) => (
                 <div key={key} className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-1 sm:gap-3 text-sm">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
                     {key.replace(/_/g, ' ')}
                   </span>
-                  <span className="text-slate-200">{String(value)}</span>
+                  <span className={`${themeClasses.textPrimary} font-medium`}>
+                    {String(value)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -2733,9 +2564,9 @@ function TopicSectionCard({
   };
 
   return (
-    <div className={`rounded-2xl border overflow-hidden ${themeClasses.card}`}>
+    <div className={`rounded-2xl border overflow-hidden ${themeClasses.card} ${themeClasses.border}`}>
       {/* Section header */}
-      <div className="p-5 border-b border-slate-500/10">
+      <div className={`p-5 border-b ${themeClasses.border}`}>
         <div className="flex items-start gap-4">
           <div className={`w-12 h-12 shrink-0 rounded-xl ${meta.bgColor} border ${meta.borderColor} flex items-center justify-center`}>
             <Icon name={meta.icon} className={`w-6 h-6 ${meta.color}`} />
@@ -2749,7 +2580,7 @@ function TopicSectionCard({
                 Section {index + 1}
               </span>
             </div>
-            <h3 className="text-lg font-black tracking-tight">
+            <h3 className={`text-lg font-black tracking-tight ${themeClasses.textPrimary}`}>
               {section.title}
             </h3>
           </div>
@@ -2766,7 +2597,7 @@ function TopicSectionCard({
 
         {/* Key Points */}
         {Array.isArray(section.key_points) && section.key_points.length > 0 && (
-          <div className="mt-6 pt-5 border-t border-slate-500/10">
+          <div className={`mt-6 pt-5 border-t ${themeClasses.border}`}>
             <h4 className="text-xs font-bold uppercase tracking-widest text-indigo-400 mb-3 flex items-center gap-2">
               <Icon name="sparkles" className="w-3.5 h-3.5" />
               Key Takeaways
@@ -2830,8 +2661,6 @@ function LearningModuleView({
   selectedLessonIndex: number;
   Icon: any;
 }) {
-  // ⬇️ NEW: Tab state for switching between English Lessons and BPO Guide
-  // ⬅️ NEW: 3 tabs
   const [learningTab, setLearningTab] = useState<'lessons' | 'topics' | 'bpo'>('lessons');
 
   const currentLevelMeta = selectedLesson ? getLessonLevelMeta(selectedLesson.level) : null;
@@ -2849,180 +2678,178 @@ function LearningModuleView({
   };
 
   // ============ LESSON READER ============
-  
   if (selectedLesson && currentLevelMeta) {
-  return (
-    <div className="space-y-6 animate-fadeIn">
-      <div className={`rounded-xl border p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-sm ${themeClasses.card}`}>
-        <button
-          onClick={() => setSelectedLessonId(null)}
-          className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
-        >
-          <Icon name="arrow-left" className="w-4 h-4" />
-          <span>Back to Lesson Library</span>
-        </button>
+    return (
+      <div className="space-y-6 animate-fadeIn">
+        <div className={`rounded-xl border p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-sm ${themeClasses.card}`}>
+          <button
+            onClick={() => setSelectedLessonId(null)}
+            className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
+          >
+            <Icon name="arrow-left" className="w-4 h-4" />
+            <span>Back to Lesson Library</span>
+          </button>
 
-        <div className="flex items-center gap-2 justify-center">
+          <div className="flex items-center gap-2 justify-center">
+            <button
+              onClick={handlePrev}
+              disabled={selectedLessonIndex <= 0}
+              className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+            >
+              <Icon name="arrow-left" className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Previous</span>
+            </button>
+            <span className={`text-xs font-mono ${themeClasses.textMuted} px-2`}>
+              {selectedLessonIndex + 1} / {filteredLessons.length}
+            </span>
+            <button
+              onClick={handleNext}
+              disabled={selectedLessonIndex >= filteredLessons.length - 1}
+              className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+            >
+              <span className="hidden sm:inline">Next</span>
+              <Icon name="chevron-right" className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <div className={`rounded-2xl border p-6 sm:p-8 shadow-sm ${themeClasses.card}`}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0">
+              <div className={`w-14 h-14 shrink-0 rounded-xl ${currentLevelMeta.color} flex items-center justify-center text-white font-black text-xl`}>
+                {selectedLesson.order_index}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${currentLevelMeta.borderColor} ${currentLevelMeta.bgColor}/10 ${currentLevelMeta.textColor}`}>
+                    <span>{currentLevelMeta.emoji}</span>
+                    {currentLevelMeta.label}
+                  </span>
+                  {isCurrentCompleted && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                      <Icon name="check" className="w-3 h-3" />
+                      Completed
+                    </span>
+                  )}
+                </div>
+                <h2 className={`text-2xl sm:text-3xl font-black tracking-tight ${themeClasses.textPrimary}`}>
+                  {selectedLesson.title}
+                </h2>
+                <p className={`text-xs mt-1 ${themeClasses.textMuted}`}>
+                  Lesson {selectedLesson.order_index} of {lessons.length} · {selectedLesson.content.length.toLocaleString()} characters
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => toggleLessonCompleted(selectedLesson.id)}
+              className={`shrink-0 px-5 py-3 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center gap-2 ${
+                isCurrentCompleted
+                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
+            >
+              <Icon name="check" className="w-4 h-4" />
+              <span>{isCurrentCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className={`rounded-2xl border p-6 sm:p-10 shadow-sm ${themeClasses.card}`}>
+          <article className="max-w-3xl mx-auto">
+            <div className="max-w-none">
+              {selectedLesson.content.split('\n').map((paragraph, idx) => {
+                const trimmed = paragraph.trim();
+                if (!trimmed) return <div key={idx} className="h-3" />;
+
+                if (/^-{3,}$/.test(trimmed)) {
+                  return <hr key={idx} className={`my-6 ${themeClasses.border}`} />;
+                }
+
+                const isHeading =
+                  /^[A-Z0-9][A-Z0-9\s\-&':,]{5,}$/.test(trimmed) ||
+                  /^\d+\.\s+[A-Z]/.test(trimmed);
+
+                if (isHeading) {
+                  return (
+                    <h3
+                      key={idx}
+                      className={`text-lg sm:text-xl font-black mt-8 mb-3 tracking-tight ${themeClasses.textPrimary}`}
+                    >
+                      {trimmed}
+                    </h3>
+                  );
+                }
+
+                if (/^[•\-*]\s/.test(trimmed)) {
+                  return (
+                    <div key={idx} className="flex items-start gap-3 ml-2 my-2">
+                      <span className={`mt-2 w-1.5 h-1.5 rounded-full ${currentLevelMeta.color} shrink-0`} />
+                      <p className={`flex-1 text-sm sm:text-base leading-relaxed ${themeClasses.textSecondary}`}>
+                        {trimmed.replace(/^[•\-*]\s/, '')}
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <p
+                    key={idx}
+                    className={`text-sm sm:text-base leading-relaxed my-3 ${themeClasses.textSecondary}`}
+                  >
+                    {trimmed}
+                  </p>
+                );
+              })}
+            </div>
+          </article>
+
+          <PronunciationPracticePanel
+            content={selectedLesson.content}
+            themeClasses={themeClasses}
+            Icon={Icon}
+          />
+        </div>
+
+        <div className={`rounded-xl border p-4 flex items-center justify-between gap-3 shadow-sm ${themeClasses.card}`}>
           <button
             onClick={handlePrev}
             disabled={selectedLessonIndex <= 0}
-            className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+            className={`flex-1 sm:flex-none px-5 py-3 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
           >
-            <Icon name="arrow-left" className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Previous</span>
+            <Icon name="arrow-left" className="w-4 h-4" />
+            <span>Previous Lesson</span>
           </button>
-          <span className={`text-xs font-mono ${themeClasses.textMuted} px-2`}>
-            {selectedLessonIndex + 1} / {filteredLessons.length}
-          </span>
-          <button
-            onClick={handleNext}
-            disabled={selectedLessonIndex >= filteredLessons.length - 1}
-            className={`px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
-          >
-            <span className="hidden sm:inline">Next</span>
-            <Icon name="chevron-right" className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      <div className={`rounded-2xl border p-6 sm:p-8 shadow-sm ${themeClasses.card}`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-4 min-w-0">
-            <div className={`w-14 h-14 shrink-0 rounded-xl ${currentLevelMeta.color} flex items-center justify-center text-white font-black text-xl`}>
-              {selectedLesson.order_index}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap mb-2">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${currentLevelMeta.borderColor} ${currentLevelMeta.bgColor}/10 ${currentLevelMeta.textColor}`}>
-                  <span>{currentLevelMeta.emoji}</span>
-                  {currentLevelMeta.label}
-                </span>
-                {isCurrentCompleted && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
-                    <Icon name="check" className="w-3 h-3" />
-                    Completed
-                  </span>
-                )}
-              </div>
-              <h2 className={`text-2xl sm:text-3xl font-black tracking-tight ${themeClasses.textPrimary}`}>
-                {selectedLesson.title}
-              </h2>
-              <p className={`text-xs mt-1 ${themeClasses.textMuted}`}>
-                Lesson {selectedLesson.order_index} of {lessons.length} · {selectedLesson.content.length.toLocaleString()} characters
-              </p>
-            </div>
-          </div>
 
           <button
             onClick={() => toggleLessonCompleted(selectedLesson.id)}
-            className={`shrink-0 px-5 py-3 rounded-lg font-bold text-xs transition-all cursor-pointer flex items-center gap-2 ${
+            className={`hidden sm:flex px-5 py-3 rounded-lg font-bold text-xs transition-all cursor-pointer items-center gap-2 ${
               isCurrentCompleted
-                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                : 'bg-indigo-600 text-white'
             }`}
           >
             <Icon name="check" className="w-4 h-4" />
-            <span>{isCurrentCompleted ? 'Mark as Incomplete' : 'Mark as Complete'}</span>
+            <span>{isCurrentCompleted ? 'Completed' : 'Mark Complete'}</span>
+          </button>
+
+          <button
+            onClick={handleNext}
+            disabled={selectedLessonIndex >= filteredLessons.length - 1}
+            className={`flex-1 sm:flex-none px-5 py-3 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
+          >
+            <span>Next Lesson</span>
+            <Icon name="chevron-right" className="w-4 h-4" />
           </button>
         </div>
       </div>
-
-      <div className={`rounded-2xl border p-6 sm:p-10 shadow-sm ${themeClasses.card}`}>
-        <article className="max-w-3xl mx-auto">
-          <div className="max-w-none">
-            {selectedLesson.content.split('\n').map((paragraph, idx) => {
-              const trimmed = paragraph.trim();
-              if (!trimmed) return <div key={idx} className="h-3" />;
-
-              if (/^-{3,}$/.test(trimmed)) {
-                return <hr key={idx} className={`my-6 ${themeClasses.border}`} />;
-              }
-
-              const isHeading =
-                /^[A-Z0-9][A-Z0-9\s\-&':,]{5,}$/.test(trimmed) ||
-                /^\d+\.\s+[A-Z]/.test(trimmed);
-
-              if (isHeading) {
-                return (
-                  <h3
-                    key={idx}
-                    className={`text-lg sm:text-xl font-black mt-8 mb-3 tracking-tight ${themeClasses.textPrimary}`}
-                  >
-                    {trimmed}
-                  </h3>
-                );
-              }
-
-              if (/^[•\-*]\s/.test(trimmed)) {
-                return (
-                  <div key={idx} className="flex items-start gap-3 ml-2 my-2">
-                    <span className={`mt-2 w-1.5 h-1.5 rounded-full ${currentLevelMeta.color} shrink-0`} />
-                    <p className={`flex-1 text-sm sm:text-base leading-relaxed ${themeClasses.textSecondary}`}>
-                      {trimmed.replace(/^[•\-*]\s/, '')}
-                    </p>
-                  </div>
-                );
-              }
-
-              return (
-                <p
-                  key={idx}
-                  className={`text-sm sm:text-base leading-relaxed my-3 ${themeClasses.textSecondary}`}
-                >
-                  {trimmed}
-                </p>
-              );
-            })}
-          </div>
-        </article>
-
-        <PronunciationPracticePanel
-          content={selectedLesson.content}
-          themeClasses={themeClasses}
-          Icon={Icon}
-        />
-      </div>
-
-      <div className={`rounded-xl border p-4 flex items-center justify-between gap-3 shadow-sm ${themeClasses.card}`}>
-        <button
-          onClick={handlePrev}
-          disabled={selectedLessonIndex <= 0}
-          className={`flex-1 sm:flex-none px-5 py-3 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
-        >
-          <Icon name="arrow-left" className="w-4 h-4" />
-          <span>Previous Lesson</span>
-        </button>
-
-        <button
-          onClick={() => toggleLessonCompleted(selectedLesson.id)}
-          className={`hidden sm:flex px-5 py-3 rounded-lg font-bold text-xs transition-all cursor-pointer items-center gap-2 ${
-            isCurrentCompleted
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-              : 'bg-indigo-600 text-white'
-          }`}
-        >
-          <Icon name="check" className="w-4 h-4" />
-          <span>{isCurrentCompleted ? 'Completed' : 'Mark Complete'}</span>
-        </button>
-
-        <button
-          onClick={handleNext}
-          disabled={selectedLessonIndex >= filteredLessons.length - 1}
-          className={`flex-1 sm:flex-none px-5 py-3 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 border disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.border} ${themeClasses.cardHover}`}
-        >
-          <span>Next Lesson</span>
-          <Icon name="chevron-right" className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
+    );
+  }
 
   // ============ LESSON LIBRARY ============
   return (
     <div className="space-y-6 animate-fadeIn">
-
-      {/* Tab Switcher — now with 3 tabs */}
+      {/* Tab Switcher */}
       <div className={`rounded-2xl border p-2 flex flex-wrap gap-2 ${themeClasses.card}`}>
         <button
           onClick={() => setLearningTab('lessons')}
@@ -3059,17 +2886,13 @@ function LearningModuleView({
         </button>
       </div>
 
-      {/* ⬇️⬇️⬇️ CONDITIONAL RENDER: BPO MODULE OR LESSON LIBRARY ⬇️⬇️⬇️ */}
+      {/* Conditional Render */}
       {learningTab === 'bpo' ? (
         <BPOIndustryModule themeClasses={themeClasses} Icon={Icon} />
       ) : learningTab === 'topics' ? (
-        <LearningTopicsView themeClasses={themeClasses} Icon={Icon} />) : 
-        (
+        <LearningTopicsView themeClasses={themeClasses} Icon={Icon} />
+      ) : (
         <>
-          {/* ============================================
-              ORIGINAL LESSON LIBRARY CONTENT
-              ============================================ */}
-
           <div className={`rounded-2xl border p-6 sm:p-8 shadow-sm ${themeClasses.card}`}>
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               <div className="space-y-3 max-w-2xl">
@@ -3330,6 +3153,9 @@ function LearningModuleView({
   );
 }
 
+
+
+
 // ============================================
 // FLAT THEME CONFIGURATION
 // ============================================
@@ -3440,6 +3266,542 @@ const themeConfigs: Record<ThemeMode, {
 };
 
 // ============================================
+// MILESTONE NOTIFICATION HELPERS
+// ============================================
+type MilestoneType =
+  | 'personal_best'
+  | 'perfect_score'
+  | 'first_attempt'
+  | 'all_lessons_complete'
+  | 'certificate_earned'
+  | 'streak';
+
+interface MilestonePayload {
+  userId: string;
+  type: MilestoneType;
+  moduleName?: string;
+  score?: number;
+  previousBest?: number;
+  certificateId?: string;
+  extra?: Record<string, any>;
+}
+
+// ============================================
+// MODULE CERTIFICATE TYPES
+// ============================================
+interface ModuleCertificate {
+  id: string;
+  user_id: string;
+  module_name: string;
+  score: number;
+  previous_best: number | null;
+  score_history: Array<{ score: number; created_at: string }>;
+  certificate_code: string;
+  issued_at: string;
+}
+
+function generateModuleCertificateCode(moduleName: string, score: number): string {
+  const stamp = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const mod = (moduleName || 'MOD').substring(0, 3).toUpperCase();
+  return `CALLY-${mod}-${score}-${stamp}-${rand}`;
+}
+
+const MODULE_DISPLAY_NAMES: Record<string, string> = {
+  listening: 'Listening & Dictation',
+  reading: 'Reading & Grammar',
+  writing: 'Customer Email & Chat Writing',
+  speaking: 'Repeat & Retell',
+  typing: 'Chat & Typing Speed',
+};
+
+// ============================================
+// CREATE MODULE CERTIFICATE (Personal Best)
+// ============================================
+async function createModuleCertificate({
+  userId,
+  moduleName,
+  score,
+  previousBest,
+  scoreHistory,
+}: {
+  userId: string;
+  moduleName: string;
+  score: number;
+  previousBest: number | null;
+  scoreHistory: Array<{ score: number; created_at: string }>;
+}): Promise<ModuleCertificate | null> {
+  try {
+    const code = generateModuleCertificateCode(moduleName, score);
+
+    console.log('📝 createModuleCertificate called with:', {
+      userId,
+      moduleName,
+      score,
+      previousBest,
+      scoreHistoryLength: scoreHistory.length,
+      code,
+    });
+
+    const { data, error } = await supabase
+      .from('module_certificates')
+      .insert([
+        {
+          user_id: userId,
+          module_name: moduleName,
+          score,
+          previous_best: previousBest,
+          score_history: scoreHistory,
+          certificate_code: code,
+        },
+      ])
+      .select()
+      .single();
+
+    console.log('📦 Supabase response:', { data, error });
+
+    if (error) {
+      console.error('❌ Supabase insert error:', error);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error details:', error.details);
+      console.error('❌ Error hint:', error.hint);
+      throw error;
+    }
+
+    console.log('✅ Certificate created:', data);
+    return data as ModuleCertificate;
+  } catch (err: any) {
+    console.error('❌❌❌ createModuleCertificate FAILED:', err);
+    console.error('❌❌❌ Error message:', err.message);
+    return null;
+  }
+}
+
+// ============================================
+// SEND MILESTONE NOTIFICATION
+// ============================================
+async function sendMilestoneNotification({
+  userId,
+  type,
+  moduleName,
+  score,
+  previousBest,
+  certificateId,
+  extra,
+}: MilestonePayload): Promise<void> {
+  if (!userId) return;
+
+  let title = '';
+  let message = '';
+  let icon = 'trophy';
+  let link: string | null = null;
+  const metadata: Record<string, any> = {
+    priority: 'high',
+    created_by_name: 'System',
+    milestone_type: type,
+  };
+
+  switch (type) {
+    case 'first_attempt': {
+      const modLabel = MODULE_DISPLAY_NAMES[moduleName || ''] || moduleName || 'module';
+      title = `🎯 First ${modLabel} attempt logged!`;
+      message = `You scored ${score}% on your first try. Every expert was once a beginner — keep going!`;
+      icon = 'sparkles';
+      link = '/';
+      metadata.priority = 'normal';
+      metadata.module_name = moduleName;
+      break;
+    }
+
+    case 'personal_best': {
+      const modLabel = MODULE_DISPLAY_NAMES[moduleName || ''] || moduleName || 'module';
+      const delta = (score || 0) - (previousBest || 0);
+      title = `🏆 New personal best in ${modLabel}!`;
+      message = `You just scored ${score}%, beating your previous best of ${previousBest}% by ${delta} point${delta === 1 ? '' : 's'}. Tap to view your mini certificate.`;
+      icon = 'trophy';
+      link = certificateId ? `#mini-cert-${certificateId}` : '/';
+      metadata.previous_best = previousBest;
+      metadata.new_best = score;
+      metadata.delta = delta;
+      metadata.module_name = moduleName;
+      if (certificateId) {
+        metadata.certificate_id = certificateId;
+        metadata.milestone_action = 'view_mini_certificate';
+      }
+      break;
+    }
+
+    case 'perfect_score': {
+      const modLabel = MODULE_DISPLAY_NAMES[moduleName || ''] || moduleName || 'module';
+      title = `💯 Perfect score in ${modLabel}!`;
+      message = `You achieved 100%. That's a flawless performance — a true benchmark for others.`;
+      icon = 'star';
+      link = certificateId ? `#mini-cert-${certificateId}` : '/';
+      metadata.priority = 'urgent';
+      metadata.module_name = moduleName;
+      if (certificateId) {
+        metadata.certificate_id = certificateId;
+        metadata.milestone_action = 'view_mini_certificate';
+      }
+      break;
+    }
+
+    case 'all_lessons_complete': {
+      title = '🎓 All lessons completed!';
+      message = `You've finished every lesson in the Learning Library. Time to test your mastery in the full exam!`;
+      icon = 'graduation-cap';
+      link = '/';
+      metadata.priority = 'high';
+      break;
+    }
+
+    case 'certificate_earned': {
+      const code = extra?.certificate_code as string | undefined;
+      const avg = extra?.overall_score as number | undefined;
+      title = '🏅 Certificate earned!';
+      message = `Congratulations! You've earned your official Cally Certificate of Achievement${avg ? ` with an overall score of ${avg}%` : ''}.${code ? ` Certificate ID: ${code}.` : ''} Download it from your dashboard.`;
+      icon = 'award';
+      link = '/';
+      metadata.priority = 'urgent';
+      if (code) metadata.certificate_code = code;
+      if (avg) metadata.overall_score = avg;
+      break;
+    }
+
+    case 'streak': {
+      const days = extra?.days ?? 0;
+      title = `🔥 ${days}-day streak!`;
+      message = `You've practiced ${days} days in a row. Consistency is the key to mastery.`;
+      icon = 'zap';
+      link = '/';
+      metadata.priority = 'normal';
+      metadata.streak_days = days;
+      break;
+    }
+
+    default:
+      return;
+  }
+
+  try {
+    const { error } = await supabase.from('notifications').insert([
+      {
+        user_id: userId,
+        type:
+          type === 'personal_best' || type === 'perfect_score' || type === 'certificate_earned'
+            ? 'success'
+            : type === 'streak'
+              ? 'achievement'
+              : 'info',
+        title,
+        message,
+        link,
+        icon,
+        is_read: false,
+        metadata,
+      },
+    ]);
+
+    if (error) console.error('Milestone notification error:', error.message);
+  } catch (err) {
+    console.error('Milestone notification exception:', err);
+  }
+}
+
+// ============================================
+// MINI CERTIFICATE COMPONENT (personal bests)
+// ============================================
+function MiniModuleCertificate({
+  cert,
+  userName,
+  compact = false,
+}: {
+  cert: ModuleCertificate;
+  userName: string;
+  compact?: boolean;
+}) {
+  const moduleLabel = MODULE_DISPLAY_NAMES[cert.module_name] || cert.module_name;
+
+  // Sort history oldest → newest so the timeline reads left-to-right
+  const history = [...(cert.score_history || [])].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+
+  // Compute delta
+  const delta = cert.previous_best !== null ? cert.score - cert.previous_best : null;
+
+  return (
+    <div
+      id={compact ? undefined : `mini-cert-${cert.id}`}
+      style={{
+        width: compact ? '100%' : 720,
+        backgroundColor: '#0f0f17',
+        border: '2px solid rgba(244,114,182,0.35)',
+        borderRadius: 20,
+        padding: compact ? 20 : 32,
+        boxSizing: 'border-box',
+        position: 'relative',
+        overflow: 'hidden',
+        color: '#fff',
+      }}
+    >
+      {/* Glow decoration */}
+      <div
+        style={{
+          position: 'absolute',
+          top: -60,
+          right: -60,
+          width: 220,
+          height: 220,
+          background:
+            'radial-gradient(circle, rgba(244,114,182,0.35) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Header */}
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 16, marginBottom: compact ? 16 : 24 }}>
+        <div
+          style={{
+            width: compact ? 44 : 56,
+            height: compact ? 44 : 56,
+            borderRadius: 14,
+            background: 'linear-gradient(135deg, #d946ef, #ec4899)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: compact ? 22 : 28,
+            boxShadow: '0 8px 24px rgba(217,70,239,0.4)',
+          }}
+        >
+          🏆
+        </div>
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              letterSpacing: '0.15em',
+              color: '#f0abfc',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              marginBottom: 4,
+            }}
+          >
+            Personal Best Achievement
+          </div>
+          <div style={{ fontSize: compact ? 16 : 20, fontWeight: 900 }}>
+            {moduleLabel}
+          </div>
+        </div>
+      </div>
+
+      {/* Score row */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: compact ? 16 : 24,
+          marginBottom: compact ? 16 : 24,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 10,
+              letterSpacing: '0.15em',
+              color: '#a1a1aa',
+              fontWeight: 700,
+              marginBottom: 4,
+            }}
+          >
+            NEW HIGH SCORE
+          </div>
+          <div
+            style={{
+              fontSize: compact ? 40 : 56,
+              fontWeight: 900,
+              lineHeight: 1,
+              background: 'linear-gradient(135deg, #f0abfc, #ec4899)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            {cert.score}%
+          </div>
+        </div>
+
+        {delta !== null && delta > 0 && (
+          <div
+            style={{
+              padding: '8px 14px',
+              borderRadius: 12,
+              background: 'rgba(16,185,129,0.15)',
+              border: '1px solid rgba(16,185,129,0.4)',
+              color: '#34d399',
+              fontSize: 12,
+              fontWeight: 800,
+              marginBottom: 8,
+            }}
+          >
+            ↑ +{delta} point{delta === 1 ? '' : 's'}
+          </div>
+        )}
+
+        {cert.previous_best !== null && (
+          <div
+            style={{
+              fontSize: 12,
+              color: '#71717a',
+              marginBottom: 8,
+              fontFamily: 'monospace',
+            }}
+          >
+            previous best: {cert.previous_best}%
+          </div>
+        )}
+      </div>
+
+      {/* History timeline */}
+      {history.length > 1 && (
+        <div style={{ marginBottom: compact ? 16 : 24 }}>
+          <div
+            style={{
+              fontSize: 10,
+              letterSpacing: '0.15em',
+              color: '#a1a1aa',
+              fontWeight: 700,
+              marginBottom: 10,
+            }}
+          >
+            YOUR SCORE HISTORY ({history.length} ATTEMPT{history.length === 1 ? '' : 'S'})
+          </div>
+
+          {/* Bars visualization */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: 4,
+              height: compact ? 48 : 64,
+              padding: '8px 0',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+            }}
+          >
+            {history.map((h, i) => {
+              const isLatest = i === history.length - 1
+              const heightPct = Math.max(8, Math.min(100, h.score))
+              return (
+                <div
+                  key={i}
+                  title={`${h.score}% · ${new Date(h.created_at).toLocaleDateString()}`}
+                  style={{
+                    flex: 1,
+                    minWidth: 6,
+                    maxWidth: 32,
+                    height: `${heightPct}%`,
+                    background: isLatest
+                      ? 'linear-gradient(180deg, #f0abfc, #ec4899)'
+                      : 'rgba(244,114,182,0.3)',
+                    borderRadius: '4px 4px 0 0',
+                    transition: 'all 0.3s ease',
+                  }}
+                />
+              )
+            })}
+          </div>
+
+          {/* Score labels */}
+          <div
+            style={{
+              display: 'flex',
+              gap: 4,
+              marginTop: 6,
+              fontFamily: 'monospace',
+              fontSize: 9,
+              color: '#71717a',
+            }}
+          >
+            {history.map((h, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  minWidth: 6,
+                  maxWidth: 32,
+                  textAlign: 'center',
+                  fontWeight: i === history.length - 1 ? 800 : 500,
+                  color: i === history.length - 1 ? '#f0abfc' : '#71717a',
+                }}
+              >
+                {h.score}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          paddingTop: compact ? 12 : 16,
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 10, color: '#71717a', letterSpacing: '0.1em', fontWeight: 700 }}>
+            AWARDED TO
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 800, marginTop: 2 }}>
+            {userName || 'Candidate'}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 10, color: '#71717a', letterSpacing: '0.1em', fontWeight: 700 }}>
+            CERTIFICATE ID
+          </div>
+          <div
+            style={{
+              fontSize: 11,
+              fontFamily: 'monospace',
+              color: '#f0abfc',
+              fontWeight: 700,
+              marginTop: 2,
+            }}
+          >
+            {cert.certificate_code}
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: 12,
+          fontSize: 10,
+          color: '#52525b',
+          textAlign: 'center',
+          fontFamily: 'monospace',
+        }}
+      >
+        Issued {new Date(cert.issued_at).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+// ============================================
 // MAIN COMPONENT
 // ============================================
 export default function Home() {
@@ -3467,7 +3829,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'overview' | 'logs' | 'support' | ModuleType>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const [examStepIndex, setExamStepIndex] = useState(0); 
+  const [examStepIndex, setExamStepIndex] = useState(0);
   const examSequence: ModuleType[] = ['listening', 'reading', 'writing', 'speaking', 'typing'];
 
   const [examScores, setExamScores] = useState<Record<ModuleType, number>>({
@@ -3551,6 +3913,13 @@ export default function Home() {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
   const [lessonStatusFilter, setLessonStatusFilter] = useState<'all' | 'completed' | 'incomplete'>('all');
+
+  // ============================================
+  // MINI CERTIFICATE STATE
+  // ============================================
+  const [miniCerts, setMiniCerts] = useState<ModuleCertificate[]>([]);
+  const [viewingMiniCert, setViewingMiniCert] = useState<ModuleCertificate | null>(null);
+  const [miniCertsLoading, setMiniCertsLoading] = useState(false);
 
   const themeClasses = themeConfigs[theme];
 
@@ -3641,7 +4010,7 @@ export default function Home() {
 
       if (ticketError) throw ticketError;
 
-      const { error: msgError } = await supabase        .from('ticket_messages')
+      const { error: msgError } = await supabase.from('ticket_messages')
         .insert([
           {
             ticket_id: ticketData.id,
@@ -3949,6 +4318,35 @@ export default function Home() {
   }, [userId]);
 
   // ============================================
+  // LOAD MINI CERTIFICATES
+  // ============================================
+  useEffect(() => {
+    const loadMiniCerts = async () => {
+      if (!userId) {
+        setMiniCerts([]);
+        return;
+      }
+      setMiniCertsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('module_certificates')
+          .select('*')
+          .eq('user_id', userId)
+          .order('issued_at', { ascending: false })
+          .limit(50);
+
+        if (error) throw error;
+        setMiniCerts((data as ModuleCertificate[]) || []);
+      } catch (err: any) {
+        console.error('Error loading mini certificates:', err.message);
+      } finally {
+        setMiniCertsLoading(false);
+      }
+    };
+    loadMiniCerts();
+  }, [userId]);
+
+  // ============================================
   // TOGGLE LESSON COMPLETION (syncs to Supabase)
   // ============================================
   const toggleLessonCompleted = async (lessonId: string) => {
@@ -3978,6 +4376,26 @@ export default function Home() {
           .from('lesson_progress')
           .insert([{ user_id: userId, lesson_id: lessonId }]);
         if (error) throw error;
+
+        // Check if user just completed ALL lessons
+        const totalLessons = lessons.length;
+        const completedCount = completedLessonIds.length + 1;
+
+        if (totalLessons > 0 && completedCount === totalLessons) {
+          const { data: existing } = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('metadata->>milestone_type', 'all_lessons_complete')
+            .maybeSingle();
+
+          if (!existing) {
+            await sendMilestoneNotification({
+              userId,
+              type: 'all_lessons_complete',
+            });
+          }
+        }
       }
     } catch (err: any) {
       console.error('Error syncing lesson progress:', err.message);
@@ -4052,7 +4470,7 @@ export default function Home() {
   useEffect(() => {
     const checkUserSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (session && session.user) {
         const googleEmail = session.user.email;
         const googleName = session.user.user_metadata?.full_name || googleEmail?.split('@')[0];
@@ -4105,6 +4523,8 @@ export default function Home() {
   // ============================================
   // SUBMISSION HANDLERS (declared BEFORE the timer useEffect)
   // ============================================
+
+
   const handleSubmitListening = () => {
     if (isSubmitted) return;
     setIsListeningTimerActive(false);
@@ -4224,7 +4644,6 @@ export default function Home() {
           return;
         }
 
-        // Hash the password before storing
         const salt = await bcrypt.genSalt(12);
         const passwordHash = await bcrypt.hash(password, salt);
 
@@ -4301,7 +4720,6 @@ export default function Home() {
   };
 
   const handleGoogleLogin = async () => {
-    // Block Google signup if the user hasn't accepted Terms & Privacy
     if (isSignUpMode && !hasAcceptedTerms) {
       setAuthError('Please read and agree to the Terms of Service and Privacy Policy before continuing with Google signup.');
       return;
@@ -4549,7 +4967,7 @@ export default function Home() {
         setCurrentQuestionIndex(0);
       } catch (err) {
         console.warn('Supabase fetch failed, falling back to static local data:', err);
-        
+
         const fallbackSource = moduleType === 'reading' ? FALLBACK_READING_QUESTIONS : FALLBACK_LISTENING_QUESTIONS;
         const selectedItem = fallbackSource[Math.floor(Math.random() * fallbackSource.length)];
         setTestData(selectedItem);
@@ -4601,20 +5019,38 @@ export default function Home() {
       setExamStepIndex(5);
       try {
         const finalAvg = Math.round(Object.values(updatedScores).reduce((a, b) => a + b, 0) / 5);
+
         if (finalAvg >= 80) {
-        const res = await fetch('/api/generate/save-exam', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userName: userName || email.split('@')[0] || 'Candidate',
-            examScores: updatedScores,
-            overallScore: finalAvg,
-          }),
-        });
-        const data = await res.json();
-        if (data.success && data.certificateCode) {
-          setGeneratedCertificateCode(data.certificateCode);
-        }
+          const res = await fetch('/api/generate/save-exam', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userName: userName || email.split('@')[0] || 'Candidate',
+              examScores: updatedScores,
+              overallScore: finalAvg,
+            }),
+          });
+          const data = await res.json();
+
+          if (data.success && data.certificateCode) {
+            setGeneratedCertificateCode(data.certificateCode);
+
+            if (userId) {
+              try {
+                await sendMilestoneNotification({
+                  userId,
+                  type: 'certificate_earned',
+                  extra: {
+                    certificate_code: data.certificateCode,
+                    overall_score: finalAvg,
+                    exam_scores: updatedScores,
+                  },
+                });
+              } catch (milestoneErr) {
+                console.error('Certificate milestone error:', milestoneErr);
+              }
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to save exam session via API:', err);
@@ -4644,7 +5080,6 @@ export default function Home() {
     setShowScorePopup(true);
 
     if (userId && selectedModule) {
-      // Build the insert payload
       const insertPayload: any = {
         user_id: userId,
         module_name: selectedModule,
@@ -4652,7 +5087,6 @@ export default function Home() {
         created_at: new Date().toISOString(),
       };
 
-      // ⬇️ NEW: Save typing-specific metrics when available
       if (selectedModule === 'typing' && extraData) {
         if (typeof extraData.wpm === 'number') insertPayload.wpm = extraData.wpm;
         if (typeof extraData.accuracy === 'number') insertPayload.accuracy = extraData.accuracy;
@@ -4662,13 +5096,119 @@ export default function Home() {
         .from('module_scores')
         .insert([insertPayload])
         .select();
-      
+
       if (error) {
         console.error('Error saving module score:', error.message);
       } else if (data && data.length > 0) {
         setUserScores(prev => [data[0], ...prev.filter((item) => item.id !== data[0].id)]);
       }
       await refreshUserStats();
+
+      // ============================================
+      // MILESTONE DETECTION
+      // ============================================
+      try {
+        const { data: moduleHistory, error: histErr } = await supabase
+          .from('module_scores')
+          .select('id, score, created_at')
+          .eq('user_id', userId)
+          .eq('module_name', selectedModule)
+          .order('created_at', { ascending: false });
+
+        if (histErr) {
+          console.error('Milestone history fetch error:', histErr.message);
+        } else if (moduleHistory && moduleHistory.length > 0) {
+          const justSavedId = data && data.length > 0 ? data[0].id : null;
+          const previousScores = moduleHistory
+            .filter((row) => row.id !== justSavedId)
+            .map((row) => row.score || 0);
+
+          const previousBest =
+            previousScores.length > 0 ? Math.max(...previousScores) : null;
+
+          // ---- Milestone 1: First attempt ever ----
+          if (previousScores.length === 0) {
+            await sendMilestoneNotification({
+              userId,
+              type: 'first_attempt',
+              moduleName: selectedModule,
+              score: finalPct,
+            });
+          }
+          // ---- Milestone 2: New personal best ----
+          else if (finalPct > (previousBest ?? 0)) {
+            const historyForCert = [
+              ...moduleHistory
+                .filter((row) => row.id !== justSavedId)
+                .map((row) => ({ score: row.score || 0, created_at: row.created_at })),
+              { score: finalPct, created_at: new Date().toISOString() },
+            ].sort(
+              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+
+            const cert = await createModuleCertificate({
+              userId,
+              moduleName: selectedModule,
+              score: finalPct,
+              previousBest: previousBest ?? 0,
+              scoreHistory: historyForCert,
+            });
+
+            if (cert) {
+              setMiniCerts((prev) => [cert, ...prev]);
+            }
+
+            await sendMilestoneNotification({
+              userId,
+              type: 'personal_best',
+              moduleName: selectedModule,
+              score: finalPct,
+              previousBest: previousBest ?? 0,
+              certificateId: cert?.id,
+            });
+          }
+            // ---- Milestone 3: Perfect score ----
+            if (finalPct === 100 && !previousScores.includes(100)) {
+              console.log('🎯 [Milestone 3] Perfect score detected — starting cert creation');
+
+              // Build the score history for the mini cert
+              const historyForPerfectCert = [
+                ...moduleHistory
+                  .filter((row) => row.id !== justSavedId)
+                  .map((row) => ({ score: row.score || 0, created_at: row.created_at })),
+                { score: finalPct, created_at: new Date().toISOString() },
+              ].sort(
+                (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              );
+
+              // Create the mini certificate FIRST
+              const perfectCert = await createModuleCertificate({
+                userId,
+                moduleName: selectedModule,
+                score: 100,
+                previousBest: previousBest ?? 0,
+                scoreHistory: historyForPerfectCert,
+              });
+
+              console.log('📜 createModuleCertificate returned:', perfectCert);
+
+              if (perfectCert) {
+                setMiniCerts((prev) => [perfectCert, ...prev]);
+              }
+
+              // Then send the notification, linking to the cert
+              await sendMilestoneNotification({
+                userId,
+                type: 'perfect_score',
+                moduleName: selectedModule,
+                score: 100,
+                certificateId: perfectCert?.id,
+              });
+            }
+        }
+      } catch (milestoneErr) {
+        console.error('Milestone detection error:', milestoneErr);
+      }
     }
 
     if (finalPct > 70) {
@@ -4903,30 +5443,30 @@ export default function Home() {
   };
 
   const handleTypingChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-  const val = e.target.value;
-  if (isTypingCompleted) return;
-  if (!startTime) setStartTime(Date.now());
-  setUserInput(val);
+    const val = e.target.value;
+    if (isTypingCompleted) return;
+    if (!startTime) setStartTime(Date.now());
+    setUserInput(val);
 
-  let correctChars = 0;
-  for (let i = 0; i < val.length; i++) {
-    if (val[i] === typingPassage[i]) correctChars++;
-  }
-  const acc = val.length > 0 ? Math.round((correctChars / val.length) * 100) : 100;
-  setAccuracy(acc);
+    let correctChars = 0;
+    for (let i = 0; i < val.length; i++) {
+      if (val[i] === typingPassage[i]) correctChars++;
+    }
+    const acc = val.length > 0 ? Math.round((correctChars / val.length) * 100) : 100;
+    setAccuracy(acc);
 
-  if (val.length >= typingPassage.length) {
-    setIsTypingCompleted(true);
-    const duration = Math.max((Date.now() - (startTime || Date.now())) / 60000, 0.05);
-    const words = val.trim().split(/\s+/).length;
-    const finalWpm = Math.round(words / duration);
-    setWpm(finalWpm);
+    if (val.length >= typingPassage.length) {
+      setIsTypingCompleted(true);
+      const duration = Math.max((Date.now() - (startTime || Date.now())) / 60000, 0.05);
+      const words = val.trim().split(/\s+/).length;
+      const finalWpm = Math.round(words / duration);
+      setWpm(finalWpm);
 
-    const typingScore = Math.min(Math.max(finalWpm * 1.2, 50), 100);
-    const finalRounded = Math.round(typingScore);
-    handleScoreFinalized(finalRounded, { wpm: finalWpm, accuracy: acc });
-  }
-};
+      const typingScore = Math.min(Math.max(finalWpm * 1.2, 50), 100);
+      const finalRounded = Math.round(typingScore);
+      handleScoreFinalized(finalRounded, { wpm: finalWpm, accuracy: acc });
+    }
+  };
 
   const overallExamAverage = Math.round(
     Object.values(examScores).reduce((a, b) => a + b, 0) / 5
@@ -5096,34 +5636,36 @@ export default function Home() {
   // ============================================
   // RENDER: LOGIN PAGE
   // ============================================
+
+
   if (!isLoggedIn) {
     return (
       <>
         {/* Mobile Login */}
         <div className="lg:hidden min-h-screen flex flex-col bg-slate-950 text-white relative overflow-hidden">
           <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
-          
+
           <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-10 text-center">
             <div className="relative w-20 h-20 mb-6">
               <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
             </div>
-            
+
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border bg-indigo-500/20 text-indigo-300 border-indigo-400/30">
               <Icon name="sparkles" className="w-3.5 h-3.5" />
               Official BPO Readiness & Certification Portal
             </span>
-            
+
             <h1 className="mt-6 text-3xl font-black tracking-tight leading-tight">
               Master Your Skills.<br />
               <span className="text-indigo-400">
                 Validate Your Career.
               </span>
             </h1>
-            
+
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-slate-400">
               Practice professional BPO simulations, track your progress, and earn a verifiable competency certificate.
             </p>
-            
+
             <div className="mt-8 grid grid-cols-2 gap-3 w-full max-w-sm">
               {dashboardFeatures.slice(0, 4).map((feat) => (
                 <div key={feat.id} className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-left shadow-sm">
@@ -5134,7 +5676,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            
+
             <button
               type="button"
               onClick={() => { setAuthError(''); setShowAuthModal(true); }}
@@ -5143,7 +5685,7 @@ export default function Home() {
               <Icon name="academic" className="w-5 h-5" />
               Sign In / Sign Up
             </button>
-            
+
             <p className="mt-4 text-[11px] text-slate-500">
               By continuing, you agree to our{' '}
               <button type="button" onClick={() => setShowTermsModal(true)} className="text-indigo-400 underline hover:text-indigo-300 font-semibold">
@@ -5155,7 +5697,7 @@ export default function Home() {
               </button>
             </p>
           </div>
-          
+
           <div className="relative z-10 px-6 pb-6 text-center text-[11px] text-slate-500">
             &copy; {new Date().getFullYear()} TephdyTech &bull; All rights reserved.
           </div>
@@ -5165,7 +5707,7 @@ export default function Home() {
         <div className="hidden lg:grid h-screen w-screen overflow-hidden grid-cols-12 bg-slate-950">
           <div className="col-span-6 h-full overflow-y-auto bg-slate-900 text-white p-16 flex flex-col justify-between relative border-r border-slate-800">
             <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
-            
+
             <div className="relative z-10 space-y-6">
               <div className="flex items-center gap-3">
                 <div className="relative w-12 h-12 shrink-0">
@@ -5173,7 +5715,7 @@ export default function Home() {
                 </div>
                 <span className="font-black text-2xl tracking-tight">Cally Assessment Hub</span>
               </div>
-              
+
               <div className="space-y-5 max-w-lg pt-8">
                 <span className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-400/30">
                   <Icon name="sparkles" className="w-3.5 h-3.5" />
@@ -5227,8 +5769,8 @@ export default function Home() {
                   type="button"
                   onClick={() => { setIsSignUpMode(false); setAuthError(''); }}
                   className={`py-3 rounded-lg transition-all duration-200 cursor-pointer ${
-                    !isSignUpMode 
-                      ? 'bg-indigo-600 text-white' 
+                    !isSignUpMode
+                      ? 'bg-indigo-600 text-white'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -5238,8 +5780,8 @@ export default function Home() {
                   type="button"
                   onClick={() => { setIsSignUpMode(true); setAuthError(''); }}
                   className={`py-3 rounded-lg transition-all duration-200 cursor-pointer ${
-                    isSignUpMode 
-                      ? 'bg-indigo-600 text-white' 
+                    isSignUpMode
+                      ? 'bg-indigo-600 text-white'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >
@@ -5411,14 +5953,14 @@ export default function Home() {
                 <Icon name="x" className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="grid grid-cols-2 p-1.5 bg-slate-800 rounded-xl text-xs font-bold mb-6">
               <button type="button" onClick={() => { setIsSignUpMode(false); setAuthError(''); }} className={`py-3 rounded-lg transition ${!isSignUpMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>Sign In</button>
               <button type="button" onClick={() => { setIsSignUpMode(true); setAuthError(''); }} className={`py-3 rounded-lg transition ${isSignUpMode ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}>Create Account</button>
             </div>
-            
+
             {authError && <div className="mb-4 p-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs font-semibold text-rose-400 text-center">{authError}</div>}
-            
+
             <form onSubmit={handleAuthSubmit} className="space-y-4">
               {isSignUpMode && (
                 <div>
@@ -5496,13 +6038,13 @@ export default function Home() {
                 {isSignUpMode ? 'Create Account & Start' : 'Sign In to Dashboard'}
               </button>
             </form>
-            
+
             <div className="flex items-center my-4">
               <div className="flex-1 border-t border-slate-700"/>
               <span className="px-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Or</span>
               <div className="flex-1 border-t border-slate-700"/>
             </div>
-            
+
             <button
               onClick={handleGoogleLogin}
               disabled={isSignUpMode && !hasAcceptedTerms}
@@ -5532,319 +6074,55 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Legal Modals */}
+        {/* Legal Modals — compact versions */}
         <LegalModal
           isOpen={showPrivacyModal}
           onClose={() => setShowPrivacyModal(false)}
           title="Privacy Policy"
         >
-          <div className="space-y-8">
-            <div className="space-y-2">
-              <p className="text-slate-400 text-xs italic">
-                Effective Date: September 15, 2026 · Last Updated: September 16, 2026
-              </p>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                This Privacy Policy explains how <strong className="text-slate-100">TephdyTech</strong> ("TephdyTech," "we," "us," or "our") collects, uses, discloses, retains, and protects personal information through the <strong className="text-slate-100">Cally Assessment Hub</strong> platform (the "Service"). It is designed to comply with the <strong className="text-slate-100">General Data Protection Regulation (GDPR)</strong>, the <strong className="text-slate-100">California Consumer Privacy Act as amended by the California Privacy Rights Act (CCPA/CPRA)</strong>, the <strong className="text-slate-100">California Online Privacy Protection Act (CalOPPA)</strong>, and other applicable data protection laws. Please read this Policy carefully.
-              </p>
-            </div>
+          <div className="space-y-6">
+            <p className="text-slate-400 text-xs italic">
+              Effective Date: September 15, 2026 · Last Updated: September 16, 2026
+            </p>
+            <p className="text-slate-300 text-sm leading-relaxed">
+              This Privacy Policy explains how <strong className="text-slate-100">TephdyTech</strong> collects, uses, discloses, retains, and protects personal information through the <strong className="text-slate-100">Cally Assessment Hub</strong> platform. It is designed to comply with the <strong className="text-slate-100">GDPR</strong>, <strong className="text-slate-100">CCPA/CPRA</strong>, <strong className="text-slate-100">CalOPPA</strong>, and other applicable data protection laws.
+            </p>
 
             <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">1</span>
-                Who We Are (Data Controller)
-              </h4>
-              <p>
-                <strong className="text-slate-200">Data Controller:</strong> TephdyTech. — Contact Details.
-              </p>
-              <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 space-y-1 font-mono text-xs">
+              <h4 className="text-base font-black text-white">1. Who We Are (Data Controller)</h4>
+              <p>Data Controller: TephdyTech.</p>
+              <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 font-mono text-xs">
                 <p className="text-slate-300">📧 tephdytech@gmail.com</p>
               </div>
-              <p className="text-slate-400 text-xs">
-                Where applicable, TephdyTech has designated an EU representative under Article 27 GDPR. Contact details are available upon request via dpo@tephdytech.com. This Policy applies to all personal information collected through the Service, including website, mobile applications, assessment modules, and support channels.
-              </p>
             </section>
 
             <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">2</span>
-                Personal Information We Collect
-              </h4>
-              <p className="font-semibold text-slate-200">We collect the following categories of personal information:</p>
-
-              <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-slate-800 border border-slate-700">
-                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-1">Information You Provide</p>
-                  <ul className="space-y-2 pl-4 text-sm">
-                    <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Account Information:</strong> Full name, email address, hashed password, and profile details.</span></li>
-                    <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Data:</strong> Test responses, scores, module attempts, completion times, and proficiency ratings.</span></li>
-                    <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Audio Recordings:</strong> Voice samples recorded during Speaking assessments, used solely for AI-based evaluation and deleted after processing.</span></li>
-                    <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Support Communications:</strong> Ticket subject, message content, category, and priority.</span></li>
-                  </ul>
-                </div>
-
-                <div className="p-3 rounded-lg bg-slate-800 border border-slate-700">
-                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-1">Information Collected Automatically</p>
-                  <ul className="space-y-2 pl-4 text-sm">
-                    <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Technical Data:</strong> IP address, browser type, device identifiers, operating system, and session integrity logs.</span></li>
-                    <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Usage Data:</strong> Pages visited, features used, time spent, and click patterns.</span></li>
-                    <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Location Data:</strong> General geographic location derived from IP address.</span></li>
-                  </ul>
-                </div>
-
-                <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                  <p className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-1">Sensitive Personal Information (CPRA)</p>
-                  <p className="text-sm text-slate-300 leading-relaxed">
-                    Under the CPRA, the following are classified as <strong className="text-slate-100">sensitive personal information</strong> and receive heightened protections: <strong className="text-slate-100">Audio Recordings</strong> (voice samples for AI evaluation) and <strong className="text-slate-100">Account Login Credentials</strong>. We collect sensitive personal information only for the specific purposes disclosed in Section 3 and do not use it beyond those purposes.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">3</span>
-                Purposes and Legal Bases for Processing
-              </h4>
-
-              <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">GDPR Legal Bases (Article 6)</p>
+              <h4 className="text-base font-black text-white">2. Personal Information We Collect</h4>
               <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Account Creation & Management:</strong> Performance of a contract.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Delivery & Scoring:</strong> Performance of a contract.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Audio Evaluation (Speaking Module):</strong> Explicit consent, obtained before recording.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Service Improvement & Analytics:</strong> Legitimate interests, balanced against your rights.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Legal Compliance:</strong> Legal obligation.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Marketing Communications:</strong> Consent.</span></li>
-              </ul>
-
-              <p className="text-xs font-bold uppercase tracking-wider text-indigo-400 pt-2">CCPA/CPRA Business Purposes</p>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Service Delivery:</strong> To provide, operate, and maintain the assessment and certification platform.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Evaluation:</strong> To process and score your module responses using AI and rule-based engines.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Authentication & Security:</strong> To verify identity, prevent fraud, and protect against unauthorized access.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Customer Support:</strong> To respond to inquiries and manage support tickets.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Service Improvement:</strong> To analyze usage patterns and enhance functionality.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Legal Compliance:</strong> To comply with applicable laws and legal processes.</span></li>
-              </ul>
-
-              <p className="text-xs text-slate-400 pt-2">
-                We do not use your personal information for automated decision-making or profiling that produces legal or similarly significant effects without your explicit consent and appropriate safeguards.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">4</span>
-                How We Share and Disclose Personal Information
-              </h4>
-
-              <p className="text-sm">We may disclose personal information to the following categories of third parties:</p>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Service Providers / Processors:</strong> Cloud hosting, database management, analytics, email delivery.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">AI Evaluation Providers:</strong> Speech evaluation and writing assessment.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Payment Processors:</strong> (If applicable) for premium services.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Legal & Regulatory Authorities:</strong> As required by law.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Professional Advisors:</strong> Legal, audit, and insurance purposes.</span></li>
-              </ul>
-
-              <div className="p-4 rounded-lg bg-emerald-500/5 border border-emerald-500/20 space-y-2">
-                <p className="text-sm font-bold text-emerald-400">We do not sell your personal information.</p>
-                <p className="text-sm font-bold text-emerald-400">We do not share your personal information for cross-context behavioral advertising.</p>
-                <p className="text-xs text-slate-400">
-                  Under the CPRA, "sharing" means disclosing personal information to a third party for cross-context behavioral advertising, whether for monetary or other valuable consideration. TephdyTech does not engage in such sharing.
-                </p>
-              </div>
-
-              <p className="text-xs font-bold uppercase tracking-wider text-indigo-400 pt-2">CCPA/CPRA Disclosure — Past 12 Months</p>
-              <div className="overflow-x-auto rounded-lg border border-slate-700">
-                <table className="w-full text-xs">
-                  <thead className="bg-slate-800">
-                    <tr className="text-slate-300">
-                      <th className="text-left p-2 font-bold">Category of PI</th>
-                      <th className="text-left p-2 font-bold">Sold?</th>
-                      <th className="text-left p-2 font-bold">Shared?</th>
-                      <th className="text-left p-2 font-bold">Disclosed?</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-slate-400">
-                    <tr className="border-t border-slate-700"><td className="p-2">Identifiers</td><td className="p-2">No</td><td className="p-2">No</td><td className="p-2">Yes</td></tr>
-                    <tr className="border-t border-slate-700"><td className="p-2">Personal Records</td><td className="p-2">No</td><td className="p-2">No</td><td className="p-2">Yes</td></tr>
-                    <tr className="border-t border-slate-700"><td className="p-2">Audio Recordings</td><td className="p-2">No</td><td className="p-2">No</td><td className="p-2">Yes</td></tr>
-                    <tr className="border-t border-slate-700"><td className="p-2">Internet Activity</td><td className="p-2">No</td><td className="p-2">No</td><td className="p-2">Yes</td></tr>
-                    <tr className="border-t border-slate-700"><td className="p-2">Sensitive PI</td><td className="p-2">No</td><td className="p-2">No</td><td className="p-2">Yes (limited)</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">5</span>
-                International Data Transfers
-              </h4>
-              <p>
-                Your personal information may be transferred to, stored, and processed in countries outside your country of residence, including the <strong className="text-slate-200">United States</strong> and the <strong className="text-slate-200">Philippines</strong>.
-              </p>
-              <p className="text-xs font-bold uppercase tracking-wider text-indigo-400 pt-1">GDPR Transfer Safeguards (Chapter V)</p>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Standard Contractual Clauses (SCCs)</strong> approved by the European Commission.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Adequacy Decisions</strong> where applicable.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Additional technical and organizational measures</strong> to ensure an essentially equivalent level of protection.</span></li>
-              </ul>
-              <p className="text-xs text-slate-400">
-                Where personal information of Philippine citizens or residents is processed, we comply with <strong className="text-slate-300">Republic Act No. 10173</strong> (Data Privacy Act of 2012) and its Implementing Rules and Regulations.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">6</span>
-                Data Retention
-              </h4>
-              <p className="text-sm">We retain personal information only as long as necessary to fulfill the purposes for which it was collected, or as required by law.</p>
-              <div className="overflow-x-auto rounded-lg border border-slate-700">
-                <table className="w-full text-xs">
-                  <thead className="bg-slate-800">
-                    <tr className="text-slate-300">
-                      <th className="text-left p-2 font-bold">Category</th>
-                      <th className="text-left p-2 font-bold">Retention Period</th>
-                      <th className="text-left p-2 font-bold">Rationale</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-slate-400">
-                    <tr className="border-t border-slate-700"><td className="p-2">Account Information</td><td className="p-2">Account + 3 years</td><td className="p-2">Legal compliance</td></tr>
-                    <tr className="border-t border-slate-700"><td className="p-2">Assessment Data</td><td className="p-2">Account + 5 years</td><td className="p-2">Certification verification</td></tr>
-                    <tr className="border-t border-slate-700"><td className="p-2">Audio Recordings</td><td className="p-2">30 days post-eval</td><td className="p-2">Purpose fulfilled after scoring</td></tr>
-                    <tr className="border-t border-slate-700"><td className="p-2">Support Tickets</td><td className="p-2">3 years post-resolution</td><td className="p-2">Customer service records</td></tr>
-                    <tr className="border-t border-slate-700"><td className="p-2">Server Logs</td><td className="p-2">90 days</td><td className="p-2">Security monitoring</td></tr>
-                    <tr className="border-t border-slate-700"><td className="p-2">Analytics Data</td><td className="p-2">26 months</td><td className="p-2">Service improvement</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">7</span>
-                Your Rights
-              </h4>
-
-              <div className="p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20 space-y-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">GDPR Rights (EEA/UK Data Subjects)</p>
-                <ul className="space-y-1 pl-4 text-sm">
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Right to be Informed — Know how we collect and use your data.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Right of Access — Obtain a copy of your personal data.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Right to Rectification — Correct inaccurate or incomplete data.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Right to Erasure — Request deletion of your data.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Right to Restrict Processing — Limit how we use your data.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Right to Data Portability — Receive your data in a machine-readable format.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Right to Object — Object to processing based on legitimate interests.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Rights related to Automated Decision-Making.</span></li>
-                </ul>
-                <p className="text-xs text-slate-400 pt-1">
-                  Contact <span className="font-mono text-indigo-300">dpo@tephdytech.com</span>. We will respond within <strong className="text-slate-300">one month</strong>, extendable by two months for complex requests. You may withdraw consent at any time and lodge a complaint with your local Data Protection Authority.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20 space-y-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">CCPA/CPRA Rights (California Residents)</p>
-                <ul className="space-y-1 pl-4 text-sm">
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Right to Know</strong> — Categories and specific pieces of PI collected.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Right to Delete</strong> — Request deletion of personal information.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Right to Correct</strong> — Request correction of inaccurate PI.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Right to Opt Out of Sale/Sharing</strong> — Not applicable; we do not sell or share.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Right to Limit Use of Sensitive PI.</strong></span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Right to Non-Discrimination</strong> — We will not discriminate for exercising your rights.</span></li>
-                </ul>
-                <p className="text-xs text-slate-400 pt-1">
-                  Submit requests via your account settings or <span className="font-mono text-indigo-300">privacy@tephdytech.com</span>. We respond within <strong className="text-slate-300">45 days</strong>, extendable by an additional 45 days with notice. Authorized agents may submit requests with written permission. We honor <strong className="text-slate-300">Global Privacy Control (GPC)</strong> signals.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20 space-y-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">CalOPPA Disclosures (California)</p>
-                <ul className="space-y-1 pl-4 text-sm">
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Do Not Track (DNT):</strong> We do not currently honor browser DNT signals. Use GPC or contact us to opt out of tracking.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Third-Party Tracking:</strong> Analytics providers may collect data across sites; we do not authorize use for unrelated purposes.</span></li>
-                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Review & Amendment:</strong> You may review, update, or delete your PI via your account or by contacting us.</span></li>
-                </ul>
-              </div>
-
-              <div className="p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/20 space-y-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">Philippine DPA Rights</p>
-                <p className="text-sm">
-                  Under the Data Privacy Act of 2012, data subjects have rights including: right to be informed, right to object, right to access, right to rectification, right to erasure or blocking, right to damages, right to data portability, and the right to lodge a complaint with the <strong className="text-slate-200">National Privacy Commission (NPC)</strong>.
-                </p>
-              </div>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">8</span>
-                Security Measures
-              </h4>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Encryption:</strong> Data encrypted in transit (TLS/SSL) and at rest.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Access Controls:</strong> Role-based limitations and authentication requirements.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Pseudonymization:</strong> Personal identifiers separated from assessment data where feasible.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Regular Audits:</strong> Security assessments and vulnerability testing.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Employee Training:</strong> Privacy and security training for all personnel.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Incident Response:</strong> Documented procedures for detecting and responding to breaches.</span></li>
-              </ul>
-              <p className="text-xs text-slate-400">
-                <strong className="text-slate-300">Data Breach Notification:</strong> In the event of a personal data breach posing a risk to your rights and freedoms, we will notify affected data subjects and relevant supervisory authorities within <strong className="text-slate-300">72 hours</strong> as required by applicable law.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">9</span>
-                Children's Privacy
-              </h4>
-              <p>
-                The Service is not intended for individuals under the age of <strong className="text-slate-200">16</strong> (or <strong className="text-slate-200">13</strong> where applicable under COPPA). We do not knowingly collect personal information from children. If you believe we have collected information from a child, please contact us immediately at <span className="font-mono text-indigo-300">tephdytech@gmail.com</span>.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">10</span>
-                Changes to This Privacy Policy
-              </h4>
-              <p>
-                We may update this Policy to reflect changes in our practices, technology, legal requirements, or other factors.
-              </p>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Material Changes:</strong> We will notify you via email or prominent notice at least <strong className="text-slate-200">30 days</strong> before changes take effect.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Non-Material Changes:</strong> We will update the "Last Updated" date and post the revised Policy.</span></li>
+                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Account Information:</strong> Full name, email, hashed password.</span></li>
+                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Data:</strong> Test responses, scores, module attempts.</span></li>
+                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Audio Recordings:</strong> Speaking assessment voice samples for AI evaluation.</span></li>
+                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Technical Data:</strong> IP address, browser type, device identifiers.</span></li>
               </ul>
             </section>
 
             <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">11</span>
-                Contact Us
-              </h4>
-              <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 space-y-2 font-mono text-xs">
-                <p className="text-slate-300">📧 tephdytech@gmail.com — General Privacy Inquiries</p>
-              </div>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">12</span>
-                Additional Jurisdiction-Specific Disclosures
-              </h4>
+              <h4 className="text-base font-black text-white">3. Your Rights</h4>
               <p className="text-sm">
-                <strong className="text-slate-200">California "Shine the Light" Law:</strong> California residents may request information about our disclosure of personal information to third parties for direct marketing purposes. We do not disclose personal information to third parties for their direct marketing purposes.
+                Under GDPR, CCPA/CPRA, CalOPPA, and the Philippine Data Privacy Act, you have rights to access, correct, delete, restrict processing, and port your data. Contact <span className="font-mono text-indigo-300">tephdytech@gmail.com</span>.
               </p>
-              <p className="text-sm">
-                <strong className="text-slate-200">Notice at Collection (CCPA/CPRA):</strong> At or before the point of collection, we provide notice of categories of PI collected, purposes, whether PI is sold or shared, and retention periods. This Policy serves as our Notice at Collection.
-              </p>
+            </section>
+
+            <section className="space-y-3">
+              <h4 className="text-base font-black text-white">4. Contact Us</h4>
+              <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 font-mono text-xs">
+                <p className="text-slate-300">📧 tephdytech@gmail.com</p>
+              </div>
             </section>
 
             <div className="pt-4 border-t border-indigo-500/20">
               <p className="text-slate-300 text-sm leading-relaxed text-center font-semibold">
-                By using the Cally Assessment Hub, you acknowledge that you have read and understood this Privacy Policy and consent to the practices described herein, to the extent consent is the applicable legal basis.
+                By using the Cally Assessment Hub, you acknowledge that you have read and understood this Privacy Policy.
               </p>
             </div>
           </div>
@@ -5855,282 +6133,55 @@ export default function Home() {
           onClose={() => setShowTermsModal(false)}
           title="Terms of Service"
         >
-          <div className="space-y-8">
-            <div className="space-y-2">
-              <p className="text-slate-400 text-xs italic">
-                Effective Date: September 15, 2026 · Last Updated: September 16, 2026
-              </p>
-              <p className="text-slate-300 text-sm leading-relaxed">
-                These Terms of Service ("Terms") constitute a legally binding agreement between you ("User," "you," or "your") and <strong className="text-slate-100">TephdyTech</strong> ("TephdyTech," "we," "us," or "our") governing your access to and use of the <strong className="text-slate-100">Cally Assessment Hub</strong> platform, including its website, mobile applications, assessment modules, and related services (collectively, the "Service"). By accessing or using the Service, you agree to be bound by these Terms. <strong className="text-slate-100">If you do not agree with any part of these Terms, you must not use the Service.</strong>
-              </p>
-            </div>
+          <div className="space-y-6">
+            <p className="text-slate-400 text-xs italic">
+              Effective Date: September 15, 2026 · Last Updated: September 16, 2026
+            </p>
+            <p className="text-slate-300 text-sm leading-relaxed">
+              These Terms of Service constitute a legally binding agreement between you and <strong className="text-slate-100">TephdyTech</strong> governing your access to and use of the <strong className="text-slate-100">Cally Assessment Hub</strong> platform.
+            </p>
 
             <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">1</span>
-                Acceptance of Terms
-              </h4>
-              <p>
-                By registering for an account, accessing, or using the Service, you represent and warrant that:
-              </p>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>You are at least <strong className="text-slate-200">16 years of age</strong> (or 13 where permitted under applicable local law and with parental consent);</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>You have the legal capacity to enter into a binding agreement;</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>You will comply with these Terms and all applicable laws and regulations; and</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>All information you provide is accurate, current, and complete.</span></li>
-              </ul>
-              <p className="text-xs text-slate-400">
-                If you are using the Service on behalf of an organization, you represent that you have authority to bind that organization to these Terms.
+              <h4 className="text-base font-black text-white">1. Acceptance of Terms</h4>
+              <p className="text-sm">
+                By registering, you represent that you are at least <strong className="text-slate-200">16 years of age</strong> and have the legal capacity to enter into a binding agreement.
               </p>
             </section>
 
             <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">2</span>
-                Description of the Service
-              </h4>
-              <p>
-                The Cally Assessment Hub is a professional BPO readiness and certification platform that provides:
-              </p>
+              <h4 className="text-base font-black text-white">2. Acceptable Use Policy</h4>
               <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Practice modules in Listening, Reading, Writing, Speaking, Typing, and Learning;</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>AI-assisted and rule-based scoring of assessment responses;</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Performance tracking and historical improvement logs;</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>A full examination pathway leading to a verifiable Certificate of Achievement; and</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Support ticketing and user account management.</span></li>
-              </ul>
-              <p className="text-xs text-slate-400">
-                We reserve the right to modify, suspend, or discontinue any part of the Service at any time, with or without notice, subject to applicable law.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">3</span>
-                User Accounts and Responsibilities
-              </h4>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Account Security:</strong> You are responsible for maintaining the confidentiality of your login credentials and for all activities occurring under your account.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Accurate Information:</strong> You agree to provide truthful, accurate, and current registration details and to keep them updated.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Unauthorized Use:</strong> You must notify us immediately at <span className="font-mono text-indigo-300">tephdytech@gmail.com</span> of any unauthorized access or security breach.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Single-User License:</strong> Your account is personal and non-transferable. Sharing accounts or credentials is strictly prohibited.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Cheat, use automated scripts, or employ AI assistance during official assessments.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Copy, distribute, or reverse-engineer assessment content.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Share certificates under a false identity.</span></li>
+                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Attempt to bypass anti-cheat or integrity-monitoring mechanisms.</span></li>
               </ul>
             </section>
 
             <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">4</span>
-                Acceptable Use Policy
-              </h4>
-              <p className="text-sm">You agree <strong className="text-rose-400">NOT</strong> to:</p>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Cheat, use automated scripts, bots, or employ AI assistance during official timed assessments.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Copy, distribute, sell, sublicense, or reverse-engineer assessment content, questions, or answer keys.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Share certificates under a false identity or misrepresent your credentials to third parties.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Attempt to bypass anti-cheat, fullscreen, or integrity-monitoring mechanisms.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Upload malware, viruses, or any harmful code that may disrupt the Service.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Interfere with or disrupt the integrity or performance of the Service or its servers.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Harass, threaten, or abuse other users, staff, or support personnel.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Use the Service for any unlawful, fraudulent, or unauthorized purpose.</span></li>
-                <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Scrape, harvest, or data-mine any content or user information from the Service.</span></li>
-              </ul>
-              <p className="text-xs text-slate-400">
-                Violation of this policy may result in immediate suspension or termination of your account, invalidation of any certificates, and possible legal action.
+              <h4 className="text-base font-black text-white">3. Assessment Integrity</h4>
+              <p className="text-sm">
+                During official assessments, fullscreen is enforced, tab-switching is logged, and clipboard is disabled. Violations may affect your final score.
               </p>
             </section>
 
             <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">5</span>
-                Assessment Integrity and Anti-Cheat
-              </h4>
+              <h4 className="text-base font-black text-white">4. Certificates</h4>
               <p className="text-sm">
-                During official timed assessments, the Service enforces the following integrity measures:
-              </p>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Fullscreen Enforcement:</strong> You must remain in fullscreen mode for the duration of the assessment.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Tab-Switch Detection:</strong> Leaving the assessment window will be logged as an integrity violation.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Clipboard Restrictions:</strong> Copy, cut, paste, and select-all functions are disabled.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Violation Logging:</strong> Integrity events are recorded and may affect your final score or certification eligibility.</span></li>
-              </ul>
-              <p className="text-xs text-slate-400">
-                By proceeding with an official assessment, you consent to these monitoring measures for the sole purpose of ensuring assessment integrity.
+                A Certificate of Achievement is issued only upon achieving <strong className="text-slate-200">80% or higher</strong> across all five full-examination modules. Certificates do not guarantee employment.
               </p>
             </section>
 
             <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">6</span>
-                Certificates and Eligibility
-              </h4>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Eligibility:</strong> A Certificate of Achievement is issued only upon achieving a cumulative score of <strong className="text-slate-200">80% or higher</strong> across all five (5) full-examination modules.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Verification:</strong> Each certificate is assigned a unique Certificate ID for electronic validation.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">No Guarantee of Employment:</strong> Certificates demonstrate assessed competency only and do not constitute a guarantee of employment, promotion, or professional outcome.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Revocation:</strong> We reserve the right to revoke any certificate obtained through fraud, misrepresentation, or breach of these Terms.</span></li>
-              </ul>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">7</span>
-                Intellectual Property Rights
-              </h4>
-              <p className="text-sm">
-                All content, features, functionality, source code, assessment materials, questions, branding, logos, and design elements of the Service are the exclusive property of <strong className="text-slate-200">TephdyTech</strong> or its licensors and are protected by copyright, trademark, and other intellectual property laws.
-              </p>
-              <p className="text-sm">
-                You are granted a limited, non-exclusive, non-transferable, revocable license to access and use the Service strictly for personal, non-commercial assessment purposes. You may <strong className="text-slate-200">not</strong> reproduce, distribute, create derivative works from, publicly display, or commercially exploit any part of the Service without our prior written consent.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">8</span>
-                User-Generated Content
-              </h4>
-              <p className="text-sm">
-                You retain ownership of any content you submit to the Service (e.g., written responses, audio recordings). By submitting content, you grant TephdyTech a worldwide, non-exclusive, royalty-free license to process, store, and use that content <strong className="text-slate-200">solely for the purpose of delivering, scoring, and improving the Service</strong>, in accordance with our Privacy Policy.
-              </p>
-              <p className="text-sm">
-                You represent and warrant that you own or have the necessary rights to any content you submit and that such content does not infringe the rights of any third party.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">9</span>
-                Privacy and Data Protection
-              </h4>
-              <p className="text-sm">
-                Our collection, use, and protection of your personal information is governed by our <strong className="text-slate-200">Privacy Policy</strong>, which is incorporated into these Terms by reference. By using the Service, you consent to the practices described therein.
-              </p>
-              <p className="text-xs text-slate-400">
-                Where GDPR, CCPA/CPRA, CalOPPA, or the Philippine Data Privacy Act apply, you retain all statutory rights described in the Privacy Policy.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">10</span>
-                Payments, Fees, and Refunds
-              </h4>
-              <p className="text-sm">
-                Certain features of the Service may be offered for a fee. All fees are stated in the applicable currency and are exclusive of taxes unless otherwise stated. Payments are processed by third-party payment processors subject to their own terms.
-              </p>
-              <p className="text-sm">
-                Except where required by applicable law (including EU consumer protection rules on digital content), all fees are <strong className="text-slate-200">non-refundable</strong>. EU/UK consumers may have a 14-day right of withdrawal for digital services unless they expressly consent to immediate performance and waive that right.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">11</span>
-                Disclaimers
-              </h4>
-              <p className="text-sm">
-                THE SERVICE IS PROVIDED ON AN <strong className="text-slate-200">"AS IS"</strong> AND <strong className="text-slate-200">"AS AVAILABLE"</strong> BASIS WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
-              </p>
-              <p className="text-sm">
-                We do not warrant that: (a) the Service will be uninterrupted, error-free, or secure; (b) assessment results will be accurate or meet your expectations; or (c) any errors in the Service will be corrected. AI-based evaluations are assistive tools and may not reflect every nuance of human language proficiency.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">12</span>
-                Limitation of Liability
-              </h4>
-              <p className="text-sm">
-                TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, TEPHDYTECH AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR GOODWILL, ARISING FROM OR RELATED TO YOUR USE OF THE SERVICE.
-              </p>
-              <p className="text-sm">
-                OUR TOTAL AGGREGATE LIABILITY ARISING FROM OR RELATING TO THESE TERMS SHALL NOT EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID TO US IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM, OR (B) ONE HUNDRED U.S. DOLLARS (US$100).
-              </p>
-              <p className="text-xs text-slate-400">
-                Nothing in these Terms excludes or limits liability for death or personal injury caused by negligence, fraud, or any liability that cannot be excluded under applicable law (including mandatory EU/UK consumer rights).
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">13</span>
-                Indemnification
-              </h4>
-              <p className="text-sm">
-                You agree to indemnify, defend, and hold harmless TephdyTech and its affiliates, officers, directors, employees, and agents from and against any claims, liabilities, damages, losses, and expenses (including reasonable legal fees) arising out of or in any way connected with: (a) your use of the Service; (b) your violation of these Terms; or (c) your violation of any third-party rights.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">14</span>
-                Suspension and Termination
-              </h4>
-              <p className="text-sm">
-                We reserve the right to suspend or terminate your account, with or without notice, if you:
-              </p>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Breach any provision of these Terms;</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Engage in fraudulent, abusive, or unlawful activity; or</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span>Pose a security or legal risk to TephdyTech or other users.</span></li>
-              </ul>
-              <p className="text-sm">
-                You may terminate your account at any time through your account settings or by contacting <span className="font-mono text-indigo-300">tephdytech@gmail.com</span>. Upon termination, your right to use the Service ceases immediately. Provisions that by their nature should survive termination (e.g., IP rights, disclaimers, indemnification, limitation of liability) shall so survive.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">15</span>
-                Modifications to the Terms
-              </h4>
-              <p className="text-sm">
-                We may update these Terms from time to time. Material changes will be communicated via email or prominent notice on the Service at least <strong className="text-slate-200">30 days</strong> before they take effect. Continued use of the Service after the effective date constitutes acceptance of the revised Terms.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">16</span>
-                Governing Law and Dispute Resolution
-              </h4>
-              <p className="text-sm">
-                These Terms shall be governed by and construed in accordance with the laws of the <strong className="text-slate-200">Republic of the Philippines</strong>, without regard to its conflict-of-law principles. Any dispute arising out of or relating to these Terms shall be subject to the exclusive jurisdiction of the competent courts of <strong className="text-slate-200">[City], Philippines</strong>, unless mandatory consumer protection laws in your country of residence provide otherwise.
-              </p>
-              <p className="text-xs text-slate-400">
-                EU/UK consumers retain the right to bring proceedings in the courts of their country of residence. Prior to formal proceedings, parties agree to attempt good-faith resolution via written notice to <span className="font-mono text-indigo-300">tephdytech@gmail.com</span>.
-              </p>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">17</span>
-                General Provisions
-              </h4>
-              <ul className="space-y-2 pl-4 text-sm">
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Entire Agreement:</strong> These Terms, together with the Privacy Policy, constitute the entire agreement between you and TephdyTech.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Severability:</strong> If any provision is found unenforceable, the remaining provisions remain in full force.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">No Waiver:</strong> Failure to enforce any right does not constitute a waiver of that right.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Assignment:</strong> You may not assign these Terms without our written consent; we may assign freely.</span></li>
-                <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Force Majeure:</strong> We are not liable for delays caused by events beyond our reasonable control.</span></li>
-              </ul>
-            </section>
-
-            <section className="space-y-3">
-              <h4 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">18</span>
-                Contact Information
-              </h4>
-              <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 space-y-2 font-mono text-xs">
-                <p className="text-slate-300">📧 tephdytech@gmail.com — Legal, Support & Privacy Inquiries</p>
-                <p className="text-slate-400 pt-2">TephdyTech · Legal Department</p>
+              <h4 className="text-base font-black text-white">5. Contact</h4>
+              <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 font-mono text-xs">
+                <p className="text-slate-300">📧 tephdytech@gmail.com</p>
               </div>
             </section>
 
             <div className="pt-4 border-t border-indigo-500/20">
               <p className="text-slate-300 text-sm leading-relaxed text-center font-semibold">
-                By accessing or using the Cally Assessment Hub, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
+                By accessing or using the Cally Assessment Hub, you acknowledge that you have read, understood, and agree to be bound by these Terms.
               </p>
             </div>
           </div>
@@ -6145,1371 +6196,228 @@ export default function Home() {
   return (
     <NotificationProvider userId={userId}>
       <ToastProvider>
-    <div className={`h-screen w-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 ${themeClasses.bg} ${themeClasses.textPrimary}`}>
-      
-            <header className={`relative z-50 shrink-0 border-b px-4 sm:px-8 ${themeClasses.header}`}>
-        <div className="w-full flex items-center justify-between h-16">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" onClick={handleBackToDashboard}>
-              <div className="relative w-9 h-9 sm:w-10 sm:h-10 shrink-0">
-                <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
-              </div>
-              <div className="min-w-0">
-                <span className="font-bold tracking-tight text-sm sm:text-lg truncate block">Cally Assessment Hub</span>
-                <span className={`text-[10px] font-mono ${themeClasses.textMuted} hidden sm:block`}>
-                  {themeClasses.name} Mode
-                </span>
-              </div>
-            </div>
-          </div>
+        <div className={`h-screen w-screen overflow-hidden flex flex-col font-sans transition-colors duration-300 ${themeClasses.bg} ${themeClasses.textPrimary}`}>
 
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            {/* Admin Button — only visible to admins */}
-            {isAdmin && (
-              <a
-                href="/admin"
-                className={`hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-bold text-xs transition-all border ${themeClasses.accentSoft} hover:opacity-80 cursor-pointer`}
-                title="Open Admin Dashboard"
-              >
-                <Icon name="settings" className="w-4 h-4" />
-                <span>Admin Panel</span>
-              </a>
-            )}
-
-            {/* Theme Selector Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setShowThemeMenu(!showThemeMenu)}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all border ${themeClasses.border} ${themeClasses.cardHover}`}
-                aria-label="Change theme"
-              >
-                <Icon name="layers" className="w-5 h-5" />
-              </button>
-
-              {showThemeMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowThemeMenu(false)} />
-                  <div className={`absolute right-0 top-12 z-50 w-64 rounded-xl border shadow-xl p-2 ${themeClasses.card}`}>
-                    <div className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 ${themeClasses.textMuted}`}>
-                      Interface Theme
-                    </div>
-                    {(Object.keys(themeConfigs) as ThemeMode[])
-                      .filter((t) => t !== 'emerald')
-                      .map((themeKey) => (
-                        <button
-                          key={themeKey}
-                          onClick={() => handleThemeChange(themeKey)}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                            theme === themeKey
-                              ? 'bg-indigo-600 text-white'
-                              : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
-                          }`}
-                        >
-                          <div className={`w-6 h-6 rounded-lg ${themeConfigs[themeKey].gradient}`} />
-                          <span>{themeConfigs[themeKey].name}</span>
-                          {theme === themeKey && <span className="ml-auto">✓</span>}
-                        </button>
-                      ))}
+          <header className={`relative z-50 shrink-0 border-b px-4 sm:px-8 ${themeClasses.header}`}>
+            <div className="w-full flex items-center justify-between h-16">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" onClick={handleBackToDashboard}>
+                  <div className="relative w-9 h-9 sm:w-10 sm:h-10 shrink-0">
+                    <Image src="/logo.png" alt="TephdyTech Logo" fill priority className="object-contain" />
                   </div>
-                </>
-              )}
-            </div>
-
-            {/* Notification Bell — always visible in header */}
-            <NotificationBell />
-
-            <div className="hidden sm:flex items-center gap-3 text-xs font-semibold">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">
-                {(userName || 'C').charAt(0).toUpperCase()}
-              </div>
-              <div className="flex flex-col">
-                <span className="truncate max-w-[120px] font-bold">{userName || 'Candidate'}</span>
-                <span className={`text-[10px] ${themeClasses.textMuted}`}>
-                  {isAdmin ? 'Administrator' : 'Candidate'}
-                </span>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setShowLogoutModal(true)}
-              className="hidden sm:inline-flex px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg transition cursor-pointer text-xs font-bold border border-rose-500/20 items-center gap-1.5"
-            >
-              <Icon name="log-out" className="w-3.5 h-3.5" />
-              <span>Sign Out</span>
-            </button>
-
-            <button
-              type="button"
-              aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              aria-expanded={isMobileMenuOpen}
-              onClick={() => setIsMobileMenuOpen((open) => !open)}
-              className={`md:hidden w-11 h-11 shrink-0 rounded-lg border flex items-center justify-center transition ${themeClasses.border} ${themeClasses.cardHover}`}
-            >
-              <Icon name={isMobileMenuOpen ? 'x' : 'menu'} className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="relative z-10 flex-1 flex flex-row w-full min-h-0">
-        <aside className={`hidden md:flex md:flex-col md:w-72 shrink-0 border-r p-5 space-y-6 overflow-y-auto ${themeClasses.sidebar}`}>
-          <div className="space-y-1">
-            <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
-              System Navigation
-            </span>
-            <nav className="space-y-1.5 pt-2">
-              <button
-                onClick={() => handleSelectSidebarTab('overview')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
-                  activeTab === 'overview' 
-                    ? 'bg-indigo-600 text-white' 
-                    : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
-                }`}
-              >
-                <Icon name="chart" className="w-4 h-4" />
-                <span>Dashboard Overview</span>
-              </button>
-              <button
-                onClick={() => handleSelectSidebarTab('logs')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
-                  activeTab === 'logs' 
-                    ? 'bg-indigo-600 text-white' 
-                    : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
-                }`}
-              >
-                <Icon name="trending" className="w-4 h-4" />
-                <span>Performance Logs</span>
-              </button>
-              <button
-                onClick={() => handleSelectSidebarTab('support' as any)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
-                  activeTab === 'support' 
-                    ? 'bg-indigo-600 text-white' 
-                    : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
-                }`}
-              >
-                <Icon name="info" className="w-4 h-4" />
-                <span>Support Tickets</span>
-              </button>
-            </nav>
-          </div>
-
-          <div className="space-y-1">
-            <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
-              Practice Modules
-            </span>
-            <nav className="space-y-1.5 pt-2">
-              {dashboardFeatures.map((feat) => (
-                <button
-                  key={feat.id}
-                  onClick={() => handleSelectSidebarTab(feat.id)}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer text-left ${
-                    activeTab === feat.id 
-                      ? `${themeClasses.accentSoft} border` 
-                      : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
-                  }`}
-                >
-                  <div className="flex items-center gap-3 truncate">
-                    <div className={`w-7 h-7 rounded-lg ${feat.color} flex items-center justify-center shrink-0`}>
-                      <Icon name={feat.icon} className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <span className="truncate">{feat.title}</span>
+                  <div className="min-w-0">
+                    <span className="font-bold tracking-tight text-sm sm:text-lg truncate block">Cally Assessment Hub</span>
+                    <span className={`text-[10px] font-mono ${themeClasses.textMuted} hidden sm:block`}>
+                      {themeClasses.name} Mode
+                    </span>
                   </div>
-                  <Icon name="chevron-right" className="w-3.5 h-3.5 shrink-0 opacity-50" />
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <button
-            onClick={handleStartFullExam}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm px-4 py-4 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
-          >
-            <Icon name="academic" className="w-5 h-5" />
-            <span>Take Full Exam</span>
-          </button>
-
-          {isAdmin && (
-            <a
-              href="/admin"
-              className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black text-sm px-4 py-4 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
-            >
-              <Icon name="settings" className="w-5 h-5" />
-              <span>Admin Dashboard</span>
-            </a>
-          )}
-
-          <div className={`mt-auto pt-5 border-t ${themeClasses.border} space-y-3`}>
-            <button
-              type="button"
-              onClick={() => setShowRatingModal(true)}
-              className="w-full px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-bold border border-amber-500/20 transition-all cursor-pointer flex items-center gap-3 text-left"
-            >
-              <Icon name="star" className="w-4 h-4" />
-              <span>Rate Us</span>
-            </button>
-
-            <div className={`p-3 rounded-xl border ${themeClasses.card} space-y-2`}>
-              <div className="flex items-center justify-between">
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
-                  System Status
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-bold text-emerald-400">Online</span>
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-[10px] font-mono">
-                <Icon name="wifi" className="w-3 h-3 text-emerald-400" />
-                <span className={themeClasses.textMuted}>All systems operational</span>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <main className="flex-1 min-w-0 h-full overflow-y-auto">
-          <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-6">
-            {isTimedEvaluationActive && (antiCheatViolations > 0 || !isFullscreen) && (
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-4">
-                <div className="flex items-center gap-3 font-semibold text-amber-400">
-                  <Icon name="alert-circle" className="w-5 h-5" />
-                  <span className="text-sm">
-                    Assessment Integrity: {antiCheatViolations} event{antiCheatViolations === 1 ? '' : 's'} detected
-                    {!isFullscreen ? ' • Fullscreen required' : ''}
-                  </span>
                 </div>
-                {!isFullscreen && (
-                  <button
-                    type="button"
-                    onClick={requestExamFullscreen}
-                    className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition-colors"
+              </div>
+
+              <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                {isAdmin && (
+                  <a
+                    href="/admin"
+                    className={`hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-bold text-xs transition-all border ${themeClasses.accentSoft} hover:opacity-80 cursor-pointer`}
+                    title="Open Admin Dashboard"
                   >
-                    Enter Fullscreen
-                  </button>
-                )}
-              </div>
-            )}
-
-            {appMode === 'dashboard' && !selectedModule && activeTab === 'overview' && (
-              <div className="space-y-8 animate-fadeIn">
-                <div className={`rounded-2xl border p-8 sm:p-12 ${themeClasses.card}`}>
-                  <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
-                    <div className="space-y-4 max-w-2xl">
-                      <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border ${themeClasses.accentSoft}`}>
-                        <Icon name="sparkles" className="w-3.5 h-3.5" />
-                        Cally Assessment & Certification Portal
-                      </span>
-                      <h1 className="text-3xl sm:text-4xl font-black">
-                        Welcome Back, <span className="text-indigo-400">{userName || 'Candidate'}</span>!
-                      </h1>
-                      <p className={`text-sm sm:text-base leading-relaxed ${themeClasses.textMuted}`}>
-                        Select a module from the sidebar to practice your skills, or check your <strong className={themeClasses.textPrimary}>Performance Logs</strong> and official <strong className={themeClasses.textPrimary}>Full Exam</strong> pathway.
-                      </p>
-                    </div>
-                    
-                    <button
-                      onClick={handleStartFullExam}
-                      className="shrink-0 w-full lg:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm px-8 py-5 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-3"
-                    >
-                      <Icon name="academic" className="w-6 h-6" />
-                      <span>Take Full Exam</span>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
-                    {[
-                      { label: 'Attempts', value: userScores.length, icon: 'activity', color: 'text-indigo-400' },
-                      { label: 'Average', value: `${userScores.length ? Math.round(userScores.reduce((a,c)=>a+(c.score||0),0)/userScores.length) : 0}%`, icon: 'chart', color: 'text-cyan-400' },
-                      { label: 'Best Score', value: `${userScores.length ? Math.max(...userScores.map(c=>c.score||0)) : 0}%`, icon: 'trophy', color: 'text-amber-400' },
-                      { label: 'Certificate', value: userCertificates.length ? 'Earned' : 'Not Yet', icon: 'academic', color: 'text-emerald-400' },
-                    ].map((stat) => (
-                      <div key={stat.label} className={`rounded-xl border p-4 ${themeClasses.card}`}>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Icon name={stat.icon} className={`w-4 h-4 ${stat.color}`} />
-                          <span className={`text-[10px] uppercase tracking-wider font-bold ${themeClasses.textMuted}`}>
-                            {stat.label}
-                          </span>
-                        </div>
-                        <div className="text-2xl font-black">{stat.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div className={`border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 ${themeClasses.border}`}>
-                    <div>
-                      <h2 className="text-xl font-bold">Individual Practice Modules</h2>
-                      <p className={`text-sm ${themeClasses.textMuted}`}>Practice freely module-by-module (No certificate generated)</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
-                    {dashboardFeatures.map((feat) => (
-                      <div
-                        key={feat.id}
-                        className={`rounded-xl border p-6 flex flex-col justify-between transition-all duration-200 hover:scale-[1.02] hover:shadow-lg ${themeClasses.card} ${themeClasses.cardHover}`}
-                      >
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className={`p-3 rounded-lg ${feat.color}`}>
-                              <Icon name={feat.icon} className="w-6 h-6 text-white" />
-                            </div>
-                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${themeClasses.accentSoft}`}>
-                              {feat.tag}
-                            </span>
-                          </div>
-                          <div className="space-y-2">
-                            <h3 className="text-base font-bold">{feat.title}</h3>
-                            <p className={`text-xs leading-relaxed ${themeClasses.textMuted}`}>{feat.description}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="pt-6">
-                          <button
-                            onClick={() => handleStartDashboardModule(feat.id)}
-                            className={`w-full py-3 px-4 rounded-lg text-xs font-bold text-white transition-colors cursor-pointer ${feat.color} hover:opacity-90`}
-                          >
-                            Practice Module
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {appMode === 'dashboard' && !selectedModule && activeTab === 'support' && (
-              <div className="space-y-6 animate-fadeIn">
-                <div className={`border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${themeClasses.border}`}>
-                  <div>
-                    <h2 className="text-xl font-bold">Helpdesk & Support Tickets</h2>
-                    <p className={`text-sm ${themeClasses.textMuted}`}>Submit inquiries, report technical glitches, or request score reviews</p>
-                  </div>
-                  <button
-                    onClick={() => setShowNewTicketModal(true)}
-                    className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-2"
-                  >
-                    <Icon name="plus" className="w-4 h-4" />
-                    <span>Create New Ticket</span>
-                  </button>
-                </div>
-
-                {selectedTicket ? (
-                  <div className={`rounded-xl border p-6 space-y-6 ${themeClasses.card}`}>
-                    <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.border}`}>
-                      <div>
-                        <button
-                          onClick={() => setSelectedTicket(null)}
-                          className={`text-xs font-bold ${themeClasses.accent} hover:underline mb-2 flex items-center gap-1 cursor-pointer`}
-                        >
-                          <Icon name="arrow-left" className="w-3.5 h-3.5" /> Back to Tickets List
-                        </button>
-                        <h3 className="text-lg font-bold">{selectedTicket.subject}</h3>
-                        <span className={`text-xs ${themeClasses.textMuted} capitalize`}>
-                          Category: {selectedTicket.category} &bull; Status: {selectedTicket.status}
-                        </span>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                        selectedTicket.status === 'open' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
-                      }`}>
-                        {selectedTicket.status}
-                      </span>
-                    </div>
-
-                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-                      {ticketMessages.map((msg, idx) => (
-                        <div key={idx} className={`p-4 rounded-xl space-y-2 ${
-                          msg.is_admin 
-                            ? `${themeClasses.accentSoft} ml-6` 
-                            : `bg-slate-500/5 border ${themeClasses.border} mr-6`
-                        }`}>
-                          <div className={`flex items-center justify-between text-[11px] font-bold ${themeClasses.textMuted}`}>
-                            <span>{msg.is_admin ? 'Support Agent' : 'You'}</span>
-                            <span>{new Date(msg.created_at).toLocaleString()}</span>
-                          </div>
-                          <p className="text-sm font-medium leading-relaxed">{msg.message}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <form onSubmit={handleSendReply} className={`flex gap-3 pt-4 border-t ${themeClasses.border}`}>
-                      <input
-                        type="text"
-                        required
-                        value={replyMessage}
-                        onChange={(e) => setReplyMessage(e.target.value)}
-                        placeholder="Type your reply message..."
-                        className={`flex-1 p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${themeClasses.border}`}
-                      />
-                      <button
-                        type="submit"
-                        className="px-6 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-lg transition-colors cursor-pointer shrink-0"
-                      >
-                        Send
-                      </button>
-                    </form>
-                  </div>
-                ) : (
-                  <div className={`rounded-xl border p-8 ${themeClasses.card}`}>
-                    {userTickets.length === 0 ? (
-                      <div className="text-center py-16 space-y-4">
-                        <div className={`w-16 h-16 rounded-xl flex items-center justify-center mx-auto ${themeClasses.accentSoft}`}>
-                          <Icon name="info" className="w-8 h-8" />
-                        </div>
-                        <h4 className="text-lg font-bold">No support tickets found</h4>
-                        <p className={`text-sm ${themeClasses.textMuted}`}>
-                          Have a question or issue? Create a new ticket to get assistance.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${themeClasses.border} ${themeClasses.textMuted}`}>
-                              <th className="pb-4 px-4">Subject</th>
-                              <th className="pb-4 px-4">Category</th>
-                              <th className="pb-4 px-4">Priority</th>
-                              <th className="pb-4 px-4">Status</th>
-                              <th className="pb-4 px-4">Date</th>
-                              <th className="pb-4 px-4 text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-500/10 text-sm">
-                            {userTickets.map((ticket) => (
-                              <tr key={ticket.id} className={`transition ${themeClasses.cardHover}`}>
-                                <td className="py-4 px-4 font-bold">{ticket.subject}</td>
-                                <td className="py-4 px-4 capitalize">{ticket.category}</td>
-                                <td className="py-4 px-4 capitalize font-semibold">{ticket.priority}</td>
-                                <td className="py-4 px-4">
-                                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                                    ticket.status === 'open' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
-                                  }`}>
-                                    {ticket.status}
-                                  </span>
-                                </td>
-                                <td className={`py-4 px-4 ${themeClasses.textMuted}`}>
-                                  {new Date(ticket.created_at).toLocaleDateString()}
-                                </td>
-                                <td className="py-4 px-4 text-right">
-                                  <button
-                                    onClick={() => handleOpenTicketDetails(ticket)}
-                                    className={`px-4 py-2 rounded-lg font-bold text-xs transition cursor-pointer ${themeClasses.accentSoft}`}
-                                  >
-                                    View Thread
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
+                    <Icon name="settings" className="w-4 h-4" />
+                    <span>Admin Panel</span>
+                  </a>
                 )}
 
-                {showNewTicketModal && (
-                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fadeIn">
-                    <div className={`border rounded-2xl max-w-lg w-full p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
-                      <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.border}`}>
-                        <h3 className="text-xl font-black">Create Support Ticket</h3>
-                        <button
-                          onClick={() => setShowNewTicketModal(false)}
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center transition cursor-pointer ${themeClasses.cardHover}`}
-                        >
-                          <Icon name="x" className="w-5 h-5" />
-                        </button>
-                      </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowThemeMenu(!showThemeMenu)}
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all border ${themeClasses.border} ${themeClasses.cardHover}`}
+                    aria-label="Change theme"
+                  >
+                    <Icon name="layers" className="w-5 h-5" />
+                  </button>
 
-                      <form onSubmit={handleCreateTicket} className="space-y-5">
-                        <div className="space-y-2">
-                          <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
-                            Subject / Issue Summary
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={newTicketSubject}
-                            onChange={(e) => setNewTicketSubject(e.target.value)}
-                            placeholder="e.g., Audio playback error in listening module"
-                            className={`w-full p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${themeClasses.border}`}
-                          />
+                  {showThemeMenu && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowThemeMenu(false)} />
+                      <div className={`absolute right-0 top-12 z-50 w-64 rounded-xl border shadow-xl p-2 ${themeClasses.card}`}>
+                        <div className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 ${themeClasses.textMuted}`}>
+                          Interface Theme
                         </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Category</label>
-                            <select
-                              value={newTicketCategory}
-                              onChange={(e) => setNewTicketCategory(e.target.value)}
-                              className={`w-full p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${themeClasses.border}`}
+                        {(Object.keys(themeConfigs) as ThemeMode[])
+                          .filter((t) => t !== 'emerald')
+                          .map((themeKey) => (
+                            <button
+                              key={themeKey}
+                              onClick={() => handleThemeChange(themeKey)}
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                                theme === themeKey
+                                  ? 'bg-indigo-600 text-white'
+                                  : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+                              }`}
                             >
-                              <option value="technical">Technical Bug</option>
-                              <option value="scoring">Score Dispute</option>
-                              <option value="account">Account Issue</option>
-                              <option value="general">General Inquiry</option>
-                            </select>
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Priority</label>
-                            <select
-                              value={newTicketPriority}
-                              onChange={(e) => setNewTicketPriority(e.target.value)}
-                              className={`w-full p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${themeClasses.border}`}
-                            >
-                              <option value="low">Low</option>
-                              <option value="medium">Medium</option>
-                              <option value="high">High</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
-                            Description / Details
-                          </label>
-                          <textarea
-                            rows={5}
-                            required
-                            value={newTicketMessage}
-                            onChange={(e) => setNewTicketMessage(e.target.value)}
-                            placeholder="Describe your issue in detail..."
-                            className={`w-full p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed ${themeClasses.border}`}
-                          />
-                        </div>
-
-                        <button
-                          type="submit"
-                          disabled={isCreatingTicket}
-                          className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm rounded-lg transition-colors cursor-pointer"
-                        >
-                          {isCreatingTicket ? 'Submitting Ticket...' : 'Submit Support Ticket'}
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {appMode === 'dashboard' && !selectedModule && activeTab === 'logs' && (
-              <div className="space-y-6 animate-fadeIn">
-                <div className={`border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${themeClasses.border}`}>
-                  <div>
-                    <h2 className="text-xl font-bold">Performance & Historical Improvement Logs</h2>
-                    <p className={`text-sm ${themeClasses.textMuted}`}>
-                      Chronological tracking of every test attempt, score evolution, and exam dates
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={refreshUserStats}
-                    disabled={loadingStats}
-                    className={`px-4 py-2.5 rounded-lg text-xs font-bold transition cursor-pointer border flex items-center gap-2 shrink-0 ${themeClasses.accentSoft} disabled:opacity-50`}
-                  >
-                    <Icon name="refresh" className={`w-3.5 h-3.5 ${loadingStats ? 'animate-spin' : ''}`} />
-                    <span>{loadingStats ? 'Refreshing...' : 'Refresh Logs'}</span>
-                  </button>
-                </div>
-
-                {statsError && (
-                  <div className="p-5 rounded-xl border border-rose-500/20 bg-rose-500/5 flex items-start gap-4">
-                    <Icon name="alert-circle" className="w-6 h-6 text-rose-400 shrink-0 mt-0.5" />
-                    <div className="space-y-1">
-                      <p className="text-sm font-bold text-rose-400">Couldn't load your performance logs</p>
-                      <p className={`text-xs ${themeClasses.textMuted}`}>{statsError}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Compute typing stats inline */}
-                {(() => {
-                  const typingScores = userScores.filter(s => s.module_name === 'typing' && typeof s.wpm === 'number' && s.wpm > 0);
-                  const typingAvgWpm = typingScores.length > 0
-                    ? Math.round(typingScores.reduce((a, s) => a + (s.wpm || 0), 0) / typingScores.length)
-                    : 0;
-                  const typingBestWpm = typingScores.length > 0
-                    ? Math.max(...typingScores.map(s => s.wpm || 0))
-                    : 0;
-
-                  const statCards = [
-                    { label: 'Total Test Attempts', value: userScores.length, sub: 'Logged practice and exam sessions', color: 'text-indigo-400' },
-                    { label: 'Historical Average Score', value: `${userScores.length > 0 ? Math.round(userScores.reduce((acc, curr) => acc + (curr.score || 0), 0) / userScores.length) : 0}%`, sub: 'Average across all recorded attempts', color: 'text-cyan-400' },
-                    { label: 'Best Performance', value: `${userScores.length > 0 ? Math.max(...userScores.map(item => item.score || 0)) : 0}%`, sub: 'Highest score achieved in a single log', color: 'text-emerald-400' },
-                  ];
-
-                  // ⬇️ NEW: Add typing stats card if the user has typing attempts
-                  if (typingScores.length > 0) {
-                    statCards.push({
-                      label: 'Typing Speed (Avg WPM)',
-                      value: `${typingAvgWpm}`,
-                      sub: `Best: ${typingBestWpm} WPM · ${typingScores.length} attempt${typingScores.length === 1 ? '' : 's'}`,
-                      color: 'text-sky-400',
-                    });
-                  }
-
-                  return (
-                    <div className={`grid grid-cols-1 sm:grid-cols-3 ${typingScores.length > 0 ? 'lg:grid-cols-4' : ''} gap-5`}>
-                      {statCards.map((stat) => (
-                        <div key={stat.label} className={`p-6 rounded-xl border ${themeClasses.card}`}>
-                          <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
-                            {stat.label}
-                          </span>
-                          <h3 className={`text-3xl font-black mt-2 ${stat.color}`}>{stat.value}</h3>
-                          <p className={`text-[11px] mt-1 ${themeClasses.textMuted}`}>{stat.sub}</p>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-
-                <div className={`rounded-xl border p-6 sm:p-8 space-y-5 ${themeClasses.card}`}>
-                  <h3 className="text-lg font-bold">Attempt Progress Timeline & Dates</h3>
-                  
-                  {loadingStats ? (
-                    <div className={`text-center py-12 font-bold text-sm ${themeClasses.textMuted}`}>
-                      Loading historical progress logs...
-                    </div>
-                  ) : userScores.length === 0 ? (
-                    <div className={`text-center py-12 text-sm ${themeClasses.textMuted}`}>
-                      {statsError
-                        ? 'Logs could not be loaded due to the error above.'
-                        : 'No test attempts logged yet. Complete a practice module or full exam to start tracking your progress!'}
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${themeClasses.border} ${themeClasses.textMuted}`}>
-                            <th className="pb-4 px-4">Date Taken</th>
-                            <th className="pb-4 px-4">Module</th>
-                            <th className="pb-4 px-4">Score</th>
-                            {/* ⬇️ NEW: WPM column header (only if user has typing attempts) */}
-                            {userScores.some(s => s.module_name === 'typing') && (
-                              <th className="pb-4 px-4">WPM</th>
-                            )}
-                            <th className="pb-4 px-4">Status / Improvement</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-500/10 text-sm">
-                          {userScores.map((log, index) => {
-                            const formattedDate = log.created_at ? new Date(log.created_at).toLocaleString() : new Date().toLocaleString();
-                            const previousAttempt = userScores.slice(index + 1).find(item => item.module_name === log.module_name);
-                            const diff = previousAttempt ? log.score - previousAttempt.score : null;
-                            const hasTypingScores = userScores.some(s => s.module_name === 'typing');
-
-                            return (
-                              <tr key={log.id || index} className={`transition ${themeClasses.cardHover}`}>
-                                <td className={`py-4 px-4 font-medium ${themeClasses.textMuted}`}>{formattedDate}</td>
-                                <td className="py-4 px-4 font-bold capitalize">{log.module_name}</td>
-                                <td className={`py-4 px-4 font-black ${themeClasses.accent}`}>{log.score}%</td>
-                                {/* ⬇️ NEW: WPM cell (only if user has typing attempts) */}
-                                {hasTypingScores && (
-                                  <td className="py-4 px-4">
-                                    {log.module_name === 'typing' && typeof log.wpm === 'number' ? (
-                                      <span className={`font-black ${
-                                        log.wpm >= 60 ? 'text-emerald-400' :
-                                        log.wpm >= 40 ? 'text-amber-400' : 'text-rose-400'
-                                      }`}>
-                                        {log.wpm}
-                                      </span>
-                                    ) : (
-                                      <span className={`text-xs ${themeClasses.textMuted}`}>—</span>
-                                    )}
-                                  </td>
-                                )}
-                                <td className="py-4 px-4">
-                                  {diff !== null ? (
-                                    <span className={`inline-flex items-center gap-2 font-bold px-3 py-1.5 rounded-full text-[11px] ${
-                                      diff > 0 ? 'bg-emerald-500/10 text-emerald-400' : diff < 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-500/10 text-slate-400'
-                                    }`}>
-                                      {diff > 0 ? <Icon name="trending" className="w-3.5 h-3.5" /> : diff < 0 ? <Icon name="trending-down" className="w-3.5 h-3.5" /> : <Icon name="scale" className="w-3.5 h-3.5" />}
-                                      {diff > 0 ? `+${diff}% improvement` : diff < 0 ? `${diff}% drop` : 'No change'}
-                                    </span>
-                                  ) : (
-                                    <span className={`italic text-[11px] ${themeClasses.textMuted}`}>First recorded attempt</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                              <div className={`w-6 h-6 rounded-lg ${themeConfigs[themeKey].gradient}`} />
+                              <span>{themeConfigs[themeKey].name}</span>
+                              {theme === themeKey && <span className="ml-auto">✓</span>}
+                            </button>
+                          ))}
+                      </div>
+                    </>
                   )}
                 </div>
-              </div>
-            )}
 
-            {appMode === 'full_exam' && examStepIndex === 5 && (
-              certificateEligible ? (
-                <div className="space-y-8 max-w-[1300px] mx-auto text-center animate-fadeIn">
-                  <div className={`p-6 rounded-2xl border flex justify-center items-center overflow-hidden w-full ${themeClasses.card}`}>
-                    <div className="w-full overflow-hidden flex justify-center py-4">
-                      <div className="w-[1100px] h-[778px] sm:h-auto shrink-0 origin-top transform scale-[0.38] min-[360px]:scale-[0.42] min-[400px]:scale-[0.47] min-[500px]:scale-[0.58] min-[640px]:scale-[0.75] md:scale-[0.88] lg:scale-100 transition-transform">
-                        <div
-                          id="certificate-to-download"
-                          style={{
-                            width: '1100px',
-                            backgroundColor: '#fbf9f4',
-                            border: '16px solid #1e293b',
-                            padding: '40px 60px',
-                            boxSizing: 'border-box',
-                            position: 'relative',
-                            margin: '0 auto',
-                            textAlign: 'left',
-                          }}
-                        >
-                          <div style={{ border: '2px solid #b45309', padding: '30px 40px', position: 'relative' }}>
-                            <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                              <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '3px', color: '#1e293b', fontWeight: '700' }}>
-                                Cally Assessment Systems
-                              </div>
-                              <div style={{ fontSize: '11px', color: '#78350f', marginTop: '3px', fontWeight: '600' }}>EST. 2026</div>
-                            </div>
+               <NotificationBell
+                  onNotificationClick={(n) => {
+                    console.log('🔔 Notification clicked:', n);
+                    console.log('🔔 Full metadata:', n.metadata);
+                    console.log('🔔 certificate_id:', n.metadata?.certificate_id);
 
-                            <h1 style={{ fontSize: '38px', fontWeight: '800', color: '#78350f', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '2px', margin: '10px 0 5px 0', fontFamily: 'serif' }}>
-                              Certificate of Achievement
-                            </h1>
-                            <div style={{ fontSize: '13px', color: '#1e293b', textAlign: 'center', marginBottom: '20px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px' }}>
-                              Official Verification of Professional BPO Competency
-                            </div>
+                    const certId = n.metadata?.certificate_id as string | undefined;
 
-                            <div style={{ fontSize: '14px', color: '#475569', textAlign: 'center', fontStyle: 'italic', marginBottom: '5px' }}>This is to certify that</div>
-                            <div style={{ fontSize: '36px', fontWeight: '700', color: '#1e293b', textAlign: 'center', margin: '0 auto 15px auto', paddingBottom: '4px', borderBottom: '2px solid #cbd5e1', display: 'table', fontFamily: 'serif' }}>
-                              {userName || 'Candidate'}
-                            </div>
+                    if (!certId) {
+                      console.warn('❌ No certificate_id in metadata — cannot open modal');
+                      return;
+                    }
 
-                            <p style={{ fontSize: '13px', color: '#334155', textAlign: 'center', maxWidth: '800px', margin: '0 auto 20px auto', lineHeight: '1.5' }}>
-                              has successfully demonstrated exceptional proficiency across all official Cally assessment modules, showcasing linguistic mastery, professional communication skills, and technical competency required for the Business Process Outsourcing (BPO) industry.
-                            </p>
+                    // Try local state first
+                    const cert = miniCerts.find((c) => c.id === certId);
+                    console.log('🔍 Found in miniCerts state?', !!cert);
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 30px', maxWidth: '850px', margin: '0 auto 25px auto', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
-                              <div>Listening & Dictation ({examScores.listening}%)</div>
-                              <div>Speaking Simulation ({examScores.speaking}%)</div>
-                              <div>Reading & Grammar ({examScores.reading}%)</div>
-                              <div>Chat & Typing Accuracy ({examScores.typing}%) &bull; Speed: {wpm} WPM</div>
-                              <div>Business Writing Composition ({examScores.writing}%)</div>
-                              <div style={{ color: '#b45309', fontWeight: '700' }}>Final Cumulative Rating: ({overallExamAverage}%)</div>
-                            </div>
+                    if (cert) {
+                      console.log('✅ Opening modal with cert:', cert);
+                      setViewingMiniCert(cert);
+                      return;
+                    }
 
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: '20px', marginTop: '10px' }}>
-                              <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
-                                Authorized Electronic Validation
-                              </div>
+                    // Fetch from Supabase
+                    console.log('🔍 Not in state — fetching from Supabase...');
+                    (async () => {
+                      const { data, error } = await supabase
+                        .from('module_certificates')
+                        .select('*')
+                        .eq('id', certId)
+                        .maybeSingle();
 
-                              <div style={{ width: '70px', height: '70px', background: '#b45309', color: '#ffffff', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '3px solid #fef3c7', textAlign: 'center', fontSize: '8px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                <span>Official</span>
-                                <span>Verified</span>
-                              </div>
+                      console.log('📦 Supabase response:', { data, error });
 
-                              <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
-                                Cally Authority
-                              </div>
-                            </div>
+                      if (error) {
+                        console.error('❌ Supabase fetch error:', error.message);
+                        return;
+                      }
+                      if (!data) {
+                        console.warn('❌ No cert found with id:', certId);
+                        return;
+                      }
+                      console.log('✅ Opening modal with fetched cert:', data);
+                      setViewingMiniCert(data as ModuleCertificate);
+                    })();
+                  }}
+                />
 
-                            <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#64748b', fontWeight: '600', letterSpacing: '1px' }}>
-                              DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [{generatedCertificateCode}]
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                <div className="hidden sm:flex items-center gap-3 text-xs font-semibold">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-sm">
+                    {(userName || 'C').charAt(0).toUpperCase()}
                   </div>
-
-                  <div className={`p-8 border rounded-2xl space-y-6 ${themeClasses.card}`}>
-                    <div className="space-y-2">
-                      <h2 className="text-2xl font-black">Exam Finished Successfully!</h2>
-                      <p className={`text-sm ${themeClasses.textMuted}`}>
-                        Your verified Cally certificate file (.pdf) is ready for download.
-                      </p>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                      <button
-                        disabled={isDownloadingPdf}
-                        onClick={handleDownloadPDF}
-                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm px-8 py-4 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        <Icon name="download" className="w-5 h-5" />
-                        <span>{isDownloadingPdf ? 'Generating .pdf file...' : 'Download Certificate (.pdf)'}</span>
-                      </button>
-                      <button
-                        onClick={handleBackToDashboard}
-                        className={`w-full sm:w-auto font-bold text-sm px-6 py-4 rounded-lg transition cursor-pointer border ${themeClasses.border} ${themeClasses.cardHover}`}
-                      >
-                        Return to Dashboard
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="max-w-2xl mx-auto text-center animate-fadeIn">
-                  <div className={`p-12 rounded-2xl border ${themeClasses.card}`}>
-                    <div className="mx-auto w-20 h-20 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center mb-6">
-                      <Icon name="alert-circle" className="w-10 h-10" />
-                    </div>
-                    <h2 className="text-3xl font-black">Certificate Not Available</h2>
-                    <p className={`mt-4 text-sm leading-relaxed ${themeClasses.textMuted}`}>
-                      Your final cumulative rating is <strong className="text-rose-400">{overallExamAverage}%</strong>. 
-                      You do not qualify for a certificate of exceptional proficiency across all official Cally assessment modules.
-                    </p>
-                    <p className={`mt-2 text-xs ${themeClasses.textMuted}`}>
-                      A minimum final cumulative rating of 80% is required to receive the certificate.
-                    </p>
-                    <button
-                      onClick={handleRetakeAssessment}
-                      className="mt-8 w-full sm:w-auto px-8 py-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-colors"
-                    >
-                      Retake Assessment
-                    </button>
-                  </div>
-                </div>
-              )
-            )}
-
-            {selectedModule && (appMode === 'dashboard' || (appMode === 'full_exam' && examStepIndex < 5)) && (
-              <div className="space-y-6 max-w-[1400px] mx-auto">
-                <div className={`rounded-xl border p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 ${themeClasses.card}`}>
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-                    <button
-                      onClick={handleBackToDashboard}
-                      className={`flex-1 sm:flex-none px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
-                    >
-                      <Icon name="arrow-left" className="w-4 h-4" />
-                      <span>Back to Dashboard</span>
-                    </button>
-                    {appMode === 'dashboard' && selectedModule && selectedModule !== 'learning' && (
-                      <button
-                        onClick={() => generateTest(selectedModule)}
-                        className={`flex-1 sm:flex-none px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 ${themeClasses.accentSoft}`}
-                      >
-                        <Icon name="refresh" className="w-4 h-4" />
-                        <span>New Test</span>
-                      </button>
-                    )}
-                  </div>
-                  <div className="text-left sm:text-right w-full sm:w-auto">
-                    <span className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.accent}`}>
-                      {appMode === 'full_exam' ? `Full Exam Step ${examStepIndex + 1} of 5` : 'Individual Practice Mode'}
+                  <div className="flex flex-col">
+                    <span className="truncate max-w-[120px] font-bold">{userName || 'Candidate'}</span>
+                    <span className={`text-[10px] ${themeClasses.textMuted}`}>
+                      {isAdmin ? 'Administrator' : 'Candidate'}
                     </span>
-                    <h2 className="text-lg font-bold capitalize">{selectedModule} Module</h2>
                   </div>
                 </div>
 
-                {selectedModule === 'learning' && (
-                  <LearningModuleView
-                    lessons={lessons}
-                    filteredLessons={filteredLessons}
-                    lessonStats={lessonStats}
-                    lessonsLoading={lessonsLoading}
-                    lessonsError={lessonsError}
-                    lessonLevelFilter={lessonLevelFilter}
-                    setLessonLevelFilter={setLessonLevelFilter}
-                    lessonSearchQuery={lessonSearchQuery}
-                    setLessonSearchQuery={setLessonSearchQuery}
-                    lessonStatusFilter={lessonStatusFilter}
-                    setLessonStatusFilter={setLessonStatusFilter}
-                    selectedLesson={selectedLesson}
-                    setSelectedLessonId={setSelectedLessonId}
-                    completedLessonIds={completedLessonIds}
-                    toggleLessonCompleted={toggleLessonCompleted}
-                    reloadLessons={loadLessons}
-                    themeClasses={themeClasses}
-                    selectedLessonIndex={selectedLessonIndex}
-                    Icon={Icon}
-                  />
-                )}
+                <button
+                  onClick={() => setShowLogoutModal(true)}
+                  className="hidden sm:inline-flex px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg transition cursor-pointer text-xs font-bold border border-rose-500/20 items-center gap-1.5"
+                >
+                  <Icon name="log-out" className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
 
-                {selectedModule === 'speaking' && (
-                  <div className={`rounded-2xl border p-6 sm:p-8 ${themeClasses.card}`}>
-                    <SpeakingRecorder
-                      key={speakingPrompts[0] || 'speaking-default'}
-                      prompts={speakingPrompts}
-                      onComplete={handleSpeakingComplete}
-                    />
-                  </div>
-                )}
-
-                {selectedModule === 'writing' && (
-                  <div className={`rounded-2xl border p-6 sm:p-8 space-y-6 ${themeClasses.card}`}>
-                    <div className={`p-5 rounded-xl border ${themeClasses.accentSoft} space-y-2`}>
-                      <span className={`text-xs font-bold uppercase block ${themeClasses.accent}`}>
-                        Writing Scenario Prompt:
-                      </span>
-                      <p className="text-sm sm:text-base font-medium whitespace-pre-line leading-relaxed">
-                        {writingSubPrompts[0] || writingPrompt}
-                      </p>
-                    </div>
-
-                    <textarea
-                      rows={14}
-                      value={writingDrafts[0] ?? ''}
-                      onChange={(e) => {
-                        const updated = [e.target.value];
-                        setWritingDrafts(updated);
-                        setWritingText(e.target.value);
-                      }}
-                      placeholder="Type your complete professional response here..."
-                      className={`w-full p-5 border rounded-xl bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed resize-y ${themeClasses.border}`}
-                    />
-
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                      <span className={`text-xs ${themeClasses.textMuted}`}>
-                        Total: {writingText.trim() ? writingText.trim().split(/\s+/).length : 0} words
-                      </span>
-
-                      <button
-                        type="button"
-                        onClick={handleSubmitWriting}
-                        disabled={isEvaluatingWriting || !writingText.trim()}
-                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-8 py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
-                      >
-                        <span>{isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}</span>
-                      </button>
-                    </div>
-
-                    {isEvaluatingWriting && (
-                      <div className="p-6 text-center space-y-4 bg-slate-500/5 rounded-xl border border-slate-500/10">
-                        <svg className="animate-spin h-8 w-8 text-indigo-500 mx-auto" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span className={`text-sm font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>
-                          Analyzing your writing...
-                        </span>
-                      </div>
-                    )}
-
-                    {writingEvaluationDetails && !isEvaluatingWriting && (
-                      <div className={`mt-6 pt-6 border-t space-y-8 animate-fadeIn ${themeClasses.border}`}>
-                        <div className="text-center border-b border-slate-500/10 pb-8">
-                          <p className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
-                            Overall Writing Score
-                          </p>
-                          <p className={`text-6xl font-black mt-3 ${getWritingScoreColor(writingEvaluationDetails.overallScore)}`}>
-                            {writingEvaluationDetails.overallScore}
-                            <span className="text-2xl text-slate-500">/100</span>
-                          </p>
-                          <p className={`mt-4 text-sm max-w-2xl mx-auto leading-relaxed ${themeClasses.textMuted}`}>
-                            {writingEvaluationDetails.feedbackSummary}
-                          </p>
-                        </div>
-
-                        <div className="space-y-5">
-                          <h3 className="text-sm font-bold uppercase tracking-wider">Score Breakdown</h3>
-                          {[
-                            { label: 'Grammar', score: writingEvaluationDetails.grammarScore },
-                            { label: 'Vocabulary', score: writingEvaluationDetails.vocabularyScore },
-                            { label: 'Coherence', score: writingEvaluationDetails.coherenceScore },
-                            { label: 'Task Achievement', score: writingEvaluationDetails.taskAchievementScore },
-                          ].map((cat) => (
-                            <div key={cat.label}>
-                              <div className="flex justify-between text-xs font-bold mb-2">
-                                <span>{cat.label}</span>
-                                <span className={getWritingScoreColor(cat.score)}>
-                                  {cat.score}/100
-                                </span>
-                              </div>
-                              <div className="w-full h-2.5 bg-slate-500/20 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full ${getWritingBarColor(cat.score)} transition-all duration-700`}
-                                  style={{ width: `${cat.score}%` }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        <div>
-                          <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Detailed Feedback</h3>
-                          <div className="space-y-3">
-                            {writingEvaluationDetails.grammarNotes.map((note, idx) => (
-                              <div
-                                key={idx}
-                                className={`flex items-start gap-3 border rounded-lg p-4 text-xs font-medium ${getWritingNoteStyles(note.type)}`}
-                              >
-                                <span className="font-bold shrink-0">
-                                  {getWritingNoteIcon(note.type)}
-                                </span>
-                                <span>{note.message}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {selectedModule === 'typing' && (
-                  <div className={`rounded-2xl border p-6 sm:p-8 space-y-6 ${themeClasses.card}`}>
-                    <div className="grid grid-cols-2 gap-5">
-                      <div className={`p-5 rounded-xl border ${themeClasses.accentSoft}`}>
-                        <span className={`text-xs font-bold uppercase block ${themeClasses.accent}`}>WPM</span>
-                        <span className="text-4xl font-black">{wpm}</span>
-                      </div>
-                      <div className={`p-5 rounded-xl border ${themeClasses.accentSoft}`}>
-                        <span className={`text-xs font-bold uppercase block ${themeClasses.accent}`}>Accuracy</span>
-                        <span className="text-4xl font-black">{accuracy}%</span>
-                      </div>
-                    </div>
-
-                    <div className="p-6 bg-slate-950 text-slate-300 rounded-xl font-mono text-sm sm:text-base leading-relaxed overflow-x-auto border border-slate-800">
-                      {typingPassage.split('').map((char, index) => {
-                        let color = 'text-slate-500';
-                        if (index < userInput.length) {
-                          color = userInput[index] === char ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold underline';
-                        }
-                        return <span key={index} className={color}>{char}</span>;
-                      })}
-                    </div>
-
-                    <textarea
-                      ref={typingInputRef}
-                      rows={4}
-                      disabled={isTypingCompleted}
-                      value={userInput}
-                      onChange={handleTypingChange}
-                      placeholder="Type passage here..."
-                      className={`w-full p-5 border rounded-xl bg-transparent font-mono text-sm outline-none focus:ring-2 focus:ring-indigo-500 ${themeClasses.border}`}
-                    />
-
-                    {isTypingCompleted && !showScorePopup && (
-                      <div className={`p-4 rounded-lg font-bold text-sm ${themeClasses.accentSoft}`}>
-                        Typing Completed! Score Recorded: {score}% {appMode === 'full_exam' && '• Finalizing exam score...'}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {(selectedModule === 'listening' || selectedModule === 'reading') && (
-                  <div className={`rounded-2xl border p-6 sm:p-8 space-y-6 ${themeClasses.card}`}>
-                    {loading && (
-                      <div className={`text-center py-16 font-bold ${themeClasses.textMuted}`}>
-                        Generating test questions...
-                      </div>
-                    )}
-
-                    {!loading && !testData && (
-                      <button
-                        onClick={() => generateTest(selectedModule)}
-                        className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-8 py-4 rounded-lg transition-colors cursor-pointer"
-                      >
-                        Load {selectedModule.toUpperCase()} Test
-                      </button>
-                    )}
-
-                    {testData && (
-                      <div className="space-y-8">
-                        <h3 className="text-xl font-bold">{testData.title}</h3>
-
-                        {selectedModule === 'reading' && testData.passage && (
-                          <details
-                            open
-                            className={`p-6 rounded-xl font-serif leading-relaxed border ${themeClasses.accentSoft}`}
-                          >
-                            <summary className={`cursor-pointer font-sans font-bold text-xs uppercase tracking-wider mb-4 ${themeClasses.accent}`}>
-                              Reading Passage (click to collapse)
-                            </summary>
-                            <div className="whitespace-pre-line text-sm">{testData.passage}</div>
-                          </details>
-                        )}
-
-                        {selectedModule === 'listening' && testData.audioScript && !hasAudioEnded && (
-                          <div className="p-5 bg-slate-950 text-white rounded-xl space-y-3 border border-slate-800">
-                            <AudioPlayer
-                              script={testData.audioScript}
-                              onPlay={() => setHasAudioStarted(true)}
-                              onEnded={() => {
-                                setHasAudioEnded(true);
-                                setIsListeningTimerActive(true);
-                              }}
-                            />
-                          </div>
-                        )}
-
-                        {(selectedModule === 'reading' || hasAudioEnded) && (
-                          <div className="space-y-8">
-                            {selectedModule === 'listening' && isListeningTimerActive && !isSubmitted && (
-                              <div className="p-4 bg-rose-600 text-white text-sm font-mono rounded-xl flex items-center justify-between animate-pulse">
-                                <span className="flex items-center gap-2">
-                                  <Icon name="clock" className="w-5 h-5" />
-                                  Time Remaining:
-                                </span>
-                                <span className="text-lg font-black">{listeningTimer}s</span>
-                              </div>
-                            )}
-
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between text-xs font-bold">
-                                <span className={themeClasses.textMuted}>
-                                  Question {currentQuestionIndex + 1} of {totalQuestions}
-                                </span>
-                                <span className={themeClasses.accent}>
-                                  {answeredCount} / {totalQuestions} answered
-                                </span>
-                              </div>
-                              <div className="w-full h-2 bg-slate-500/20 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full bg-indigo-600 transition-all duration-500"
-                                  style={{
-                                    width: `${((currentQuestionIndex + 1) / Math.max(totalQuestions, 1)) * 100}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
-
-                            {testData.questions[currentQuestionIndex] && (
-                              <div className={`p-6 rounded-xl border space-y-5 ${themeClasses.cardHover}`}>
-                                <p className="font-semibold text-base">
-                                  {testData.questions[currentQuestionIndex].question}
-                                </p>
-
-                                <div className="grid grid-cols-1 gap-3">
-                                  {testData.questions[currentQuestionIndex].options?.map((opt, oIdx) => {
-                                    const qId = testData.questions[currentQuestionIndex].id;
-                                    const isSelected = selectedAnswers[qId] === opt;
-                                    const isCorrect =
-                                      isSubmitted &&
-                                      opt.trim().toLowerCase() ===
-                                        (testData.questions[currentQuestionIndex].correctAnswer || '')
-                                          .trim()
-                                          .toLowerCase();
-                                    const isWrongSelected = isSubmitted && isSelected && !isCorrect;
-
-                                    return (
-                                      <button
-                                        key={oIdx}
-                                        disabled={isSubmitted}
-                                        onClick={() => handleSelectAnswer(qId, opt)}
-                                        className={`p-4 text-left rounded-lg border text-sm font-medium transition-all cursor-pointer flex items-center gap-4 ${
-                                          isCorrect
-                                            ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 font-bold'
-                                            : isWrongSelected
-                                              ? 'bg-rose-500/20 border-rose-500 text-rose-400 font-bold'
-                                              : isSelected
-                                                ? 'bg-amber-500/20 border-amber-500 text-amber-400 font-bold'
-                                                : `border-slate-500/20 bg-transparent hover:border-indigo-400`
-                                        }`}
-                                      >
-                                        <span
-                                          className={`w-8 h-8 shrink-0 rounded-full border-2 flex items-center justify-center text-xs font-black ${
-                                            isSelected
-                                              ? 'border-current bg-current/10'
-                                              : 'border-slate-500/40'
-                                          }`}
-                                        >
-                                          {String.fromCharCode(65 + oIdx)}
-                                        </span>
-                                        <span className="flex-1">{opt}</span>
-                                        {isCorrect && <span className="text-emerald-400 text-lg">✓</span>}
-                                        {isWrongSelected && <span className="text-rose-400 text-lg">✕</span>}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="flex flex-col sm:flex-row items-center gap-4">
-                              <button
-                                type="button"
-                                onClick={handlePreviousQuestion}
-                                disabled={currentQuestionIndex === 0}
-                                className={`w-full sm:w-auto px-6 py-3 text-sm font-bold rounded-lg transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
-                              >
-                                <Icon name="arrow-left" className="w-4 h-4" />
-                                <span>Previous</span>
-                              </button>
-
-                              <div className="flex-1 flex items-center justify-center gap-2 flex-wrap order-last sm:order-none w-full sm:w-auto">
-                                {testData.questions.map((q, idx) => {
-                                  const answered = !!selectedAnswers[q.id];
-                                  const isCurrent = idx === currentQuestionIndex;
-                                  return (
-                                    <button
-                                      key={q.id || idx}
-                                      onClick={() => setCurrentQuestionIndex(idx)}
-                                      aria-label={`Go to question ${idx + 1}`}
-                                      className={`w-9 h-9 rounded-full text-xs font-bold transition cursor-pointer flex items-center justify-center border-2 ${
-                                        isCurrent
-                                          ? 'bg-indigo-600 border-indigo-500 text-white scale-110'
-                                          : answered
-                                            ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                                            : `bg-transparent border-slate-500/30 text-slate-400 hover:border-indigo-400`
-                                      }`}
-                                    >
-                                      {idx + 1}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-
-                              {!isLastQuestion ? (
-                                <button
-                                  type="button"
-                                  onClick={handleNextQuestion}
-                                  className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
-                                >
-                                  <span>Next</span>
-                                  <Icon name="chevron-right" className="w-4 h-4" />
-                                </button>
-                              ) : !isSubmitted ? (
-                                <button
-                                  type="button"
-                                  onClick={selectedModule === 'listening' ? handleSubmitListening : handleSubmitReading}
-                                  disabled={!allQuestionsAnswered}
-                                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
-                                >
-                                  <span>
-                                    {allQuestionsAnswered
-                                      ? `Submit ${selectedModule} Answers`
-                                      : `Answer all (${answeredCount}/${totalQuestions})`}
-                                  </span>
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={handleBackToDashboard}
-                                  className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-lg transition-colors cursor-pointer"
-                                >
-                                  Back to Dashboard
-                                </button>
-                              )}
-                            </div>
-
-                            {isSubmitted && !showScorePopup && (
-                              <div className={`p-4 rounded-lg font-bold text-sm ${themeClasses.accentSoft}`}>
-                                {selectedModule.toUpperCase()} Module Complete! Score Recorded: {score}%
-                                {appMode === 'full_exam' && ' • Advancing to next exam module...'}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+                <button
+                  type="button"
+                  aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+                  aria-expanded={isMobileMenuOpen}
+                  onClick={() => setIsMobileMenuOpen((open) => !open)}
+                  className={`md:hidden w-11 h-11 shrink-0 rounded-lg border flex items-center justify-center transition ${themeClasses.border} ${themeClasses.cardHover}`}
+                >
+                  <Icon name={isMobileMenuOpen ? 'x' : 'menu'} className="w-5 h-5" />
+                </button>
               </div>
-            )}
-          </div>
-        </main>
-      </div>
+            </div>
+          </header>
 
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50">
-          <button
-            type="button"
-            aria-label="Close navigation menu"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-          />
-
-          <aside className={`absolute top-0 bottom-0 left-0 w-[min(88vw,340px)] ${themeClasses.sidebar} border-r shadow-2xl p-5 pt-6 flex flex-col overflow-y-auto`} style={{ paddingTop: 'calc(1.5rem + env(safe-area-inset-top))', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
-            <div className={`flex items-center justify-between pb-5 mb-5 border-b ${themeClasses.border}`}>
-              <div className="min-w-0">
-                <span className={`text-[10px] font-bold uppercase tracking-widest ${themeClasses.textMuted}`}>
+          <div className="relative z-10 flex-1 flex flex-row w-full min-h-0">
+            <aside className={`hidden md:flex md:flex-col md:w-72 shrink-0 border-r p-5 space-y-6 overflow-y-auto ${themeClasses.sidebar}`}>
+              <div className="space-y-1">
+                <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
                   System Navigation
                 </span>
-                <p className="text-base font-black truncate mt-1">Cally Assessment Hub</p>
-              </div>
-              <button
-                type="button"
-                aria-label="Close menu"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition ${themeClasses.cardHover}`}
-              >
-                <Icon name="x" className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className={`flex items-center gap-3 p-3 mb-4 rounded-xl border ${themeClasses.card}`}>
-              <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-base">
-                {(userName || 'C').charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold truncate">{userName || 'Candidate'}</p>
-                <p className={`text-[10px] ${themeClasses.textMuted}`}>{isAdmin ? 'Administrator' : 'Candidate'}</p>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
-                Workspace
-              </span>
-              <nav className="space-y-1.5 pt-2">
-                <button
-                  onClick={() => handleSelectSidebarTab('overview')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
-                    activeTab === 'overview' 
-                      ? 'bg-indigo-600 text-white' 
-                      : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
-                  }`}
-                >
-                  <Icon name="chart" className="w-5 h-5" />
-                  <span>Dashboard Overview</span>
-                </button>
-                <button
-                  onClick={() => handleSelectSidebarTab('logs')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
-                    activeTab === 'logs' 
-                      ? 'bg-indigo-600 text-white' 
-                      : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
-                  }`}
-                >
-                  <Icon name="trending" className="w-5 h-5" />
-                  <span>Performance Logs</span>
-                </button>
-                <button
-                  onClick={() => handleSelectSidebarTab('support' as any)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
-                    activeTab === 'support' 
-                      ? 'bg-indigo-600 text-white' 
-                      : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
-                  }`}
-                >
-                  <Icon name="info" className="w-5 h-5" />
-                  <span>Support Tickets</span>
-                </button>
-              </nav>
-            </div>
-
-            <div className="space-y-1 mt-6">
-              <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
-                Practice Modules
-              </span>
-              <nav className="space-y-1.5 pt-2">
-                {dashboardFeatures.map((feat) => (
+                <nav className="space-y-1.5 pt-2">
                   <button
-                    key={feat.id}
-                    onClick={() => handleSelectSidebarTab(feat.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer text-left ${
-                      activeTab === feat.id 
-                        ? `${themeClasses.accentSoft} border` 
+                    onClick={() => handleSelectSidebarTab('overview')}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
+                      activeTab === 'overview'
+                        ? 'bg-indigo-600 text-white'
                         : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
                     }`}
                   >
-                    <span className="flex items-center gap-3 min-w-0">
-                      <div className={`w-7 h-7 rounded-lg ${feat.color} flex items-center justify-center shrink-0`}>
-                        <Icon name={feat.icon} className="w-3.5 h-3.5 text-white" />
-                      </div>
-                      <span className="truncate">{feat.title}</span>
-                    </span>
-                    <Icon name="chevron-right" className="w-4 h-4 shrink-0 opacity-50" />
+                    <Icon name="chart" className="w-4 h-4" />
+                    <span>Dashboard Overview</span>
                   </button>
-                ))}
-              </nav>
+                  <button
+                    onClick={() => handleSelectSidebarTab('logs')}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
+                      activeTab === 'logs'
+                        ? 'bg-indigo-600 text-white'
+                        : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+                    }`}
+                  >
+                    <Icon name="trending" className="w-4 h-4" />
+                    <span>Performance Logs</span>
+                  </button>
+                  <button
+                    onClick={() => handleSelectSidebarTab('support' as any)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
+                      activeTab === 'support'
+                        ? 'bg-indigo-600 text-white'
+                        : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+                    }`}
+                  >
+                    <Icon name="info" className="w-4 h-4" />
+                    <span>Support Tickets</span>
+                  </button>
+                </nav>
+              </div>
+
+              <div className="space-y-1">
+                <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
+                  Practice Modules
+                </span>
+                <nav className="space-y-1.5 pt-2">
+                  {dashboardFeatures.map((feat) => (
+                    <button
+                      key={feat.id}
+                      onClick={() => handleSelectSidebarTab(feat.id)}
+                      className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer text-left ${
+                        activeTab === feat.id
+                          ? `${themeClasses.accentSoft} border`
+                          : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 truncate">
+                        <div className={`w-7 h-7 rounded-lg ${feat.color} flex items-center justify-center shrink-0`}>
+                          <Icon name={feat.icon} className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <span className="truncate">{feat.title}</span>
+                      </div>
+                      <Icon name="chevron-right" className="w-3.5 h-3.5 shrink-0 opacity-50" />
+                    </button>
+                  ))}
+                </nav>
+              </div>
 
               <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  handleStartFullExam();
-                }}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm px-4 py-4 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 mt-4"
+                onClick={handleStartFullExam}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm px-4 py-4 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
               >
                 <Icon name="academic" className="w-5 h-5" />
                 <span>Take Full Exam</span>
@@ -7518,518 +6426,1732 @@ export default function Home() {
               {isAdmin && (
                 <a
                   href="/admin"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black text-sm px-4 py-4 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 mt-3"
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black text-sm px-4 py-4 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Icon name="settings" className="w-5 h-5" />
                   <span>Admin Dashboard</span>
                 </a>
               )}
-            </div>
 
-            <div className={`mt-auto pt-6 border-t ${themeClasses.border} space-y-3`}>
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  setShowLogoutModal(true);
-                }}
-                className="w-full px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg transition cursor-pointer text-sm font-bold flex items-center justify-center gap-2"
-              >
-                <Icon name="log-out" className="w-4 h-4" />
-                <span>Sign Out</span>
-              </button>
+              <div className={`mt-auto pt-5 border-t ${themeClasses.border} space-y-3`}>
+                <button
+                  type="button"
+                  onClick={() => setShowRatingModal(true)}
+                  className="w-full px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-bold border border-amber-500/20 transition-all cursor-pointer flex items-center gap-3 text-left"
+                >
+                  <Icon name="star" className="w-4 h-4" />
+                  <span>Rate Us</span>
+                </button>
 
-              <button
-                onClick={() => setShowRatingModal(true)}
-                className="w-full px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2 justify-center"
-              >
-                <Icon name="star" className="w-4 h-4" />
-                <span>Rate Us</span>
-              </button>
-            </div>
-          </aside>
-        </div>
-      )}
-
-      {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-8 shadow-2xl text-center space-y-6">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-xl bg-rose-500/10 flex items-center justify-center mx-auto border border-rose-500/30">
-                <Icon name="log-out" className="w-10 h-10 text-rose-400" />
-              </div>
-              <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-rose-500 flex items-center justify-center">
-                <span className="text-white text-xs font-black">!</span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-2xl font-black text-white">Sign Out?</h3>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Are you sure you want to sign out of your account? Your progress and certificates are saved and will be available when you return.
-              </p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-base shrink-0">
-                  {(userName || 'C').charAt(0).toUpperCase()}
-                </div>
-                <div className="text-left min-w-0">
-                  <p className="text-sm font-bold text-white truncate">{userName || 'Candidate'}</p>
-                  <p className="text-[11px] text-slate-400 truncate">{email || 'candidate@example.com'}</p>
+                <div className={`p-3 rounded-xl border ${themeClasses.card} space-y-2`}>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                      System Status
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[10px] font-bold text-emerald-400">Online</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] font-mono">
+                    <Icon name="wifi" className="w-3 h-3 text-emerald-400" />
+                    <span className={themeClasses.textMuted}>All systems operational</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </aside>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => setShowLogoutModal(false)}
-                disabled={isLoggingOut}
-                className="flex-1 py-4 px-6 rounded-lg border border-slate-700 bg-slate-800 text-white font-bold text-sm transition hover:bg-slate-700 disabled:opacity-50 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="flex-1 py-4 px-6 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
-              >
-                {isLoggingOut ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>Signing Out...</span>
-                  </>
-                ) : (
-                  <>
-                    <Icon name="log-out" className="w-4 h-4" />
-                    <span>Yes, Sign Out</span>
-                  </>
+            <main className="flex-1 min-w-0 h-full overflow-y-auto">
+              <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-8 py-6">
+                {isTimedEvaluationActive && (antiCheatViolations > 0 || !isFullscreen) && (
+                  <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-5 py-4">
+                    <div className="flex items-center gap-3 font-semibold text-amber-400">
+                      <Icon name="alert-circle" className="w-5 h-5" />
+                      <span className="text-sm">
+                        Assessment Integrity: {antiCheatViolations} event{antiCheatViolations === 1 ? '' : 's'} detected
+                        {!isFullscreen ? ' • Fullscreen required' : ''}
+                      </span>
+                    </div>
+                    {!isFullscreen && (
+                      <button
+                        type="button"
+                        onClick={requestExamFullscreen}
+                        className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition-colors"
+                      >
+                        Enter Fullscreen
+                      </button>
+                    )}
+                  </div>
                 )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Integrity Warning Modal */}
-      {isTimedEvaluationActive && showIntegrityWarning && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4">
-          <div className={`w-full max-w-md rounded-2xl border p-8 ${themeClasses.card}`}>
-            <div className="w-16 h-16 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-5">
-              <Icon name="alert-circle" className="w-8 h-8" />
-            </div>
-            <h3 className="text-xl font-black">Assessment Integrity Warning</h3>
-            <p className={`mt-3 text-sm leading-relaxed ${themeClasses.textMuted}`}>{integrityWarning}</p>
-            <div className="mt-5 flex items-center justify-between text-xs">
-              <span className={themeClasses.textMuted}>Integrity events detected</span>
-              <strong className="text-amber-400">{antiCheatViolations}</strong>
-            </div>
-            {!isFullscreen && (
-              <p className="mt-3 text-xs font-bold text-rose-400">Fullscreen is required to continue.</p>
-            )}
-            <button
-              onClick={() => {
-                if (document.fullscreenElement || !isTimedEvaluationActive) {
-                  setShowIntegrityWarning(false);
-                } else {
-                  requestExamFullscreen();
-                }
-              }}
-              className="mt-6 w-full py-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-colors"
-            >
-              Return to Assessment
-            </button>
-          </div>
-        </div>
-      )}
+                {appMode === 'dashboard' && !selectedModule && activeTab === 'overview' && (
+                  <div className="space-y-8 animate-fadeIn">
+                    <div className={`rounded-2xl border p-8 sm:p-12 ${themeClasses.card}`}>
+                      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+                        <div className="space-y-4 max-w-2xl">
+                          <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border ${themeClasses.accentSoft}`}>
+                            <Icon name="sparkles" className="w-3.5 h-3.5" />
+                            Cally Assessment & Certification Portal
+                          </span>
+                          <h1 className="text-3xl sm:text-4xl font-black">
+                            Welcome Back, <span className="text-indigo-400">{userName || 'Candidate'}</span>!
+                          </h1>
+                          <p className={`text-sm sm:text-base leading-relaxed ${themeClasses.textMuted}`}>
+                            Select a module from the sidebar to practice your skills, or check your <strong className={themeClasses.textPrimary}>Performance Logs</strong> and official <strong className={themeClasses.textPrimary}>Full Exam</strong> pathway.
+                          </p>
+                        </div>
 
-      {/* Rating Modal */}
-      {showRatingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className={`border rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
-            <div className={`flex items-center justify-between border-b pb-5 ${themeClasses.border}`}>
-              <div className="space-y-1">
-                <span className={`text-[10px] font-bold uppercase tracking-widest ${themeClasses.accent}`}>
-                  System Feedback
-                </span>
-                <h3 className="text-xl font-black">Rate & Recommend Cally</h3>
-              </div>
-              <button
-                onClick={() => setShowRatingModal(false)}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition cursor-pointer ${themeClasses.cardHover}`}
-              >
-                <Icon name="x" className="w-5 h-5" />
-              </button>
-            </div>
+                        <button
+                          onClick={handleStartFullExam}
+                          className="shrink-0 w-full lg:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm px-8 py-5 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-3"
+                        >
+                          <Icon name="academic" className="w-6 h-6" />
+                          <span>Take Full Exam</span>
+                        </button>
+                      </div>
 
-            {ratingSubmitted ? (
-              <div className="py-10 text-center space-y-4">
-                <div className="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center mx-auto">
-                  <Icon name="sparkles" className="w-8 h-8" />
-                </div>
-                <h4 className="text-lg font-bold">Thank you for your feedback!</h4>
-                <p className={`text-sm ${themeClasses.textMuted}`}>
-                  Your review helps us improve the assessment platform.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmitRating} className="space-y-6">
-                <div className="space-y-4 text-center">
-                  <label className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>
-                    Select Star Rating
-                  </label>
-                  <div className="flex items-center justify-center gap-3">
-                    {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => (
-                      <RatingStar
-                        key={star}
-                        star={star}
-                        value={hoverRating || userRating}
-                        onPreview={setHoverRating}
-                        onSelect={setUserRating}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
+                        {[
+                          { label: 'Attempts', value: userScores.length, icon: 'activity', color: 'text-indigo-400' },
+                          { label: 'Average', value: `${userScores.length ? Math.round(userScores.reduce((a,c)=>a+(c.score||0),0)/userScores.length) : 0}%`, icon: 'chart', color: 'text-cyan-400' },
+                          { label: 'Best Score', value: `${userScores.length ? Math.max(...userScores.map(c=>c.score||0)) : 0}%`, icon: 'trophy', color: 'text-amber-400' },
+                          { label: 'Certificate', value: userCertificates.length ? 'Earned' : 'Not Yet', icon: 'academic', color: 'text-emerald-400' },
+                        ].map((stat) => (
+                          <div key={stat.label} className={`rounded-xl border p-4 ${themeClasses.card}`}>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Icon name={stat.icon} className={`w-4 h-4 ${stat.color}`} />
+                              <span className={`text-[10px] uppercase tracking-wider font-bold ${themeClasses.textMuted}`}>
+                                {stat.label}
+                              </span>
+                            </div>
+                            <div className="text-2xl font-black">{stat.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* MINI CERTIFICATES SECTION */}
+                    {miniCerts.length > 0 && (
+                      <div className={`rounded-2xl border p-6 sm:p-8 ${themeClasses.card}`} style={{ borderColor: 'rgba(244,114,182,0.25)' }}>
+                        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
+                          <div>
+                            <h2 className="text-xl font-black">Personal Best Certificates</h2>
+                            <p className={`text-sm ${themeClasses.textMuted}`}>
+                              {miniCerts.length} achievement{miniCerts.length === 1 ? '' : 's'} earned
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {miniCerts.slice(0, 6).map((cert) => (
+                            <button
+                              key={cert.id}
+                              onClick={() => setViewingMiniCert(cert)}
+                              className="text-left transition-transform hover:scale-[1.02] focus:outline-none"
+                            >
+                              <MiniModuleCertificate
+                                cert={cert}
+                                userName={userName || 'Candidate'}
+                                compact
+                              />
+                            </button>
+                          ))}
+                        </div>
+
+                        {miniCerts.length > 6 && (
+                          <p className={`text-xs mt-4 ${themeClasses.textMuted}`}>
+                            Showing 6 of {miniCerts.length}. View all in the Performance Logs tab.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="space-y-6">
+                      <div className={`border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 ${themeClasses.border}`}>
+                        <div>
+                          <h2 className="text-xl font-bold">Individual Practice Modules</h2>
+                          <p className={`text-sm ${themeClasses.textMuted}`}>Practice freely module-by-module (No certificate generated)</p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-5">
+                        {dashboardFeatures.map((feat) => (
+                          <div
+                            key={feat.id}
+                            className={`rounded-xl border p-6 flex flex-col justify-between transition-all duration-200 hover:scale-[1.02] hover:shadow-lg ${themeClasses.card} ${themeClasses.cardHover}`}
+                          >
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className={`p-3 rounded-lg ${feat.color}`}>
+                                  <Icon name={feat.icon} className="w-6 h-6 text-white" />
+                                </div>
+                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${themeClasses.accentSoft}`}>
+                                  {feat.tag}
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                <h3 className="text-base font-bold">{feat.title}</h3>
+                                <p className={`text-xs leading-relaxed ${themeClasses.textMuted}`}>{feat.description}</p>
+                              </div>
+                            </div>
+
+                            <div className="pt-6">
+                              <button
+                                onClick={() => handleStartDashboardModule(feat.id)}
+                                className={`w-full py-3 px-4 rounded-lg text-xs font-bold text-white transition-colors cursor-pointer ${feat.color} hover:opacity-90`}
+                              >
+                                Practice Module
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {appMode === 'dashboard' && !selectedModule && activeTab === 'support' && (
+                  <div className="space-y-6 animate-fadeIn">
+                    <div className={`border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${themeClasses.border}`}>
+                      <div>
+                        <h2 className="text-xl font-bold">Helpdesk & Support Tickets</h2>
+                        <p className={`text-sm ${themeClasses.textMuted}`}>Submit inquiries, report technical glitches, or request score reviews</p>
+                      </div>
+                      <button
+                        onClick={() => setShowNewTicketModal(true)}
+                        className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer flex items-center gap-2"
+                      >
+                        <Icon name="plus" className="w-4 h-4" />
+                        <span>Create New Ticket</span>
+                      </button>
+                    </div>
+
+                    {selectedTicket ? (
+                      <div className={`rounded-xl border p-6 space-y-6 ${themeClasses.card}`}>
+                        <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.border}`}>
+                          <div>
+                            <button
+                              onClick={() => setSelectedTicket(null)}
+                              className={`text-xs font-bold ${themeClasses.accent} hover:underline mb-2 flex items-center gap-1 cursor-pointer`}
+                            >
+                              <Icon name="arrow-left" className="w-3.5 h-3.5" /> Back to Tickets List
+                            </button>
+                            <h3 className="text-lg font-bold">{selectedTicket.subject}</h3>
+                            <span className={`text-xs ${themeClasses.textMuted} capitalize`}>
+                              Category: {selectedTicket.category} &bull; Status: {selectedTicket.status}
+                            </span>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                            selectedTicket.status === 'open' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
+                          }`}>
+                            {selectedTicket.status}
+                          </span>
+                        </div>
+
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                          {ticketMessages.map((msg, idx) => (
+                            <div key={idx} className={`p-4 rounded-xl space-y-2 ${
+                              msg.is_admin
+                                ? `${themeClasses.accentSoft} ml-6`
+                                : `bg-slate-500/5 border ${themeClasses.border} mr-6`
+                            }`}>
+                              <div className={`flex items-center justify-between text-[11px] font-bold ${themeClasses.textMuted}`}>
+                                <span>{msg.is_admin ? 'Support Agent' : 'You'}</span>
+                                <span>{new Date(msg.created_at).toLocaleString()}</span>
+                              </div>
+                              <p className="text-sm font-medium leading-relaxed">{msg.message}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        <form onSubmit={handleSendReply} className={`flex gap-3 pt-4 border-t ${themeClasses.border}`}>
+                          <input
+                            type="text"
+                            required
+                            value={replyMessage}
+                            onChange={(e) => setReplyMessage(e.target.value)}
+                            placeholder="Type your reply message..."
+                            className={`flex-1 p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${themeClasses.border}`}
+                          />
+                          <button
+                            type="submit"
+                            className="px-6 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-lg transition-colors cursor-pointer shrink-0"
+                          >
+                            Send
+                          </button>
+                        </form>
+                      </div>
+                    ) : (
+                      <div className={`rounded-xl border p-8 ${themeClasses.card}`}>
+                        {userTickets.length === 0 ? (
+                          <div className="text-center py-16 space-y-4">
+                            <div className={`w-16 h-16 rounded-xl flex items-center justify-center mx-auto ${themeClasses.accentSoft}`}>
+                              <Icon name="info" className="w-8 h-8" />
+                            </div>
+                            <h4 className="text-lg font-bold">No support tickets found</h4>
+                            <p className={`text-sm ${themeClasses.textMuted}`}>
+                              Have a question or issue? Create a new ticket to get assistance.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${themeClasses.border} ${themeClasses.textMuted}`}>
+                                  <th className="pb-4 px-4">Subject</th>
+                                  <th className="pb-4 px-4">Category</th>
+                                  <th className="pb-4 px-4">Priority</th>
+                                  <th className="pb-4 px-4">Status</th>
+                                  <th className="pb-4 px-4">Date</th>
+                                  <th className="pb-4 px-4 text-right">Action</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-500/10 text-sm">
+                                {userTickets.map((ticket) => (
+                                  <tr key={ticket.id} className={`transition ${themeClasses.cardHover}`}>
+                                    <td className="py-4 px-4 font-bold">{ticket.subject}</td>
+                                    <td className="py-4 px-4 capitalize">{ticket.category}</td>
+                                    <td className="py-4 px-4 capitalize font-semibold">{ticket.priority}</td>
+                                    <td className="py-4 px-4">
+                                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                        ticket.status === 'open' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'
+                                      }`}>
+                                        {ticket.status}
+                                      </span>
+                                    </td>
+                                    <td className={`py-4 px-4 ${themeClasses.textMuted}`}>
+                                      {new Date(ticket.created_at).toLocaleDateString()}
+                                    </td>
+                                    <td className="py-4 px-4 text-right">
+                                      <button
+                                        onClick={() => handleOpenTicketDetails(ticket)}
+                                        className={`px-4 py-2 rounded-lg font-bold text-xs transition cursor-pointer ${themeClasses.accentSoft}`}
+                                      >
+                                        View Thread
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {showNewTicketModal && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fadeIn">
+                        <div className={`border rounded-2xl max-w-lg w-full p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
+                          <div className={`flex items-center justify-between border-b pb-4 ${themeClasses.border}`}>
+                            <h3 className="text-xl font-black">Create Support Ticket</h3>
+                            <button
+                              onClick={() => setShowNewTicketModal(false)}
+                              className={`w-10 h-10 rounded-lg flex items-center justify-center transition cursor-pointer ${themeClasses.cardHover}`}
+                            >
+                              <Icon name="x" className="w-5 h-5" />
+                            </button>
+                          </div>
+
+                          <form onSubmit={handleCreateTicket} className="space-y-5">
+                            <div className="space-y-2">
+                              <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                                Subject / Issue Summary
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                value={newTicketSubject}
+                                onChange={(e) => setNewTicketSubject(e.target.value)}
+                                placeholder="e.g., Audio playback error in listening module"
+                                className={`w-full p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${themeClasses.border}`}
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Category</label>
+                                <select
+                                  value={newTicketCategory}
+                                  onChange={(e) => setNewTicketCategory(e.target.value)}
+                                  className={`w-full p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${themeClasses.border}`}
+                                >
+                                  <option value="technical">Technical Bug</option>
+                                  <option value="scoring">Score Dispute</option>
+                                  <option value="account">Account Issue</option>
+                                  <option value="general">General Inquiry</option>
+                                </select>
+                              </div>
+
+                              <div className="space-y-2">
+                                <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>Priority</label>
+                                <select
+                                  value={newTicketPriority}
+                                  onChange={(e) => setNewTicketPriority(e.target.value)}
+                                  className={`w-full p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer ${themeClasses.border}`}
+                                >
+                                  <option value="low">Low</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="high">High</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                                Description / Details
+                              </label>
+                              <textarea
+                                rows={5}
+                                required
+                                value={newTicketMessage}
+                                onChange={(e) => setNewTicketMessage(e.target.value)}
+                                placeholder="Describe your issue in detail..."
+                                className={`w-full p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed ${themeClasses.border}`}
+                              />
+                            </div>
+
+                            <button
+                              type="submit"
+                              disabled={isCreatingTicket}
+                              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm rounded-lg transition-colors cursor-pointer"
+                            >
+                              {isCreatingTicket ? 'Submitting Ticket...' : 'Submit Support Ticket'}
+                            </button>
+                          </form>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {appMode === 'dashboard' && !selectedModule && activeTab === 'logs' && (
+                  <div className="space-y-6 animate-fadeIn">
+                    <div className={`border-b pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${themeClasses.border}`}>
+                      <div>
+                        <h2 className="text-xl font-bold">Performance & Historical Improvement Logs</h2>
+                        <p className={`text-sm ${themeClasses.textMuted}`}>
+                          Chronological tracking of every test attempt, score evolution, and exam dates
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={refreshUserStats}
+                        disabled={loadingStats}
+                        className={`px-4 py-2.5 rounded-lg text-xs font-bold transition cursor-pointer border flex items-center gap-2 shrink-0 ${themeClasses.accentSoft} disabled:opacity-50`}
+                      >
+                        <Icon name="refresh" className={`w-3.5 h-3.5 ${loadingStats ? 'animate-spin' : ''}`} />
+                        <span>{loadingStats ? 'Refreshing...' : 'Refresh Logs'}</span>
+                      </button>
+                    </div>
+
+                    {statsError && (
+                      <div className="p-5 rounded-xl border border-rose-500/20 bg-rose-500/5 flex items-start gap-4">
+                        <Icon name="alert-circle" className="w-6 h-6 text-rose-400 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-rose-400">Couldn't load your performance logs</p>
+                          <p className={`text-xs ${themeClasses.textMuted}`}>{statsError}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {(() => {
+                      const typingScores = userScores.filter(s => s.module_name === 'typing' && typeof s.wpm === 'number' && s.wpm > 0);
+                      const typingAvgWpm = typingScores.length > 0
+                        ? Math.round(typingScores.reduce((a, s) => a + (s.wpm || 0), 0) / typingScores.length)
+                        : 0;
+                      const typingBestWpm = typingScores.length > 0
+                        ? Math.max(...typingScores.map(s => s.wpm || 0))
+                        : 0;
+
+                      const statCards: Array<{ label: string; value: number | string; sub: string; color: string }> = [
+                        { label: 'Total Test Attempts', value: userScores.length, sub: 'Logged practice and exam sessions', color: 'text-indigo-400' },
+                        { label: 'Historical Average Score', value: `${userScores.length > 0 ? Math.round(userScores.reduce((acc, curr) => acc + (curr.score || 0), 0) / userScores.length) : 0}%`, sub: 'Average across all recorded attempts', color: 'text-cyan-400' },
+                        { label: 'Best Performance', value: `${userScores.length > 0 ? Math.max(...userScores.map(item => item.score || 0)) : 0}%`, sub: 'Highest score achieved in a single log', color: 'text-emerald-400' },
+                      ];
+
+                      if (typingScores.length > 0) {
+                        statCards.push({
+                          label: 'Typing Speed (Avg WPM)',
+                          value: `${typingAvgWpm}`,
+                          sub: `Best: ${typingBestWpm} WPM · ${typingScores.length} attempt${typingScores.length === 1 ? '' : 's'}`,
+                          color: 'text-sky-400',
+                        });
+                      }
+
+                      return (
+                        <div className={`grid grid-cols-1 sm:grid-cols-3 ${typingScores.length > 0 ? 'lg:grid-cols-4' : ''} gap-5`}>
+                          {statCards.map((stat) => (
+                            <div key={stat.label} className={`p-6 rounded-xl border ${themeClasses.card}`}>
+                              <span className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                                {stat.label}
+                              </span>
+                              <h3 className={`text-3xl font-black mt-2 ${stat.color}`}>{stat.value}</h3>
+                              <p className={`text-[11px] mt-1 ${themeClasses.textMuted}`}>{stat.sub}</p>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
+                    <div className={`rounded-xl border p-6 sm:p-8 space-y-5 ${themeClasses.card}`}>
+                      <h3 className="text-lg font-bold">Attempt Progress Timeline & Dates</h3>
+
+                      {loadingStats ? (
+                        <div className={`text-center py-12 font-bold text-sm ${themeClasses.textMuted}`}>
+                          Loading historical progress logs...
+                        </div>
+                      ) : userScores.length === 0 ? (
+                        <div className={`text-center py-12 text-sm ${themeClasses.textMuted}`}>
+                          {statsError
+                            ? 'Logs could not be loaded due to the error above.'
+                            : 'No test attempts logged yet. Complete a practice module or full exam to start tracking your progress!'}
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className={`border-b text-[11px] font-bold uppercase tracking-wider ${themeClasses.border} ${themeClasses.textMuted}`}>
+                                <th className="pb-4 px-4">Date Taken</th>
+                                <th className="pb-4 px-4">Module</th>
+                                <th className="pb-4 px-4">Score</th>
+                                {userScores.some(s => s.module_name === 'typing') && (
+                                  <th className="pb-4 px-4">WPM</th>
+                                )}
+                                <th className="pb-4 px-4">Status / Improvement</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-500/10 text-sm">
+                              {userScores.map((log, index) => {
+                                const formattedDate = log.created_at ? new Date(log.created_at).toLocaleString() : new Date().toLocaleString();
+                                const previousAttempt = userScores.slice(index + 1).find(item => item.module_name === log.module_name);
+                                const diff = previousAttempt ? log.score - previousAttempt.score : null;
+                                const hasTypingScores = userScores.some(s => s.module_name === 'typing');
+
+                                return (
+                                  <tr key={log.id || index} className={`transition ${themeClasses.cardHover}`}>
+                                    <td className={`py-4 px-4 font-medium ${themeClasses.textMuted}`}>{formattedDate}</td>
+                                    <td className="py-4 px-4 font-bold capitalize">{log.module_name}</td>
+                                    <td className={`py-4 px-4 font-black ${themeClasses.accent}`}>{log.score}%</td>
+                                    {hasTypingScores && (
+                                      <td className="py-4 px-4">
+                                        {log.module_name === 'typing' && typeof log.wpm === 'number' ? (
+                                          <span className={`font-black ${
+                                            log.wpm >= 60 ? 'text-emerald-400' :
+                                            log.wpm >= 40 ? 'text-amber-400' : 'text-rose-400'
+                                          }`}>
+                                            {log.wpm}
+                                          </span>
+                                        ) : (
+                                          <span className={`text-xs ${themeClasses.textMuted}`}>—</span>
+                                        )}
+                                      </td>
+                                    )}
+                                    <td className="py-4 px-4">
+                                      {diff !== null ? (
+                                        <span className={`inline-flex items-center gap-2 font-bold px-3 py-1.5 rounded-full text-[11px] ${
+                                          diff > 0 ? 'bg-emerald-500/10 text-emerald-400' : diff < 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-slate-500/10 text-slate-400'
+                                        }`}>
+                                          {diff > 0 ? <Icon name="trending" className="w-3.5 h-3.5" /> : diff < 0 ? <Icon name="trending-down" className="w-3.5 h-3.5" /> : <Icon name="scale" className="w-3.5 h-3.5" />}
+                                          {diff > 0 ? `+${diff}% improvement` : diff < 0 ? `${diff}% drop` : 'No change'}
+                                        </span>
+                                      ) : (
+                                        <span className={`italic text-[11px] ${themeClasses.textMuted}`}>First recorded attempt</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {appMode === 'full_exam' && examStepIndex === 5 && (
+                  certificateEligible ? (
+                    <div className="space-y-8 max-w-[1300px] mx-auto text-center animate-fadeIn">
+                      <div className={`p-6 rounded-2xl border flex justify-center items-center overflow-hidden w-full ${themeClasses.card}`}>
+                        <div className="w-full overflow-hidden flex justify-center py-4">
+                          <div className="w-[1100px] h-[778px] sm:h-auto shrink-0 origin-top transform scale-[0.38] min-[360px]:scale-[0.42] min-[400px]:scale-[0.47] min-[500px]:scale-[0.58] min-[640px]:scale-[0.75] md:scale-[0.88] lg:scale-100 transition-transform">
+                            <div
+                              id="certificate-to-download"
+                              style={{
+                                width: '1100px',
+                                backgroundColor: '#fbf9f4',
+                                border: '16px solid #1e293b',
+                                padding: '40px 60px',
+                                boxSizing: 'border-box',
+                                position: 'relative',
+                                margin: '0 auto',
+                                textAlign: 'left',
+                              }}
+                            >
+                              <div style={{ border: '2px solid #b45309', padding: '30px 40px', position: 'relative' }}>
+                                <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+                                  <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '3px', color: '#1e293b', fontWeight: '700' }}>
+                                    Cally Assessment Systems
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: '#78350f', marginTop: '3px', fontWeight: '600' }}>EST. 2026</div>
+                                </div>
+
+                                <h1 style={{ fontSize: '38px', fontWeight: '800', color: '#78350f', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '2px', margin: '10px 0 5px 0', fontFamily: 'serif' }}>
+                                  Certificate of Achievement
+                                </h1>
+                                <div style={{ fontSize: '13px', color: '#1e293b', textAlign: 'center', marginBottom: '20px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '2px' }}>
+                                  Official Verification of Professional BPO Competency
+                                </div>
+
+                                <div style={{ fontSize: '14px', color: '#475569', textAlign: 'center', fontStyle: 'italic', marginBottom: '5px' }}>This is to certify that</div>
+                                <div style={{ fontSize: '36px', fontWeight: '700', color: '#1e293b', textAlign: 'center', margin: '0 auto 15px auto', paddingBottom: '4px', borderBottom: '2px solid #cbd5e1', display: 'table', fontFamily: 'serif' }}>
+                                  {userName || 'Candidate'}
+                                </div>
+
+                                <p style={{ fontSize: '13px', color: '#334155', textAlign: 'center', maxWidth: '800px', margin: '0 auto 20px auto', lineHeight: '1.5' }}>
+                                  has successfully demonstrated exceptional proficiency across all official Cally assessment modules, showcasing linguistic mastery, professional communication skills, and technical competency required for the Business Process Outsourcing (BPO) industry.
+                                </p>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 30px', maxWidth: '850px', margin: '0 auto 25px auto', fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                                  <div>Listening & Dictation ({examScores.listening}%)</div>
+                                  <div>Speaking Simulation ({examScores.speaking}%)</div>
+                                  <div>Reading & Grammar ({examScores.reading}%)</div>
+                                  <div>Chat & Typing Accuracy ({examScores.typing}%) &bull; Speed: {wpm} WPM</div>
+                                  <div>Business Writing Composition ({examScores.writing}%)</div>
+                                  <div style={{ color: '#b45309', fontWeight: '700' }}>Final Cumulative Rating: ({overallExamAverage}%)</div>
+                                </div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: '20px', marginTop: '10px' }}>
+                                  <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
+                                    Authorized Electronic Validation
+                                  </div>
+
+                                  <div style={{ width: '70px', height: '70px', background: '#b45309', color: '#ffffff', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '3px solid #fef3c7', textAlign: 'center', fontSize: '8px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    <span>Official</span>
+                                    <span>Verified</span>
+                                  </div>
+
+                                  <div style={{ fontSize: '12px', color: '#475569', fontWeight: '600', textTransform: 'uppercase' }}>
+                                    Cally Authority
+                                  </div>
+                                </div>
+
+                                <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#64748b', fontWeight: '600', letterSpacing: '1px' }}>
+                                  DATE OF ISSUE: [{new Date().toLocaleDateString().toUpperCase()}] &bull; CERTIFICATE ID: [{generatedCertificateCode}]
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={`p-8 border rounded-2xl space-y-6 ${themeClasses.card}`}>
+                        <div className="space-y-2">
+                          <h2 className="text-2xl font-black">Exam Finished Successfully!</h2>
+                          <p className={`text-sm ${themeClasses.textMuted}`}>
+                            Your verified Cally certificate file (.pdf) is ready for download.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                          <button
+                            disabled={isDownloadingPdf}
+                            onClick={handleDownloadPDF}
+                            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm px-8 py-4 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
+                          >
+                            <Icon name="download" className="w-5 h-5" />
+                            <span>{isDownloadingPdf ? 'Generating .pdf file...' : 'Download Certificate (.pdf)'}</span>
+                          </button>
+                          <button
+                            onClick={handleBackToDashboard}
+                            className={`w-full sm:w-auto font-bold text-sm px-6 py-4 rounded-lg transition cursor-pointer border ${themeClasses.border} ${themeClasses.cardHover}`}
+                          >
+                            Return to Dashboard
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="max-w-2xl mx-auto text-center animate-fadeIn">
+                      <div className={`p-12 rounded-2xl border ${themeClasses.card}`}>
+                        <div className="mx-auto w-20 h-20 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center mb-6">
+                          <Icon name="alert-circle" className="w-10 h-10" />
+                        </div>
+                        <h2 className="text-3xl font-black">Certificate Not Available</h2>
+                        <p className={`mt-4 text-sm leading-relaxed ${themeClasses.textMuted}`}>
+                          Your final cumulative rating is <strong className="text-rose-400">{overallExamAverage}%</strong>.
+                          You do not qualify for a certificate of exceptional proficiency across all official Cally assessment modules.
+                        </p>
+                        <p className={`mt-2 text-xs ${themeClasses.textMuted}`}>
+                          A minimum final cumulative rating of 80% is required to receive the certificate.
+                        </p>
+                        <button
+                          onClick={handleRetakeAssessment}
+                          className="mt-8 w-full sm:w-auto px-8 py-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-colors"
+                        >
+                          Retake Assessment
+                        </button>
+                      </div>
+                    </div>
+                  )
+                )}
+
+                {selectedModule && (appMode === 'dashboard' || (appMode === 'full_exam' && examStepIndex < 5)) && (
+                  <div className="space-y-6 max-w-[1400px] mx-auto">
+                    <div className={`rounded-xl border p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 ${themeClasses.card}`}>
+                      <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                        <button
+                          onClick={handleBackToDashboard}
+                          className={`flex-1 sm:flex-none px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
+                        >
+                          <Icon name="arrow-left" className="w-4 h-4" />
+                          <span>Back to Dashboard</span>
+                        </button>
+                        {appMode === 'dashboard' && selectedModule && selectedModule !== 'learning' && (
+                          <button
+                            onClick={() => generateTest(selectedModule)}
+                            className={`flex-1 sm:flex-none px-4 py-2.5 text-xs font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-2 ${themeClasses.accentSoft}`}
+                          >
+                            <Icon name="refresh" className="w-4 h-4" />
+                            <span>New Test</span>
+                          </button>
+                        )}
+                      </div>
+                      <div className="text-left sm:text-right w-full sm:w-auto">
+                        <span className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.accent}`}>
+                          {appMode === 'full_exam' ? `Full Exam Step ${examStepIndex + 1} of 5` : 'Individual Practice Mode'}
+                        </span>
+                        <h2 className="text-lg font-bold capitalize">{selectedModule} Module</h2>
+                      </div>
+                    </div>
+
+                    {selectedModule === 'learning' && (
+                      <LearningModuleView
+                        lessons={lessons}
+                        filteredLessons={filteredLessons}
+                        lessonStats={lessonStats}
+                        lessonsLoading={lessonsLoading}
+                        lessonsError={lessonsError}
+                        lessonLevelFilter={lessonLevelFilter}
+                        setLessonLevelFilter={setLessonLevelFilter}
+                        lessonSearchQuery={lessonSearchQuery}
+                        setLessonSearchQuery={setLessonSearchQuery}
+                        lessonStatusFilter={lessonStatusFilter}
+                        setLessonStatusFilter={setLessonStatusFilter}
+                        selectedLesson={selectedLesson}
+                        setSelectedLessonId={setSelectedLessonId}
+                        completedLessonIds={completedLessonIds}
+                        toggleLessonCompleted={toggleLessonCompleted}
+                        reloadLessons={loadLessons}
+                        themeClasses={themeClasses}
+                        selectedLessonIndex={selectedLessonIndex}
+                        Icon={Icon}
                       />
+                    )}
+
+                    {selectedModule === 'speaking' && (
+                      <div className={`rounded-2xl border p-6 sm:p-8 ${themeClasses.card}`}>
+                        <SpeakingRecorder
+                          key={speakingPrompts[0] || 'speaking-default'}
+                          prompts={speakingPrompts}
+                          onComplete={handleSpeakingComplete}
+                        />
+                      </div>
+                    )}
+
+                    {selectedModule === 'writing' && (
+                      <div className={`rounded-2xl border p-6 sm:p-8 space-y-6 ${themeClasses.card}`}>
+                        <div className={`p-5 rounded-xl border ${themeClasses.accentSoft} space-y-2`}>
+                          <span className={`text-xs font-bold uppercase block ${themeClasses.accent}`}>
+                            Writing Scenario Prompt:
+                          </span>
+                          <p className="text-sm sm:text-base font-medium whitespace-pre-line leading-relaxed">
+                            {writingSubPrompts[0] || writingPrompt}
+                          </p>
+                        </div>
+
+                        <textarea
+                          rows={14}
+                          value={writingDrafts[0] ?? ''}
+                          onChange={(e) => {
+                            const updated = [e.target.value];
+                            setWritingDrafts(updated);
+                            setWritingText(e.target.value);
+                          }}
+                          placeholder="Type your complete professional response here..."
+                          className={`w-full p-5 border rounded-xl bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 leading-relaxed resize-y ${themeClasses.border}`}
+                        />
+
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                          <span className={`text-xs ${themeClasses.textMuted}`}>
+                            Total: {writingText.trim() ? writingText.trim().split(/\s+/).length : 0} words
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={handleSubmitWriting}
+                            disabled={isEvaluatingWriting || !writingText.trim()}
+                            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-8 py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
+                          >
+                            <span>{isEvaluatingWriting ? 'Evaluating...' : 'Submit Writing Assessment'}</span>
+                          </button>
+                        </div>
+
+                        {isEvaluatingWriting && (
+                          <div className="p-6 text-center space-y-4 bg-slate-500/5 rounded-xl border border-slate-500/10">
+                            <svg className="animate-spin h-8 w-8 text-indigo-500 mx-auto" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className={`text-sm font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>
+                              Analyzing your writing...
+                            </span>
+                          </div>
+                        )}
+
+                        {writingEvaluationDetails && !isEvaluatingWriting && (
+                          <div className={`mt-6 pt-6 border-t space-y-8 animate-fadeIn ${themeClasses.border}`}>
+                            <div className="text-center border-b border-slate-500/10 pb-8">
+                              <p className={`text-xs font-bold uppercase tracking-wider ${themeClasses.textMuted}`}>
+                                Overall Writing Score
+                              </p>
+                              <p className={`text-6xl font-black mt-3 ${getWritingScoreColor(writingEvaluationDetails.overallScore)}`}>
+                                {writingEvaluationDetails.overallScore}
+                                <span className="text-2xl text-slate-500">/100</span>
+                              </p>
+                              <p className={`mt-4 text-sm max-w-2xl mx-auto leading-relaxed ${themeClasses.textMuted}`}>
+                                {writingEvaluationDetails.feedbackSummary}
+                              </p>
+                            </div>
+
+                            <div className="space-y-5">
+                              <h3 className="text-sm font-bold uppercase tracking-wider">Score Breakdown</h3>
+                              {[
+                                { label: 'Grammar', score: writingEvaluationDetails.grammarScore },
+                                { label: 'Vocabulary', score: writingEvaluationDetails.vocabularyScore },
+                                { label: 'Coherence', score: writingEvaluationDetails.coherenceScore },
+                                { label: 'Task Achievement', score: writingEvaluationDetails.taskAchievementScore },
+                              ].map((cat) => (
+                                <div key={cat.label}>
+                                  <div className="flex justify-between text-xs font-bold mb-2">
+                                    <span>{cat.label}</span>
+                                    <span className={getWritingScoreColor(cat.score)}>
+                                      {cat.score}/100
+                                    </span>
+                                  </div>
+                                  <div className="w-full h-2.5 bg-slate-500/20 rounded-full overflow-hidden">
+                                    <div
+                                      className={`h-full ${getWritingBarColor(cat.score)} transition-all duration-700`}
+                                      style={{ width: `${cat.score}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div>
+                              <h3 className="text-sm font-bold uppercase tracking-wider mb-4">Detailed Feedback</h3>
+                              <div className="space-y-3">
+                                {writingEvaluationDetails.grammarNotes.map((note, idx) => (
+                                  <div
+                                    key={idx}
+                                    className={`flex items-start gap-3 border rounded-lg p-4 text-xs font-medium ${getWritingNoteStyles(note.type)}`}
+                                  >
+                                    <span className="font-bold shrink-0">
+                                      {getWritingNoteIcon(note.type)}
+                                    </span>
+                                    <span>{note.message}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedModule === 'typing' && (
+                      <div className={`rounded-2xl border p-6 sm:p-8 space-y-6 ${themeClasses.card}`}>
+                        <div className="grid grid-cols-2 gap-5">
+                          <div className={`p-5 rounded-xl border ${themeClasses.accentSoft}`}>
+                            <span className={`text-xs font-bold uppercase block ${themeClasses.accent}`}>WPM</span>
+                            <span className="text-4xl font-black">{wpm}</span>
+                          </div>
+                          <div className={`p-5 rounded-xl border ${themeClasses.accentSoft}`}>
+                            <span className={`text-xs font-bold uppercase block ${themeClasses.accent}`}>Accuracy</span>
+                            <span className="text-4xl font-black">{accuracy}%</span>
+                          </div>
+                        </div>
+
+                        <div className="p-6 bg-slate-950 text-slate-300 rounded-xl font-mono text-sm sm:text-base leading-relaxed overflow-x-auto border border-slate-800">
+                          {typingPassage.split('').map((char, index) => {
+                            let color = 'text-slate-500';
+                            if (index < userInput.length) {
+                              color = userInput[index] === char ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold underline';
+                            }
+                            return <span key={index} className={color}>{char}</span>;
+                          })}
+                        </div>
+
+                        <textarea
+                          ref={typingInputRef}
+                          rows={4}
+                          disabled={isTypingCompleted}
+                          value={userInput}
+                          onChange={handleTypingChange}
+                          placeholder="Type passage here..."
+                          className={`w-full p-5 border rounded-xl bg-transparent font-mono text-sm outline-none focus:ring-2 focus:ring-indigo-500 ${themeClasses.border}`}
+                        />
+
+                        {isTypingCompleted && !showScorePopup && (
+                          <div className={`p-4 rounded-lg font-bold text-sm ${themeClasses.accentSoft}`}>
+                            Typing Completed! Score Recorded: {score}% {appMode === 'full_exam' && '• Finalizing exam score...'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {(selectedModule === 'listening' || selectedModule === 'reading') && (
+                      <div className={`rounded-2xl border p-6 sm:p-8 space-y-6 ${themeClasses.card}`}>
+                        {loading && (
+                          <div className={`text-center py-16 font-bold ${themeClasses.textMuted}`}>
+                            Generating test questions...
+                          </div>
+                        )}
+
+                        {!loading && !testData && (
+                          <button
+                            onClick={() => generateTest(selectedModule)}
+                            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-8 py-4 rounded-lg transition-colors cursor-pointer"
+                          >
+                            Load {selectedModule.toUpperCase()} Test
+                          </button>
+                        )}
+
+                        {testData && (
+                          <div className="space-y-8">
+                            <h3 className="text-xl font-bold">{testData.title}</h3>
+
+                            {selectedModule === 'reading' && testData.passage && (
+                              <details
+                                open
+                                className={`p-6 rounded-xl font-serif leading-relaxed border ${themeClasses.accentSoft}`}
+                              >
+                                <summary className={`cursor-pointer font-sans font-bold text-xs uppercase tracking-wider mb-4 ${themeClasses.accent}`}>
+                                  Reading Passage (click to collapse)
+                                </summary>
+                                <div className="whitespace-pre-line text-sm">{testData.passage}</div>
+                              </details>
+                            )}
+
+                            {selectedModule === 'listening' && testData.audioScript && !hasAudioEnded && (
+                              <div className="p-5 bg-slate-950 text-white rounded-xl space-y-3 border border-slate-800">
+                                <AudioPlayer
+                                  script={testData.audioScript}
+                                  onPlay={() => setHasAudioStarted(true)}
+                                  onEnded={() => {
+                                    setHasAudioEnded(true);
+                                    setIsListeningTimerActive(true);
+                                  }}
+                                />
+                              </div>
+                            )}
+
+                            {(selectedModule === 'reading' || hasAudioEnded) && (
+                              <div className="space-y-8">
+                                {selectedModule === 'listening' && isListeningTimerActive && !isSubmitted && (
+                                  <div className="p-4 bg-rose-600 text-white text-sm font-mono rounded-xl flex items-center justify-between animate-pulse">
+                                    <span className="flex items-center gap-2">
+                                      <Icon name="clock" className="w-5 h-5" />
+                                      Time Remaining:
+                                    </span>
+                                    <span className="text-lg font-black">{listeningTimer}s</span>
+                                  </div>
+                                )}
+
+                                <div className="space-y-3">
+                                  <div className="flex items-center justify-between text-xs font-bold">
+                                    <span className={themeClasses.textMuted}>
+                                      Question {currentQuestionIndex + 1} of {totalQuestions}
+                                    </span>
+                                    <span className={themeClasses.accent}>
+                                      {answeredCount} / {totalQuestions} answered
+                                    </span>
+                                  </div>
+                                  <div className="w-full h-2 bg-slate-500/20 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-indigo-600 transition-all duration-500"
+                                      style={{
+                                        width: `${((currentQuestionIndex + 1) / Math.max(totalQuestions, 1)) * 100}%`,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+
+                                {testData.questions[currentQuestionIndex] && (
+                                  <div className={`p-6 rounded-xl border space-y-5 ${themeClasses.cardHover}`}>
+                                    <p className="font-semibold text-base">
+                                      {testData.questions[currentQuestionIndex].question}
+                                    </p>
+
+                                    <div className="grid grid-cols-1 gap-3">
+                                      {testData.questions[currentQuestionIndex].options?.map((opt, oIdx) => {
+                                        const qId = testData.questions[currentQuestionIndex].id;
+                                        const isSelected = selectedAnswers[qId] === opt;
+                                        const isCorrect =
+                                          isSubmitted &&
+                                          opt.trim().toLowerCase() ===
+                                            (testData.questions[currentQuestionIndex].correctAnswer || '')
+                                              .trim()
+                                              .toLowerCase();
+                                        const isWrongSelected = isSubmitted && isSelected && !isCorrect;
+
+                                        return (
+                                          <button
+                                            key={oIdx}
+                                            disabled={isSubmitted}
+                                            onClick={() => handleSelectAnswer(qId, opt)}
+                                            className={`p-4 text-left rounded-lg border text-sm font-medium transition-all cursor-pointer flex items-center gap-4 ${
+                                              isCorrect
+                                                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 font-bold'
+                                                : isWrongSelected
+                                                  ? 'bg-rose-500/20 border-rose-500 text-rose-400 font-bold'
+                                                  : isSelected
+                                                    ? 'bg-amber-500/20 border-amber-500 text-amber-400 font-bold'
+                                                    : `border-slate-500/20 bg-transparent hover:border-indigo-400`
+                                            }`}
+                                          >
+                                            <span
+                                              className={`w-8 h-8 shrink-0 rounded-full border-2 flex items-center justify-center text-xs font-black ${
+                                                isSelected
+                                                  ? 'border-current bg-current/10'
+                                                  : 'border-slate-500/40'
+                                              }`}
+                                            >
+                                              {String.fromCharCode(65 + oIdx)}
+                                            </span>
+                                            <span className="flex-1">{opt}</span>
+                                            {isCorrect && <span className="text-emerald-400 text-lg">✓</span>}
+                                            {isWrongSelected && <span className="text-rose-400 text-lg">✕</span>}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className="flex flex-col sm:flex-row items-center gap-4">
+                                  <button
+                                    type="button"
+                                    onClick={handlePreviousQuestion}
+                                    disabled={currentQuestionIndex === 0}
+                                    className={`w-full sm:w-auto px-6 py-3 text-sm font-bold rounded-lg transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 border ${themeClasses.border} ${themeClasses.cardHover}`}
+                                  >
+                                    <Icon name="arrow-left" className="w-4 h-4" />
+                                    <span>Previous</span>
+                                  </button>
+
+                                  <div className="flex-1 flex items-center justify-center gap-2 flex-wrap order-last sm:order-none w-full sm:w-auto">
+                                    {testData.questions.map((q, idx) => {
+                                      const answered = !!selectedAnswers[q.id];
+                                      const isCurrent = idx === currentQuestionIndex;
+                                      return (
+                                        <button
+                                          key={q.id || idx}
+                                          onClick={() => setCurrentQuestionIndex(idx)}
+                                          aria-label={`Go to question ${idx + 1}`}
+                                          className={`w-9 h-9 rounded-full text-xs font-bold transition cursor-pointer flex items-center justify-center border-2 ${
+                                            isCurrent
+                                              ? 'bg-indigo-600 border-indigo-500 text-white scale-110'
+                                              : answered
+                                                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                                                : `bg-transparent border-slate-500/30 text-slate-400 hover:border-indigo-400`
+                                          }`}
+                                        >
+                                          {idx + 1}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {!isLastQuestion ? (
+                                    <button
+                                      type="button"
+                                      onClick={handleNextQuestion}
+                                      className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
+                                    >
+                                      <span>Next</span>
+                                      <Icon name="chevron-right" className="w-4 h-4" />
+                                    </button>
+                                  ) : !isSubmitted ? (
+                                    <button
+                                      type="button"
+                                      onClick={selectedModule === 'listening' ? handleSubmitListening : handleSubmitReading}
+                                      disabled={!allQuestionsAnswered}
+                                      className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-sm px-6 py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2"
+                                    >
+                                      <span>
+                                        {allQuestionsAnswered
+                                          ? `Submit ${selectedModule} Answers`
+                                          : `Answer all (${answeredCount}/${totalQuestions})`}
+                                      </span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={handleBackToDashboard}
+                                      className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-lg transition-colors cursor-pointer"
+                                    >
+                                      Back to Dashboard
+                                    </button>
+                                  )}
+                                </div>
+
+                                {isSubmitted && !showScorePopup && (
+                                  <div className={`p-4 rounded-lg font-bold text-sm ${themeClasses.accentSoft}`}>
+                                    {selectedModule.toUpperCase()} Module Complete! Score Recorded: {score}%
+                                    {appMode === 'full_exam' && ' • Advancing to next exam module...'}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </main>
+          </div>
+
+          {isMobileMenuOpen && (
+            <div className="md:hidden fixed inset-0 z-50">
+              <button
+                type="button"
+                aria-label="Close navigation menu"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              />
+
+              <aside className={`absolute top-0 bottom-0 left-0 w-[min(88vw,340px)] ${themeClasses.sidebar} border-r shadow-2xl p-5 pt-6 flex flex-col overflow-y-auto`} style={{ paddingTop: 'calc(1.5rem + env(safe-area-inset-top))', paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+                <div className={`flex items-center justify-between pb-5 mb-5 border-b ${themeClasses.border}`}>
+                  <div className="min-w-0">
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${themeClasses.textMuted}`}>
+                      System Navigation
+                    </span>
+                    <p className="text-base font-black truncate mt-1">Cally Assessment Hub</p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Close menu"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition ${themeClasses.cardHover}`}
+                  >
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className={`flex items-center gap-3 p-3 mb-4 rounded-xl border ${themeClasses.card}`}>
+                  <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-base">
+                    {(userName || 'C').charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold truncate">{userName || 'Candidate'}</p>
+                    <p className={`text-[10px] ${themeClasses.textMuted}`}>{isAdmin ? 'Administrator' : 'Candidate'}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
+                    Workspace
+                  </span>
+                  <nav className="space-y-1.5 pt-2">
+                    <button
+                      onClick={() => handleSelectSidebarTab('overview')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
+                        activeTab === 'overview'
+                          ? 'bg-indigo-600 text-white'
+                          : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+                      }`}
+                    >
+                      <Icon name="chart" className="w-5 h-5" />
+                      <span>Dashboard Overview</span>
+                    </button>
+                    <button
+                      onClick={() => handleSelectSidebarTab('logs')}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
+                        activeTab === 'logs'
+                          ? 'bg-indigo-600 text-white'
+                          : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+                      }`}
+                    >
+                      <Icon name="trending" className="w-5 h-5" />
+                      <span>Performance Logs</span>
+                    </button>
+                    <button
+                      onClick={() => handleSelectSidebarTab('support' as any)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-bold text-sm transition-all cursor-pointer text-left ${
+                        activeTab === 'support'
+                          ? 'bg-indigo-600 text-white'
+                          : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+                      }`}
+                    >
+                      <Icon name="info" className="w-5 h-5" />
+                      <span>Support Tickets</span>
+                    </button>
+                  </nav>
+                </div>
+
+                <div className="space-y-1 mt-6">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest px-3 ${themeClasses.textMuted}`}>
+                    Practice Modules
+                  </span>
+                  <nav className="space-y-1.5 pt-2">
+                    {dashboardFeatures.map((feat) => (
+                      <button
+                        key={feat.id}
+                        onClick={() => handleSelectSidebarTab(feat.id)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer text-left ${
+                          activeTab === feat.id
+                            ? `${themeClasses.accentSoft} border`
+                            : `${themeClasses.textSecondary} ${themeClasses.cardHover}`
+                        }`}
+                      >
+                        <span className="flex items-center gap-3 min-w-0">
+                          <div className={`w-7 h-7 rounded-lg ${feat.color} flex items-center justify-center shrink-0`}>
+                            <Icon name={feat.icon} className="w-3.5 h-3.5 text-white" />
+                          </div>
+                          <span className="truncate">{feat.title}</span>
+                        </span>
+                        <Icon name="chevron-right" className="w-4 h-4 shrink-0 opacity-50" />
+                      </button>
                     ))}
+                  </nav>
+
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleStartFullExam();
+                    }}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm px-4 py-4 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 mt-4"
+                  >
+                    <Icon name="academic" className="w-5 h-5" />
+                    <span>Take Full Exam</span>
+                  </button>
+
+                  {isAdmin && (
+                    <a
+                      href="/admin"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black text-sm px-4 py-4 rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 mt-3"
+                    >
+                      <Icon name="settings" className="w-5 h-5" />
+                      <span>Admin Dashboard</span>
+                    </a>
+                  )}
+                </div>
+
+                <div className={`mt-auto pt-6 border-t ${themeClasses.border} space-y-3`}>
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      setShowLogoutModal(true);
+                    }}
+                    className="w-full px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg transition cursor-pointer text-sm font-bold flex items-center justify-center gap-2"
+                  >
+                    <Icon name="log-out" className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </button>
+
+                  <button
+                    onClick={() => setShowRatingModal(true)}
+                    className="w-full px-4 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-sm font-bold border border-amber-500/20 transition cursor-pointer flex items-center gap-2 justify-center"
+                  >
+                    <Icon name="star" className="w-4 h-4" />
+                    <span>Rate Us</span>
+                  </button>
+                </div>
+              </aside>
+            </div>
+          )}
+
+          {showLogoutModal && (
+            <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 animate-fadeIn">
+              <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-8 shadow-2xl text-center space-y-6">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-xl bg-rose-500/10 flex items-center justify-center mx-auto border border-rose-500/30">
+                    <Icon name="log-out" className="w-10 h-10 text-rose-400" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-rose-500 flex items-center justify-center">
+                    <span className="text-white text-xs font-black">!</span>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>
-                    Your Recommendation & Comments
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={userFeedback}
-                    onChange={(e) => setUserFeedback(e.target.value)}
-                    placeholder="Tell us what you like about the system or what can be improved..."
-                    className={`w-full p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${themeClasses.border}`}
+                  <h3 className="text-2xl font-black text-white">Sign Out?</h3>
+                  <p className="text-sm text-slate-400 leading-relaxed">
+                    Are you sure you want to sign out of your account? Your progress and certificates are saved and will be available when you return.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black text-base shrink-0">
+                      {(userName || 'C').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="text-left min-w-0">
+                      <p className="text-sm font-bold text-white truncate">{userName || 'Candidate'}</p>
+                      <p className="text-[11px] text-slate-400 truncate">{email || 'candidate@example.com'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => setShowLogoutModal(false)}
+                    disabled={isLoggingOut}
+                    className="flex-1 py-4 px-6 rounded-lg border border-slate-700 bg-slate-800 text-white font-bold text-sm transition hover:bg-slate-700 disabled:opacity-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="flex-1 py-4 px-6 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {isLoggingOut ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Signing Out...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="log-out" className="w-4 h-4" />
+                        <span>Yes, Sign Out</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isTimedEvaluationActive && showIntegrityWarning && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4">
+              <div className={`w-full max-w-md rounded-2xl border p-8 ${themeClasses.card}`}>
+                <div className="w-16 h-16 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center mb-5">
+                  <Icon name="alert-circle" className="w-8 h-8" />
+                </div>
+                <h3 className="text-xl font-black">Assessment Integrity Warning</h3>
+                <p className={`mt-3 text-sm leading-relaxed ${themeClasses.textMuted}`}>{integrityWarning}</p>
+                <div className="mt-5 flex items-center justify-between text-xs">
+                  <span className={themeClasses.textMuted}>Integrity events detected</span>
+                  <strong className="text-amber-400">{antiCheatViolations}</strong>
+                </div>
+                {!isFullscreen && (
+                  <p className="mt-3 text-xs font-bold text-rose-400">Fullscreen is required to continue.</p>
+                )}
+                <button
+                  onClick={() => {
+                    if (document.fullscreenElement || !isTimedEvaluationActive) {
+                      setShowIntegrityWarning(false);
+                    } else {
+                      requestExamFullscreen();
+                    }
+                  }}
+                  className="mt-6 w-full py-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-colors"
+                >
+                  Return to Assessment
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showRatingModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fadeIn">
+              <div className={`border rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
+                <div className={`flex items-center justify-between border-b pb-5 ${themeClasses.border}`}>
+                  <div className="space-y-1">
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${themeClasses.accent}`}>
+                      System Feedback
+                    </span>
+                    <h3 className="text-xl font-black">Rate & Recommend Cally</h3>
+                  </div>
+                  <button
+                    onClick={() => setShowRatingModal(false)}
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition cursor-pointer ${themeClasses.cardHover}`}
+                  >
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {ratingSubmitted ? (
+                  <div className="py-10 text-center space-y-4">
+                    <div className="w-16 h-16 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center mx-auto">
+                      <Icon name="sparkles" className="w-8 h-8" />
+                    </div>
+                    <h4 className="text-lg font-bold">Thank you for your feedback!</h4>
+                    <p className={`text-sm ${themeClasses.textMuted}`}>
+                      Your review helps us improve the assessment platform.
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmitRating} className="space-y-6">
+                    <div className="space-y-4 text-center">
+                      <label className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>
+                        Select Star Rating
+                      </label>
+                      <div className="flex items-center justify-center gap-3">
+                        {Array.from({ length: 5 }, (_, i) => i + 1).map((star) => (
+                          <RatingStar
+                            key={star}
+                            star={star}
+                            value={hoverRating || userRating}
+                            onPreview={setHoverRating}
+                            onSelect={setUserRating}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className={`text-xs font-bold uppercase tracking-wider block ${themeClasses.textMuted}`}>
+                        Your Recommendation & Comments
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={userFeedback}
+                        onChange={(e) => setUserFeedback(e.target.value)}
+                        placeholder="Tell us what you like about the system or what can be improved..."
+                        className={`w-full p-4 rounded-lg border bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${themeClasses.border}`}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingRating}
+                      className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm rounded-lg transition-colors cursor-pointer"
+                    >
+                      {isSubmittingRating ? 'Submitting Review...' : 'Submit Rating & Feedback'}
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          )}
+
+          {showScorePopup && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 animate-fadeIn">
+              <div className={`border rounded-2xl max-w-sm w-full p-8 shadow-2xl text-center space-y-6 ${themeClasses.card}`}>
+                <div className={`w-24 h-24 rounded-xl flex items-center justify-center mx-auto ${
+                  score !== null && score <= 70
+                    ? 'bg-rose-500/20 text-rose-400'
+                    : 'bg-emerald-500/20 text-emerald-400'
+                }`}>
+                  <Icon
+                    name={score !== null && score <= 70 ? 'alert-circle' : 'trophy'}
+                    className="w-12 h-12"
                   />
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmittingRating}
-                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-sm rounded-lg transition-colors cursor-pointer"
-                >
-                  {isSubmittingRating ? 'Submitting Review...' : 'Submit Rating & Feedback'}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Score Popup */}
-      {showScorePopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className={`border rounded-2xl max-w-sm w-full p-8 shadow-2xl text-center space-y-6 ${themeClasses.card}`}>
-            <div className={`w-24 h-24 rounded-xl flex items-center justify-center mx-auto ${
-              score !== null && score <= 70 
-                ? 'bg-rose-500/20 text-rose-400' 
-                : 'bg-emerald-500/20 text-emerald-400'
-            }`}>
-              <Icon 
-                name={score !== null && score <= 70 ? 'alert-circle' : 'trophy'} 
-                className="w-12 h-12" 
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <span className={`text-xs font-bold uppercase tracking-widest block ${themeClasses.accent}`}>
-                Module Completed
-              </span>
-              <h3 className="text-2xl font-black">Your Score</h3>
-            </div>
-            
-            <div className={`py-4 rounded-xl border ${
-              score !== null && score <= 70 
-                ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' 
-                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-            }`}>
-              <span className="text-6xl font-black">{score}%</span>
-            </div>
-
-            {/* ⬇️ NEW: Show WPM & Accuracy breakdown when typing module completes */}
-            {selectedModule === 'typing' && wpm > 0 && (
-              <div className="flex items-center justify-center gap-4 py-3 rounded-xl border border-sky-500/30 bg-sky-500/10">
-                <div className="text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-sky-300">WPM</p>
-                  <p className="text-3xl font-black text-white">{wpm}</p>
-                </div>
-                <div className="w-px h-10 bg-sky-500/30" />
-                <div className="text-center">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Accuracy</p>
-                  <p className="text-3xl font-black text-white">{accuracy}%</p>
-                </div>
-              </div>
-            )}
-
-            {score !== null && score <= 70 && (
-              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-xs italic font-medium leading-relaxed">
-                {motivationalQuote}
-              </div>
-            )}
-
-            <div className="space-y-3 pt-2">
-              <button
-                onClick={() => {
-                  setShowScorePopup(false);
-                  if (appMode === 'full_exam') {
-                    handleAdvanceExamStep(score || 0);
-                  }
-                }}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm py-4 px-4 rounded-lg transition-colors cursor-pointer"
-              >
-                {appMode === 'full_exam' ? 'Continue to Next Module →' : 'Close'}
-              </button>
-
-              {appMode === 'dashboard' && selectedModule && selectedModule !== 'learning' && (
-                <button
-                  onClick={() => {
-                    setShowScorePopup(false);
-                    generateTest(selectedModule);
-                  }}
-                  className={`w-full font-bold text-sm py-3.5 px-4 rounded-lg transition cursor-pointer border flex items-center justify-center gap-2 ${themeClasses.border} ${themeClasses.cardHover}`}
-                >
-                  <Icon name="refresh" className="w-4 h-4" />
-                  <span>Generate New Test</span>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Instructions Modal */}
-      {showInstructionsModal && activeFeature && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className={`border rounded-2xl max-w-lg w-full p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
-            <div className={`flex items-center justify-between border-b pb-5 ${themeClasses.border}`}>
-              <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-xl ${activeFeature.color} flex items-center justify-center`}>
-                  <Icon name={activeFeature.icon} className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest block ${themeClasses.accent}`}>
-                    Module Guide
+                <div className="space-y-2">
+                  <span className={`text-xs font-bold uppercase tracking-widest block ${themeClasses.accent}`}>
+                    Module Completed
                   </span>
-                  <h3 className="text-lg font-black">{activeFeature.title}</h3>
+                  <h3 className="text-2xl font-black">Your Score</h3>
+                </div>
+
+                <div className={`py-4 rounded-xl border ${
+                  score !== null && score <= 70
+                    ? 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                }`}>
+                  <span className="text-6xl font-black">{score}%</span>
+                </div>
+
+                {selectedModule === 'typing' && wpm > 0 && (
+                  <div className="flex items-center justify-center gap-4 py-3 rounded-xl border border-sky-500/30 bg-sky-500/10">
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-sky-300">WPM</p>
+                      <p className="text-3xl font-black text-white">{wpm}</p>
+                    </div>
+                    <div className="w-px h-10 bg-sky-500/30" />
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Accuracy</p>
+                      <p className="text-3xl font-black text-white">{accuracy}%</p>
+                    </div>
+                  </div>
+                )}
+
+                {score !== null && score <= 70 && (
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-xs italic font-medium leading-relaxed">
+                    {motivationalQuote}
+                  </div>
+                )}
+
+                <div className="space-y-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setShowScorePopup(false);
+                      if (appMode === 'full_exam') {
+                        handleAdvanceExamStep(score || 0);
+                      }
+                    }}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm py-4 px-4 rounded-lg transition-colors cursor-pointer"
+                  >
+                    {appMode === 'full_exam' ? 'Continue to Next Module →' : 'Close'}
+                  </button>
+
+                  {appMode === 'dashboard' && selectedModule && selectedModule !== 'learning' && (
+                    <button
+                      onClick={() => {
+                        setShowScorePopup(false);
+                        generateTest(selectedModule);
+                      }}
+                      className={`w-full font-bold text-sm py-3.5 px-4 rounded-lg transition cursor-pointer border flex items-center justify-center gap-2 ${themeClasses.border} ${themeClasses.cardHover}`}
+                    >
+                      <Icon name="refresh" className="w-4 h-4" />
+                      <span>Generate New Test</span>
+                    </button>
+                  )}
                 </div>
               </div>
-              <button
-                onClick={() => setShowInstructionsModal(false)}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center transition cursor-pointer ${themeClasses.cardHover}`}
-              >
-                <Icon name="x" className="w-5 h-5" />
-              </button>
             </div>
+          )}
 
-            <div className={`p-5 rounded-xl border text-sm leading-relaxed whitespace-pre-line font-medium ${themeClasses.cardHover}`}>
-              {activeFeature.instructions}
-            </div>
+          {/* MINI CERTIFICATE MODAL VIEWER */}
+          {viewingMiniCert && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 overflow-y-auto animate-fadeIn">
+              <div className="relative w-full max-w-3xl my-8">
+                <button
+                  onClick={() => setViewingMiniCert(null)}
+                  className="absolute -top-12 right-0 px-4 py-2 rounded-lg bg-rose-500/20 text-rose-300 font-bold text-xs border border-rose-500/30 hover:bg-rose-500/30 transition cursor-pointer"
+                >
+                  Close ✕
+                </button>
 
-            <button
-              onClick={() => setShowInstructionsModal(false)}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm py-4 px-4 rounded-lg transition-colors cursor-pointer"
-            >
-              Got it, Let's Begin!
-            </button>
-          </div>
-        </div>
-      )}
+                <div className="flex justify-center py-4 overflow-x-auto">
+                  <MiniModuleCertificate
+                    cert={viewingMiniCert}
+                    userName={userName || 'Candidate'}
+                  />
+                </div>
 
-      {/* Footer */}
-      <footer className={`relative z-10 shrink-0 border-t py-4 px-4 sm:px-8 ${themeClasses.header}`}>
-        <div className="max-w-6xl mx-auto flex items-center justify-center text-xs text-center">
-          <div className="flex items-center gap-3 justify-center flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded bg-indigo-600 flex items-center justify-center">
-                <span className="text-[8px] font-black text-white">T</span>
+                <div className="flex justify-center mt-4">
+                  <button
+                    onClick={async () => {
+                      const element = document.getElementById(`mini-cert-${viewingMiniCert.id}`);
+                      if (!element) return;
+
+                      if (!(window as any).html2pdf) {
+                        await new Promise((resolve, reject) => {
+                          const script = document.createElement('script');
+                          script.src =
+                            'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                          script.onload = resolve;
+                          script.onerror = reject;
+                          document.head.appendChild(script);
+                        });
+                      }
+
+                      const opt = {
+                        margin: 0,
+                        filename: `Cally_MiniCert_${viewingMiniCert.module_name}_${viewingMiniCert.score}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#0f0f17' },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                      };
+
+                      await (window as any).html2pdf().from(element).set(opt).save();
+                    }}
+                    className="px-8 py-4 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white font-bold text-sm shadow-lg shadow-fuchsia-500/30 hover:shadow-xl transition cursor-pointer flex items-center gap-2"
+                  >
+                    <Icon name="download" className="w-4 h-4" />
+                    <span>Download PDF</span>
+                  </button>
+                </div>
               </div>
-              <span className="font-bold">Developed By TephdyTech</span>
             </div>
-            <span className={themeClasses.textMuted}>&bull;</span>
-            <span className={themeClasses.textMuted}>&copy; {new Date().getFullYear()} All rights reserved.</span>
-            <span className={themeClasses.textMuted}>&bull;</span>
-            <button type="button" onClick={() => setShowTermsModal(true)} className="hover:text-indigo-400 transition">
-              Terms
-            </button>
-            <span className={themeClasses.textMuted}>&bull;</span>
-            <button type="button" onClick={() => setShowPrivacyModal(true)} className="hover:text-indigo-400 transition">
-              Privacy
-            </button>
-          </div>
+          )}
+
+          {showInstructionsModal && activeFeature && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-sm p-4 animate-fadeIn">
+              <div className={`border rounded-2xl max-w-lg w-full p-8 shadow-2xl space-y-6 relative ${themeClasses.card}`}>
+                <div className={`flex items-center justify-between border-b pb-5 ${themeClasses.border}`}>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-xl ${activeFeature.color} flex items-center justify-center`}>
+                      <Icon name={activeFeature.icon} className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <span className={`text-[10px] font-bold uppercase tracking-widest block ${themeClasses.accent}`}>
+                        Module Guide
+                      </span>
+                      <h3 className="text-lg font-black">{activeFeature.title}</h3>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowInstructionsModal(false)}
+                    className={`w-10 h-10 rounded-lg flex items-center justify-center transition cursor-pointer ${themeClasses.cardHover}`}
+                  >
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className={`p-5 rounded-xl border text-sm leading-relaxed whitespace-pre-line font-medium ${themeClasses.cardHover}`}>
+                  {activeFeature.instructions}
+                </div>
+
+                <button
+                  onClick={() => setShowInstructionsModal(false)}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm py-4 px-4 rounded-lg transition-colors cursor-pointer"
+                >
+                  Got it, Let's Begin!
+                </button>
+              </div>
+            </div>
+          )}
+
+          <footer className={`relative z-10 shrink-0 border-t py-4 px-4 sm:px-8 ${themeClasses.header}`}>
+            <div className="max-w-6xl mx-auto flex items-center justify-center text-xs text-center">
+              <div className="flex items-center gap-3 justify-center flex-wrap">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded bg-indigo-600 flex items-center justify-center">
+                    <span className="text-[8px] font-black text-white">T</span>
+                  </div>
+                  <span className="font-bold">Developed By TephdyTech</span>
+                </div>
+                <span className={themeClasses.textMuted}>&bull;</span>
+                <span className={themeClasses.textMuted}>&copy; {new Date().getFullYear()} All rights reserved.</span>
+                <span className={themeClasses.textMuted}>&bull;</span>
+                <button type="button" onClick={() => setShowTermsModal(true)} className="hover:text-indigo-400 transition">
+                  Terms
+                </button>
+                <span className={themeClasses.textMuted}>&bull;</span>
+                <button type="button" onClick={() => setShowPrivacyModal(true)} className="hover:text-indigo-400 transition">
+                  Privacy
+                </button>
+              </div>
+            </div>
+          </footer>
+
+          {/* Privacy Policy Modal (logged-in state) — compact */}
+          <LegalModal
+            isOpen={showPrivacyModal}
+            onClose={() => setShowPrivacyModal(false)}
+            title="Privacy Policy"
+          >
+            <div className="space-y-6">
+              <p className="text-slate-400 text-xs italic">
+                Effective Date: September 15, 2026 · Last Updated: September 16, 2026
+              </p>
+              <p className="text-slate-300 text-sm leading-relaxed">
+                This Privacy Policy explains how <strong className="text-slate-100">TephdyTech</strong> collects, uses, discloses, retains, and protects personal information through the <strong className="text-slate-100">Cally Assessment Hub</strong> platform. It complies with the <strong className="text-slate-100">GDPR</strong>, <strong className="text-slate-100">CCPA/CPRA</strong>, <strong className="text-slate-100">CalOPPA</strong>, and the Philippine Data Privacy Act.
+              </p>
+
+              <section className="space-y-3">
+                <h4 className="text-base font-black text-white">1. Who We Are (Data Controller)</h4>
+                <p>Data Controller: TephdyTech.</p>
+                <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 font-mono text-xs">
+                  <p className="text-slate-300">📧 tephdytech@gmail.com</p>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h4 className="text-base font-black text-white">2. Personal Information We Collect</h4>
+                <ul className="space-y-2 pl-4 text-sm">
+                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Account Information:</strong> Full name, email, hashed password.</span></li>
+                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Data:</strong> Test responses, scores, module attempts.</span></li>
+                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Audio Recordings:</strong> Speaking assessment voice samples.</span></li>
+                  <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Technical Data:</strong> IP address, browser type, device identifiers.</span></li>
+                </ul>
+              </section>
+
+              <section className="space-y-3">
+                <h4 className="text-base font-black text-white">3. Your Rights</h4>
+                <p className="text-sm">
+                  Under GDPR, CCPA/CPRA, CalOPPA, and the Philippine Data Privacy Act, you have rights to access, correct, delete, restrict processing, and port your data. Contact <span className="font-mono text-indigo-300">tephdytech@gmail.com</span>.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h4 className="text-base font-black text-white">4. Contact Us</h4>
+                <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 font-mono text-xs">
+                  <p className="text-slate-300">📧 tephdytech@gmail.com</p>
+                </div>
+              </section>
+
+              <div className="pt-4 border-t border-indigo-500/20">
+                <p className="text-slate-300 text-sm leading-relaxed text-center font-semibold">
+                  By using the Cally Assessment Hub, you acknowledge that you have read and understood this Privacy Policy.
+                </p>
+              </div>
+            </div>
+          </LegalModal>
+
+          {/* Terms of Service Modal (logged-in state) — compact */}
+          <LegalModal
+            isOpen={showTermsModal}
+            onClose={() => setShowTermsModal(false)}
+            title="Terms of Service"
+          >
+            <div className="space-y-6">
+              <p className="text-slate-400 text-xs italic">
+                Effective Date: September 15, 2026 · Last Updated: September 16, 2026
+              </p>
+              <p className="text-slate-300 text-sm leading-relaxed">
+                These Terms of Service constitute a legally binding agreement between you and <strong className="text-slate-100">TephdyTech</strong> governing your access to and use of the <strong className="text-slate-100">Cally Assessment Hub</strong> platform.
+              </p>
+
+              <section className="space-y-3">
+                <h4 className="text-base font-black text-white">1. Acceptance of Terms</h4>
+                <p className="text-sm">
+                  By registering, you represent that you are at least <strong className="text-slate-200">16 years of age</strong> and have the legal capacity to enter into a binding agreement.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h4 className="text-base font-black text-white">2. Acceptable Use Policy</h4>
+                <ul className="space-y-2 pl-4 text-sm">
+                  <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Cheat, use automated scripts, or employ AI assistance during official assessments.</span></li>
+                  <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Copy, distribute, or reverse-engineer assessment content.</span></li>
+                  <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Share certificates under a false identity.</span></li>
+                  <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Attempt to bypass anti-cheat or integrity-monitoring mechanisms.</span></li>
+                </ul>
+              </section>
+
+              <section className="space-y-3">
+                <h4 className="text-base font-black text-white">3. Assessment Integrity</h4>
+                <p className="text-sm">
+                  During official assessments, fullscreen is enforced, tab-switching is logged, and clipboard is disabled. Violations may affect your final score.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h4 className="text-base font-black text-white">4. Certificates</h4>
+                <p className="text-sm">
+                  A Certificate of Achievement is issued only upon achieving <strong className="text-slate-200">80% or higher</strong> across all five full-examination modules. Certificates do not guarantee employment.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h4 className="text-base font-black text-white">5. Contact</h4>
+                <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 font-mono text-xs">
+                  <p className="text-slate-300">📧 tephdytech@gmail.com</p>
+                </div>
+              </section>
+
+              <div className="pt-4 border-t border-indigo-500/20">
+                <p className="text-slate-300 text-sm leading-relaxed text-center font-semibold">
+                  By accessing or using the Cally Assessment Hub, you acknowledge that you have read, understood, and agree to be bound by these Terms.
+                </p>
+              </div>
+            </div>
+          </LegalModal>
         </div>
-      </footer>
-
-      {/* Privacy Policy Modal (logged-in state) */}
-      <LegalModal
-        isOpen={showPrivacyModal}
-        onClose={() => setShowPrivacyModal(false)}
-        title="Privacy Policy"
-      >
-        <div className="space-y-8">
-          <div className="space-y-2">
-            <p className="text-slate-400 text-xs italic">
-              Effective Date: September 15, 2026 · Last Updated: September 16, 2026
-            </p>
-            <p className="text-slate-300 text-sm leading-relaxed">
-              This Privacy Policy explains how <strong className="text-slate-100">TephdyTech</strong> ("TephdyTech," "we," "us," or "our") collects, uses, discloses, retains, and protects personal information through the <strong className="text-slate-100">Cally Assessment Hub</strong> platform (the "Service"). It is designed to comply with the <strong className="text-slate-100">General Data Protection Regulation (GDPR)</strong>, the <strong className="text-slate-100">California Consumer Privacy Act as amended by the California Privacy Rights Act (CCPA/CPRA)</strong>, the <strong className="text-slate-100">California Online Privacy Protection Act (CalOPPA)</strong>, and other applicable data protection laws. Please read this Policy carefully.
-            </p>
-          </div>
-
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">1</span>
-              Who We Are (Data Controller)
-            </h4>
-            <p>
-              <strong className="text-slate-200">Data Controller:</strong> TephdyTech. — Contact Details.
-            </p>
-            <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 space-y-1 font-mono text-xs">
-              <p className="text-slate-300">📧 tephdytech@gmail.com</p>
-            </div>
-            <p className="text-xs text-slate-400">
-              Where applicable, TephdyTech has designated an EU representative under Article 27 GDPR. Contact details are available upon request via dpo@tephdytech.com.
-            </p>
-          </section>
-
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">2</span>
-              Personal Information We Collect
-            </h4>
-            <p className="font-semibold text-slate-200">We collect the following categories of personal information:</p>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Account Information:</strong> Full name, email address, hashed password, and profile details.</span></li>
-              <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Data:</strong> Test responses, scores, module attempts, completion times, and proficiency ratings.</span></li>
-              <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Audio Recordings:</strong> Voice samples recorded during Speaking assessments, used solely for AI-based evaluation and deleted after processing.</span></li>
-              <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Technical Data:</strong> IP address, browser type, device identifiers, operating system, and session integrity logs.</span></li>
-            </ul>
-          </section>
-
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">3</span>
-              How We Use Your Information
-            </h4>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Service Delivery:</strong> To provide, operate, and maintain the assessment and certification platform.</span></li>
-              <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Assessment Evaluation:</strong> To process and score your module responses using AI and rule-based engines.</span></li>
-              <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Authentication:</strong> To verify identity and protect against unauthorized access.</span></li>
-              <li className="flex gap-3"><span className="text-indigo-400 font-bold">•</span><span><strong className="text-slate-200">Improvement:</strong> To analyze usage patterns and improve the Service's functionality and user experience.</span></li>
-            </ul>
-          </section>
-
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">4</span>
-              Your Rights
-            </h4>
-            <p className="text-sm">
-              Under GDPR, CCPA/CPRA, CalOPPA, and the Philippine Data Privacy Act, you have rights to access, correct, delete, restrict processing, and port your data. To exercise these rights, contact <span className="font-mono text-indigo-300">tephdytech@gmail.com</span>.
-            </p>
-          </section>
-
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">5</span>
-              Contact Us
-            </h4>
-            <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 space-y-2 font-mono text-xs">
-              <p className="text-slate-300">📧 tephdytech@gmail.com — General Privacy Inquiries</p>
-            </div>
-          </section>
-
-          <div className="pt-4 border-t border-indigo-500/20">
-            <p className="text-slate-300 text-sm leading-relaxed text-center font-semibold">
-              By using the Cally Assessment Hub, you acknowledge that you have read and understood this Privacy Policy and consent to the practices described herein, to the extent consent is the applicable legal basis.
-            </p>
-          </div>
-        </div>
-      </LegalModal>
-
-      {/* Terms of Service Modal (logged-in state) */}
-      <LegalModal
-        isOpen={showTermsModal}
-        onClose={() => setShowTermsModal(false)}
-        title="Terms of Service"
-      >
-        <div className="space-y-8">
-          <div className="space-y-2">
-            <p className="text-slate-400 text-xs italic">
-              Effective Date: September 15, 2026 · Last Updated: September 16, 2026
-            </p>
-            <p className="text-slate-300 text-sm leading-relaxed">
-              These Terms of Service ("Terms") constitute a legally binding agreement between you ("User," "you," or "your") and <strong className="text-slate-100">TephdyTech</strong> ("TephdyTech," "we," "us," or "our") governing your access to and use of the <strong className="text-slate-100">Cally Assessment Hub</strong> platform (the "Service").
-            </p>
-          </div>
-
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">1</span>
-              Acceptance of Terms
-            </h4>
-            <p className="text-sm">
-              By registering for an account, accessing, or using the Service, you agree to be bound by these Terms. You represent that you are at least <strong className="text-slate-200">16 years of age</strong> (or 13 where permitted under applicable local law and with parental consent) and have the legal capacity to enter into a binding agreement.
-            </p>
-          </section>
-
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">2</span>
-              Acceptable Use Policy
-            </h4>
-            <ul className="space-y-2 pl-4 text-sm">
-              <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Cheat, use automated scripts, bots, or employ AI assistance during official timed assessments.</span></li>
-              <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Copy, distribute, sell, sublicense, or reverse-engineer assessment content, questions, or answer keys.</span></li>
-              <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Share certificates under a false identity or misrepresent your credentials to third parties.</span></li>
-              <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Attempt to bypass anti-cheat, fullscreen, or integrity-monitoring mechanisms.</span></li>
-              <li className="flex gap-3"><span className="text-rose-400 font-bold">✕</span><span>Use the Service for any unlawful, fraudulent, or unauthorized purpose.</span></li>
-            </ul>
-          </section>
-
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">3</span>
-              Assessment Integrity
-            </h4>
-            <p className="text-sm">
-              During official timed assessments, fullscreen mode is enforced, tab-switching is logged, clipboard operations are disabled, and integrity violations may affect your final score or certification eligibility.
-            </p>
-          </section>
-
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">4</span>
-              Certificates
-            </h4>
-            <p className="text-sm">
-              A Certificate of Achievement is issued only upon achieving a cumulative score of <strong className="text-slate-200">80% or higher</strong> across all five (5) full-examination modules. Certificates demonstrate assessed competency only and do not constitute a guarantee of employment.
-            </p>
-          </section>
-
-          <section className="space-y-3">
-            <h4 className="text-base font-black text-white flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-black">5</span>
-              Contact Information
-            </h4>
-            <div className="p-4 rounded-lg bg-slate-800 border border-slate-700 space-y-2 font-mono text-xs">
-              <p className="text-slate-300">📧 tephdytech@gmail.com — Legal, Support & Privacy Inquiries</p>
-            </div>
-          </section>
-
-          <div className="pt-4 border-t border-indigo-500/20">
-            <p className="text-slate-300 text-sm leading-relaxed text-center font-semibold">
-              By accessing or using the Cally Assessment Hub, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.
-            </p>
-          </div>
-        </div>
-           </LegalModal>
-    </div>
       </ToastProvider>
     </NotificationProvider>
   );
