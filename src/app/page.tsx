@@ -3320,6 +3320,80 @@ const MODULE_DISPLAY_NAMES: Record<string, string> = {
 };
 
 // ============================================
+// PERSONAL BEST COMPARISON
+// ============================================
+/**
+ * Determines whether a new attempt is a personal best.
+ *
+ * For typing: WPM and accuracy are the primary metrics.
+ *   - Higher accuracy always wins
+ *   - Equal accuracy + higher WPM wins
+ *   - Otherwise not a PB
+ *
+ * For other modules: falls back to higher score.
+ */
+function isNewPersonalBest({
+  moduleName,
+  newScore,
+  newWpm,
+  newAccuracy,
+  previousScores,
+  previousWpms,
+  previousAccuracies,
+}: {
+  moduleName: string;
+  newScore: number;
+  newWpm: number | null;
+  newAccuracy: number | null;
+  previousScores: number[];
+  previousWpms: (number | null)[];
+  previousAccuracies: (number | null)[];
+}): boolean {
+  // No previous attempts? Not a PB — it's a first attempt (handled elsewhere).
+  if (previousScores.length === 0) return false;
+
+  // ---- TYPING: wpm + accuracy based ----
+  if (moduleName === 'typing') {
+    // Filter to attempts that actually have wpm AND accuracy recorded
+    const validPrev = previousAccuracies
+      .map((acc, i) => ({ acc, wpm: previousWpms[i] }))
+      .filter((p) => p.acc !== null && p.wpm !== null) as { acc: number; wpm: number }[];
+
+    if (validPrev.length === 0) {
+      // Older attempts had no typing metrics — fall back to score comparison
+      const previousBestScore = Math.max(...previousScores);
+      return newScore > previousBestScore;
+    }
+
+    // New attempt must have valid metrics too
+    if (newAccuracy === null || newWpm === null) {
+      // Shouldn't happen, but be safe
+      const previousBestScore = Math.max(...previousScores);
+      return newScore > previousBestScore;
+    }
+
+    // Find the best previous by (accuracy DESC, wpm DESC)
+    const previousBestAcc = Math.max(...validPrev.map((p) => p.acc));
+    const previousBestWpmAtBestAcc = Math.max(
+      ...validPrev.filter((p) => p.acc === previousBestAcc).map((p) => p.wpm)
+    );
+
+    // Rule 1: Higher accuracy is always a PB (regardless of WPM)
+    if (newAccuracy > previousBestAcc) return true;
+
+    // Rule 2: Same accuracy, higher WPM is a PB
+    if (newAccuracy === previousBestAcc && newWpm > previousBestWpmAtBestAcc) return true;
+
+    // Rule 3: Lower accuracy or same-with-lower-WPM — not a PB
+    return false;
+  }
+
+  // ---- NON-TYPING: score based ----
+  const previousBestScore = Math.max(...previousScores);
+  return newScore > previousBestScore;
+}
+
+// ============================================
 // CREATE MODULE CERTIFICATE (Personal Best)
 // ============================================
 async function createModuleCertificate({
@@ -5207,7 +5281,7 @@ export default function Home() {
     try {
       const { data: moduleHistory, error: histErr } = await supabase
         .from('module_scores')
-        .select('id, score, created_at')
+        .select('id, score, wpm, accuracy, created_at')
         .eq('user_id', userId)
         .eq('module_name', selectedModule)
         .order('created_at', { ascending: false });
@@ -5216,35 +5290,41 @@ export default function Home() {
         console.error('Milestone history fetch error:', histErr.message);
       } else if (moduleHistory && moduleHistory.length > 0) {
         const justSavedId = data && data.length > 0 ? data[0].id : null;
-        const previousScores = moduleHistory
-          .filter((row) => row.id !== justSavedId)
-          .map((row) => row.score || 0);
+        const previousRows = moduleHistory.filter((row) => row.id !== justSavedId);
+
+        const previousScores = previousRows.map((row) => row.score || 0);
+        const previousWpms = previousRows.map((row) =>
+          typeof row.wpm === 'number' ? row.wpm : null
+        );
+        const previousAccuracies = previousRows.map((row) =>
+          typeof row.accuracy === 'number' ? row.accuracy : null
+        );
 
         const previousBest =
           previousScores.length > 0 ? Math.max(...previousScores) : null;
 
-        // ⬇️ Shared metrics for typing modules — passed to notifications + certs
+        const currentWpm =
+          selectedModule === 'typing' && typeof extraData?.wpm === 'number'
+            ? extraData.wpm
+            : null;
+        const currentAccuracy =
+          selectedModule === 'typing' && typeof extraData?.accuracy === 'number'
+            ? extraData.accuracy
+            : null;
+
         const typingMetrics =
           selectedModule === 'typing'
-            ? {
-                wpm: typeof extraData?.wpm === 'number' ? extraData.wpm : null,
-                accuracy: typeof extraData?.accuracy === 'number' ? extraData.accuracy : null,
-              }
+            ? { wpm: currentWpm, accuracy: currentAccuracy }
             : { wpm: null, accuracy: null };
 
-        // ⬇️ Build the cert history once — reused by PB and Perfect branches
         const historyForCert = [
-          ...moduleHistory
-            .filter((row) => row.id !== justSavedId)
-            .map((row) => ({ score: row.score || 0, created_at: row.created_at })),
+          ...previousRows
+            .map((row) => ({ score: row.score || 0, created_at: row.created_at }))
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
           { score: finalPct, created_at: new Date().toISOString() },
-        ].sort(
-          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
+        ];
 
-        // ============================================
-        // Milestone 1: First attempt ever
-        // ============================================
+        // ---- Milestone 1: First attempt ----
         if (previousScores.length === 0) {
           await sendMilestoneNotification({
             userId,
@@ -5255,10 +5335,18 @@ export default function Home() {
           });
         }
 
-        // ============================================
-        // Milestone 2: New personal best (also fires when it's a first attempt AND > 0, skip first)
-        // ============================================
-        if (previousScores.length > 0 && finalPct > (previousBest ?? 0)) {
+        // ---- Milestone 2: Personal best (module-aware) ----
+        const isPB = isNewPersonalBest({
+          moduleName: selectedModule,
+          newScore: finalPct,
+          newWpm: currentWpm,
+          newAccuracy: currentAccuracy,
+          previousScores,
+          previousWpms,
+          previousAccuracies,
+        });
+
+        if (isPB) {
           const cert = await createModuleCertificate({
             userId,
             moduleName: selectedModule,
@@ -5280,16 +5368,12 @@ export default function Home() {
             score: finalPct,
             previousBest: previousBest ?? 0,
             certificateId: cert?.id,
-            // ⬇️ Pass typing metrics so the notification message can include WPM/accuracy
             extra: typingMetrics.wpm !== null ? typingMetrics : undefined,
           });
         }
 
-        // ============================================
-        // Milestone 3: Perfect score (independent of PB — first-ever 100% gets a cert even if it's also a PB)
-        // ============================================
+        // ---- Milestone 3: Perfect score ----
         if (finalPct === 100) {
-          // Check if a perfect-score cert already exists for this module
           const { data: existingCert } = await supabase
             .from('module_certificates')
             .select('id')
@@ -5299,8 +5383,6 @@ export default function Home() {
             .maybeSingle();
 
           if (!existingCert) {
-            console.log('🎯 [Milestone 3] First-ever 100% in this module — creating cert');
-
             const perfectCert = await createModuleCertificate({
               userId,
               moduleName: selectedModule,
@@ -5321,11 +5403,8 @@ export default function Home() {
               moduleName: selectedModule,
               score: 100,
               certificateId: perfectCert?.id,
-              // ⬇️ Pass typing metrics
               extra: typingMetrics.wpm !== null ? typingMetrics : undefined,
             });
-          } else {
-            console.log('⏭️ [Milestone 3] Skipped — perfect-score cert already exists');
           }
         }
       }
